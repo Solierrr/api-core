@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.solaria.persistence.domain.entity.Position;
 import com.solaria.persistence.domain.entity.User;
@@ -51,6 +52,7 @@ public class RbacAuthorizationService {
     }
 
     // Lógica de RBAC
+    @Transactional(readOnly = true)
     public void requireEndpointAccess(String endpointIdentifier) {
         if (BOOTSTRAP_ALWAYS_OPEN.contains(endpointIdentifier)) {
             return;
@@ -64,6 +66,7 @@ public class RbacAuthorizationService {
     }
 
     // Checagem de permissão do usuário / ADMIN ignora isso por ter acesso a todos os Endpoints
+    @Transactional(readOnly = true)
     public boolean hasEndpointAccess(String endpointIdentifier) {
         return resolveUserCompany()
                 .map(uc -> isAdmin(uc.getPosition())
@@ -72,6 +75,7 @@ public class RbacAuthorizationService {
     }
 
     // checagem de empresa pertencente ao usuário
+    @Transactional(readOnly = true)
     public void requireOwnCompany(UUID companyId) {
         boolean sameCompany = resolveUserCompany()
                 .map(uc -> uc.getCompany().getId().equals(companyId))
@@ -81,8 +85,19 @@ public class RbacAuthorizationService {
         }
     }
 
+    @Transactional(readOnly = true)
     public boolean currentUserHasNoCompanyLink() {
         return resolveUserCompany().isEmpty();
+    }
+
+
+    // checagem de usuário dono da entity -> apenas o próprio usuario pode alterar seus dados(admin não faz bypass)
+    @Transactional(readOnly = true)
+    public void requireOwnUser(UUID userId) {
+        boolean isSelf = currentUser().map(user -> user.getId().equals(userId)).orElse(false);
+        if (!isSelf) {
+            throw new UnauthorizedAccessException("O objeto da operação não foi encontrado.");
+        }
     }
 
     private Optional<UserCompany> resolveUserCompany() {

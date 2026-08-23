@@ -3,17 +3,16 @@ package com.solaria.persistence.dto.response;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Getter
 @Setter
-public class EnergyBillResponseDTO {
+public class LocalUnitPhotoResponseDTO {
 
     private UUID id;
     private UUID localUnitId;
-    private BigDecimal consumption;
-    private BigDecimal price;
-    private String photoUrl;
+    private String url;
+    private OffsetDateTime createdAt;
 
 }

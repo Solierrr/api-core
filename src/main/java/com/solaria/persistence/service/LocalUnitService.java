@@ -17,6 +17,7 @@ import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.AddressRepository;
 import com.solaria.persistence.repository.EnergyBillRepository;
+import com.solaria.persistence.repository.LocalUnitPhotoRepository;
 import com.solaria.persistence.repository.LocalUnitRepository;
 import com.solaria.persistence.repository.ProposalUnitRepository;
 import com.solaria.persistence.repository.RequesterRepository;
@@ -32,19 +33,22 @@ public class LocalUnitService {
     private final UnitSpecificationsRepository unitSpecificationsRepository;
     private final EnergyBillRepository energyBillRepository;
     private final ProposalUnitRepository proposalUnitRepository;
+    private final LocalUnitPhotoRepository localUnitPhotoRepository;
 
     public LocalUnitService(LocalUnitRepository localUnitRepository,
                             RequesterRepository requesterRepository,
                             AddressRepository addressRepository,
                             UnitSpecificationsRepository unitSpecificationsRepository,
                             EnergyBillRepository energyBillRepository,
-                            ProposalUnitRepository proposalUnitRepository) {
+                            ProposalUnitRepository proposalUnitRepository,
+                            LocalUnitPhotoRepository localUnitPhotoRepository) {
         this.localUnitRepository = localUnitRepository;
         this.requesterRepository = requesterRepository;
         this.addressRepository = addressRepository;
         this.unitSpecificationsRepository = unitSpecificationsRepository;
         this.energyBillRepository = energyBillRepository;
         this.proposalUnitRepository = proposalUnitRepository;
+        this.localUnitPhotoRepository = localUnitPhotoRepository;
     }
 
     @Transactional
@@ -100,7 +104,8 @@ public class LocalUnitService {
         }
         if (unitSpecificationsRepository.existsByLocalUnitId(id)
                 || energyBillRepository.existsByLocalUnitId(id)
-                || proposalUnitRepository.existsByLocalUnitId(id)) {
+                || proposalUnitRepository.existsByLocalUnitId(id)
+                || localUnitPhotoRepository.existsByLocalUnitId(id)) {
             throw new ResourceInUseException(
                     "Unidade Local não pode ser excluída: possui histórico/dependente(s) vinculado(s)");
         }
