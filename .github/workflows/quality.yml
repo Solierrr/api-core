@@ -21,4 +21,4 @@ jobs:
           cache: "maven"
 
       - name: Lint
-        run: ./mvnw org.apache.maven.plugins:maven-checkstyle-plugin:3.6.0:check -Dcheckstyle.config.location=google_checks.xml -Dcheckstyle.violationSeverity=warning -B
+        run: ./mvnw org.apache.maven.plugins:maven-checkstyle-plugin:3.6.0:check -Dcheckstyle.config.location=google_checks.xml -Dcheckstyle.violationSeverity=error -B
