@@ -11,6 +11,7 @@ public class TechnicianResponseDTO {
 
     private UUID id;
     private String crea;
+    private String slug;
     private PersonResponseDTO person;
 
 }

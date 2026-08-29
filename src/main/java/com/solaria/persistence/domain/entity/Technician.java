@@ -23,4 +23,7 @@ public class Technician {
 
     @Column(name = "crea", nullable = false)
     private String crea;
+
+    @Column(name = "slug", length = 160, nullable = false, unique = true)
+    private String slug;
 }
