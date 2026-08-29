@@ -11,7 +11,7 @@ public final class SlugUtil {
 
     private static final Pattern DIACRITICS = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
     private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-z0-9]+");
-    private static final Pattern EDGE_HYPHENS = Pattern.compile("^-+|-+$");
+    private static final Pattern EDGE_HYPHENS = Pattern.compile("(^-+)|(-+$)");
 
     private SlugUtil() {}
 

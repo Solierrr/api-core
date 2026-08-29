@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.solaria.persistence.dto.request.EnergyBillRequestDTO;
 import com.solaria.persistence.dto.response.EnergyBillResponseDTO;
@@ -49,4 +50,21 @@ public interface EnergyBillOpenApi {
             @ApiResponse(responseCode = "200", description = "Listagem retornada com sucesso")
     })
     ResponseEntity<List<EnergyBillResponseDTO>> findByLocalUnit(UUID localUnitId);
+
+    @Operation(
+        summary = "Anexa (ou substitui) a foto da conta de energia",
+        description = "Faz upload da imagem para o Cloudinary e associa à conta de energia informada."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Foto anexada com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Conta de energia não encontrada")
+    })
+    ResponseEntity<EnergyBillResponseDTO> attachPhoto(UUID id, MultipartFile file);
+
+    @Operation(summary = "Remove a foto da conta de energia")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Foto removida com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Conta de energia não encontrada")
+    })
+    ResponseEntity<Void> removePhoto(UUID id);
 }
