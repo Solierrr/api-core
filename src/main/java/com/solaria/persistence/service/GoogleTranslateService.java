@@ -40,9 +40,21 @@ public class GoogleTranslateService {
                     .retrieve()
                     .body(Map.class);
 
-            Map<String, Object> data = (Map<String, Object>) response.get("data");
-            List<List<Map<String, Object>>> detections = (List<List<Map<String, Object>>>) data.get("detections");
-            return (String) detections.get(0).get(0).get("language");
+            Map<String, Object> data = response == null ? null : (Map<String, Object>) response.get("data");
+            List<List<Map<String, Object>>> detections = data == null
+                    ? null : (List<List<Map<String, Object>>>) data.get("detections");
+
+            if (detections == null || detections.isEmpty() || detections.get(0).isEmpty()) {
+                throw new BusinessRuleException("Google Translate não retornou uma detecção de idioma válida");
+            }
+
+            String language = (String) detections.get(0).get(0).get("language");
+            if (language == null || language.isBlank()) {
+                throw new BusinessRuleException("Google Translate não retornou uma detecção de idioma válida");
+            }
+            return language;
+        } catch (BusinessRuleException ex) {
+            throw ex;
         } catch (RuntimeException ex) {
             LOGGER.error("Falha ao detectar idioma via Google Translate", ex);
             throw new BusinessRuleException("Não foi possível detectar o idioma do texto informado");
@@ -68,9 +80,18 @@ public class GoogleTranslateService {
                     .retrieve()
                     .body(Map.class);
 
-            Map<String, Object> data = (Map<String, Object>) response.get("data");
-            List<Map<String, Object>> translations = (List<Map<String, Object>>) data.get("translations");
+            Map<String, Object> data = response == null ? null : (Map<String, Object>) response.get("data");
+            List<Map<String, Object>> translations = data == null
+                    ? null : (List<Map<String, Object>>) data.get("translations");
+
+            if (translations == null || translations.size() != texts.size()) {
+                throw new BusinessRuleException(
+                        "Google Translate não retornou o número esperado de traduções");
+            }
+
             return translations.stream().map(t -> (String) t.get("translatedText")).toList();
+        } catch (BusinessRuleException ex) {
+            throw ex;
         } catch (RuntimeException ex) {
             LOGGER.error("Falha ao traduzir texto via Google Translate ({} -> {})", sourceShortCode, targetShortCode, ex);
             throw new BusinessRuleException("Não foi possível traduzir o conteúdo informado");
