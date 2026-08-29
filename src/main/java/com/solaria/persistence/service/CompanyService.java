@@ -21,6 +21,7 @@ import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.AddressRepository;
 import com.solaria.persistence.repository.BusinessContactRepository;
+import com.solaria.persistence.repository.CompanyPhotoRepository;
 import com.solaria.persistence.repository.CompanyPositionsRepository;
 import com.solaria.persistence.repository.CompanyRepository;
 import com.solaria.persistence.repository.RequesterRepository;
@@ -39,6 +40,7 @@ public class CompanyService {
     private final RequesterRepository requesterRepository;
     private final TechnicianAffiliationRepository technicianAffiliationRepository;
     private final CompanyPositionsRepository companyPositionsRepository;
+    private final CompanyPhotoRepository companyPhotoRepository;
 
     public CompanyService(CompanyRepository companyRepository,
                           AddressRepository addressRepository,
@@ -47,7 +49,8 @@ public class CompanyService {
                           SupplierRepository supplierRepository,
                           RequesterRepository requesterRepository,
                           TechnicianAffiliationRepository technicianAffiliationRepository,
-                          CompanyPositionsRepository companyPositionsRepository) {
+                          CompanyPositionsRepository companyPositionsRepository,
+                          CompanyPhotoRepository companyPhotoRepository) {
         this.companyRepository = companyRepository;
         this.addressRepository = addressRepository;
         this.businessContactRepository = businessContactRepository;
@@ -56,6 +59,7 @@ public class CompanyService {
         this.requesterRepository = requesterRepository;
         this.technicianAffiliationRepository = technicianAffiliationRepository;
         this.companyPositionsRepository = companyPositionsRepository;
+        this.companyPhotoRepository = companyPhotoRepository;
     }
 
     @Transactional
@@ -159,7 +163,8 @@ public class CompanyService {
                 || supplierRepository.existsByCompanyId(id)
                 || requesterRepository.existsByCompanyId(id)
                 || technicianAffiliationRepository.existsByCompanyId(id)
-                || companyPositionsRepository.existsByCompanyId(id)) {
+                || companyPositionsRepository.existsByCompanyId(id)
+                || companyPhotoRepository.existsByCompanyId(id)) {
             throw new ResourceInUseException(
                     "Empresa não pode ser excluída: possui vínculo(s) associado(s)");
         }

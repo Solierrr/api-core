@@ -18,6 +18,7 @@ import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.InventoryRepository;
+import com.solaria.persistence.repository.ModelPhotoRepository;
 import com.solaria.persistence.repository.ModelRepository;
 import com.solaria.persistence.repository.OfferRepository;
 
@@ -27,15 +28,18 @@ public class ModelService {
     private final ModelRepository modelRepository;
     private final InventoryRepository inventoryRepository;
     private final OfferRepository offerRepository;
+    private final ModelPhotoRepository modelPhotoRepository;
     private final ObjectMapper objectMapper;
 
     public ModelService(ModelRepository modelRepository,
                         InventoryRepository inventoryRepository,
                         OfferRepository offerRepository,
+                        ModelPhotoRepository modelPhotoRepository,
                         ObjectMapper objectMapper) {
         this.modelRepository = modelRepository;
         this.inventoryRepository = inventoryRepository;
         this.offerRepository = offerRepository;
+        this.modelPhotoRepository = modelPhotoRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -112,8 +116,10 @@ public class ModelService {
             throw new ResourceNotFoundException("Modelo com id:" + id + " não encontrado(a) para exclusão");
         }
 
-        if (inventoryRepository.existsByModelId(id) || offerRepository.existsByModelId(id)) {
-            throw new ResourceInUseException("Modelo não pode ser excluído(a): possui estoque/oferta vinculado(s)");
+        if (inventoryRepository.existsByModelId(id) || offerRepository.existsByModelId(id)
+                || modelPhotoRepository.existsByModelId(id)) {
+            throw new ResourceInUseException(
+                    "Modelo não pode ser excluído(a): possui estoque/oferta/foto vinculado(s)");
         }
 
         modelRepository.deleteById(id);

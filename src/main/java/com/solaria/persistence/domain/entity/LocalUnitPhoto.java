@@ -3,16 +3,16 @@ package com.solaria.persistence.domain.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "energy_bill")
+@Table(name = "local_unit_photo")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class EnergyBill {
+public class LocalUnitPhoto {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -22,15 +22,12 @@ public class EnergyBill {
     @JoinColumn(name = "fk_local_unit", nullable = false)
     private LocalUnit localUnit;
 
-    @Column(name = "consumption", nullable = false)
-    private BigDecimal consumption;
+    @Column(name = "url", nullable = false)
+    private String url;
 
-    @Column(name = "price", nullable = false)
-    private BigDecimal price;
+    @Column(name = "public_id", nullable = false)
+    private String publicId;
 
-    @Column(name = "photo_url")
-    private String photoUrl;
-
-    @Column(name = "photo_public_id")
-    private String photoPublicId;
+    @Column(name = "created_at", nullable = false)
+    private OffsetDateTime createdAt;
 }
