@@ -212,9 +212,11 @@ public class ProposalItemService {
                 .id(model.getId())
                 .brand(model.getBrand())
                 .model(model.getModel())
+                .type(model.getType())
                 .powerWp(model.getPowerWp())
                 .efficiency(model.getEfficiency())
-                .dimension(model.getDimension())
+                .width(model.getWidth())
+                .length(model.getLength())
                 .weight(model.getWeight())
                 .status(model.getStatus())
                 .build();

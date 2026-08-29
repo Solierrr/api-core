@@ -16,6 +16,7 @@ import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.PersonRepository;
 import com.solaria.persistence.repository.UserCompanyRepository;
+import com.solaria.persistence.repository.UserPhotoRepository;
 import com.solaria.persistence.repository.UserRepository;
 
 
@@ -25,15 +26,18 @@ public class UserService {
     private final UserRepository userRepository;
     private final PersonRepository personRepository;
     private final UserCompanyRepository userCompanyRepository;
+    private final UserPhotoRepository userPhotoRepository;
     private final ObjectMapper objectMapper;
 
     public UserService(UserRepository userRepository,
                         PersonRepository personRepository,
                         UserCompanyRepository userCompanyRepository,
+                        UserPhotoRepository userPhotoRepository,
                         ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.personRepository = personRepository;
         this.userCompanyRepository = userCompanyRepository;
+        this.userPhotoRepository = userPhotoRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -69,6 +73,9 @@ public class UserService {
         }
         if (userCompanyRepository.existsByUserId(id)) {
             throw new ResourceInUseException("Usuário não pode ser excluído: possui vínculo(s) de empresa");
+        }
+        if (userPhotoRepository.existsByUserId(id)) {
+            throw new ResourceInUseException("Usuário não pode ser excluído: possui foto(s) vinculada(s)");
         }
         userRepository.deleteById(id);
     }

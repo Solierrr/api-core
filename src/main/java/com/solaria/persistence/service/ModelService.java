@@ -18,6 +18,7 @@ import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.InventoryRepository;
+import com.solaria.persistence.repository.ModelPhotoRepository;
 import com.solaria.persistence.repository.ModelRepository;
 import com.solaria.persistence.repository.OfferRepository;
 
@@ -27,28 +28,33 @@ public class ModelService {
     private final ModelRepository modelRepository;
     private final InventoryRepository inventoryRepository;
     private final OfferRepository offerRepository;
+    private final ModelPhotoRepository modelPhotoRepository;
     private final ObjectMapper objectMapper;
 
     public ModelService(ModelRepository modelRepository,
                         InventoryRepository inventoryRepository,
                         OfferRepository offerRepository,
+                        ModelPhotoRepository modelPhotoRepository,
                         ObjectMapper objectMapper) {
         this.modelRepository = modelRepository;
         this.inventoryRepository = inventoryRepository;
         this.offerRepository = offerRepository;
+        this.modelPhotoRepository = modelPhotoRepository;
         this.objectMapper = objectMapper;
     }
 
     @Transactional
     public ModelResponseDTO save(ModelRequestDTO dto) {
-        validateNumericFields(dto.getPowerWp(), dto.getEfficiency(), dto.getDimension(), dto.getWeight());
+        validateNumericFields(dto.getPowerWp(), dto.getEfficiency(), dto.getWidth(), dto.getLength(), dto.getWeight());
 
         Model model = new Model();
         model.setBrand(dto.getBrand());
         model.setModel(dto.getModel());
+        model.setType(dto.getType());
         model.setPowerWp(dto.getPowerWp());
         model.setEfficiency(dto.getEfficiency());
-        model.setDimension(dto.getDimension());
+        model.setWidth(dto.getWidth());
+        model.setLength(dto.getLength());
         model.setWeight(dto.getWeight());
 
         return toResponse(modelRepository.save(model));
@@ -64,13 +70,15 @@ public class ModelService {
                     + " não permite edição (somente UNDER_ANALYSIS)");
         }
 
-        validateNumericFields(dto.getPowerWp(), dto.getEfficiency(), dto.getDimension(), dto.getWeight());
+        validateNumericFields(dto.getPowerWp(), dto.getEfficiency(), dto.getWidth(), dto.getLength(), dto.getWeight());
 
         model.setBrand(dto.getBrand());
         model.setModel(dto.getModel());
+        model.setType(dto.getType());
         model.setPowerWp(dto.getPowerWp());
         model.setEfficiency(dto.getEfficiency());
-        model.setDimension(dto.getDimension());
+        model.setWidth(dto.getWidth());
+        model.setLength(dto.getLength());
         model.setWeight(dto.getWeight());
 
         return toResponse(modelRepository.save(model));
@@ -112,8 +120,10 @@ public class ModelService {
             throw new ResourceNotFoundException("Modelo com id:" + id + " não encontrado(a) para exclusão");
         }
 
-        if (inventoryRepository.existsByModelId(id) || offerRepository.existsByModelId(id)) {
-            throw new ResourceInUseException("Modelo não pode ser excluído(a): possui estoque/oferta vinculado(s)");
+        if (inventoryRepository.existsByModelId(id) || offerRepository.existsByModelId(id)
+                || modelPhotoRepository.existsByModelId(id)) {
+            throw new ResourceInUseException(
+                    "Modelo não pode ser excluído(a): possui estoque/oferta/foto vinculado(s)");
         }
 
         modelRepository.deleteById(id);
@@ -136,15 +146,18 @@ public class ModelService {
         return modelRepository.findByStatus(status).stream().map(this::toResponse).toList();
     }
 
-    private void validateNumericFields(BigDecimal powerWp, BigDecimal efficiency, BigDecimal dimension, BigDecimal weight) {
+    private void validateNumericFields(BigDecimal powerWp, BigDecimal efficiency, BigDecimal width, BigDecimal length, BigDecimal weight) {
         if (powerWp.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidFieldException("Potência (Wp) inválida: " + powerWp);
         }
         if (efficiency.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidFieldException("Eficiência inválida: " + efficiency);
         }
-        if (dimension.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidFieldException("Dimensão inválida: " + dimension);
+        if (width.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidFieldException("Largura inválida: " + width);
+        }
+        if (length.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidFieldException("Comprimento inválido: " + length);
         }
         if (weight.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidFieldException("Peso inválido: " + weight);

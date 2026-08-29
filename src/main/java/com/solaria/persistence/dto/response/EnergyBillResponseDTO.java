@@ -14,5 +14,6 @@ public class EnergyBillResponseDTO {
     private UUID localUnitId;
     private BigDecimal consumption;
     private BigDecimal price;
+    private String photoUrl;
 
 }

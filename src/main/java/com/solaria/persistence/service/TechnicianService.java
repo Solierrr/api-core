@@ -18,6 +18,7 @@ import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.PersonRepository;
 import com.solaria.persistence.repository.TechnicianRepository;
+import com.solaria.persistence.util.SlugUtil;
 
 
 @Service
@@ -46,6 +47,7 @@ public class TechnicianService {
         Technician technician = new Technician();
         technician.setPerson(person);
         technician.setCrea(dto.getCrea());
+        technician.setSlug(generateUniqueSlug(person.getName()));
 
         return toResponse(technicianRepository.save(technician));
     }
@@ -87,10 +89,22 @@ public class TechnicianService {
         return technicianRepository.findAll().stream().map(this::toResponse).toList();
     }
 
+    private String generateUniqueSlug(String name) {
+        String base = SlugUtil.slugify(name);
+        String candidate = base;
+        int suffix = 2;
+        while (technicianRepository.existsBySlug(candidate)) {
+            candidate = base + "-" + suffix;
+            suffix++;
+        }
+        return candidate;
+    }
+
     private TechnicianResponseDTO toResponse(Technician technician) {
         TechnicianResponseDTO response = new TechnicianResponseDTO();
         response.setId(technician.getId());
         response.setCrea(technician.getCrea());
+        response.setSlug(technician.getSlug());
         response.setPerson(toPersonResponse(technician.getPerson()));
         return response;
     }

@@ -21,12 +21,14 @@ import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.AddressRepository;
 import com.solaria.persistence.repository.BusinessContactRepository;
+import com.solaria.persistence.repository.CompanyPhotoRepository;
 import com.solaria.persistence.repository.CompanyPositionsRepository;
 import com.solaria.persistence.repository.CompanyRepository;
 import com.solaria.persistence.repository.RequesterRepository;
 import com.solaria.persistence.repository.SupplierRepository;
 import com.solaria.persistence.repository.TechnicianAffiliationRepository;
 import com.solaria.persistence.repository.UserCompanyRepository;
+import com.solaria.persistence.util.SlugUtil;
 
 @Service
 public class CompanyService {
@@ -39,6 +41,7 @@ public class CompanyService {
     private final RequesterRepository requesterRepository;
     private final TechnicianAffiliationRepository technicianAffiliationRepository;
     private final CompanyPositionsRepository companyPositionsRepository;
+    private final CompanyPhotoRepository companyPhotoRepository;
 
     public CompanyService(CompanyRepository companyRepository,
                           AddressRepository addressRepository,
@@ -47,7 +50,8 @@ public class CompanyService {
                           SupplierRepository supplierRepository,
                           RequesterRepository requesterRepository,
                           TechnicianAffiliationRepository technicianAffiliationRepository,
-                          CompanyPositionsRepository companyPositionsRepository) {
+                          CompanyPositionsRepository companyPositionsRepository,
+                          CompanyPhotoRepository companyPhotoRepository) {
         this.companyRepository = companyRepository;
         this.addressRepository = addressRepository;
         this.businessContactRepository = businessContactRepository;
@@ -56,6 +60,7 @@ public class CompanyService {
         this.requesterRepository = requesterRepository;
         this.technicianAffiliationRepository = technicianAffiliationRepository;
         this.companyPositionsRepository = companyPositionsRepository;
+        this.companyPhotoRepository = companyPhotoRepository;
     }
 
     @Transactional
@@ -76,6 +81,7 @@ public class CompanyService {
         company.setCnpj(cnpj);
         company.setTradeName(dto.getTradeName());
         company.setCorporateName(dto.getCorporateName());
+        company.setSlug(generateUniqueSlug(dto.getTradeName()));
 
         return toResponse(companyRepository.save(company));
     }
@@ -159,7 +165,8 @@ public class CompanyService {
                 || supplierRepository.existsByCompanyId(id)
                 || requesterRepository.existsByCompanyId(id)
                 || technicianAffiliationRepository.existsByCompanyId(id)
-                || companyPositionsRepository.existsByCompanyId(id)) {
+                || companyPositionsRepository.existsByCompanyId(id)
+                || companyPhotoRepository.existsByCompanyId(id)) {
             throw new ResourceInUseException(
                     "Empresa não pode ser excluída: possui vínculo(s) associado(s)");
         }
@@ -212,6 +219,17 @@ public class CompanyService {
                         "Contato Empresarial não encontrado com ID: " + businessContactId));
     }
 
+    private String generateUniqueSlug(String tradeName) {
+        String base = SlugUtil.slugify(tradeName);
+        String candidate = base;
+        int suffix = 2;
+        while (companyRepository.existsBySlug(candidate)) {
+            candidate = base + "-" + suffix;
+            suffix++;
+        }
+        return candidate;
+    }
+
     private CompanyResponseDTO toResponse(Company company) {
         CompanyResponseDTO dto = new CompanyResponseDTO();
         dto.setId(company.getId());
@@ -219,6 +237,7 @@ public class CompanyService {
         dto.setCnpj(company.getCnpj());
         dto.setTradeName(company.getTradeName());
         dto.setCorporateName(company.getCorporateName());
+        dto.setSlug(company.getSlug());
         dto.setAddress(toAddressResponse(company.getAddress()));
         dto.setBusinessContact(toBusinessContactResponse(company.getBusinessContact()));
         return dto;

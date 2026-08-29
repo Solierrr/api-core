@@ -1,6 +1,7 @@
 package com.solaria.persistence.domain.entity;
 
 import com.solaria.persistence.domain.enums.ModelStatus;
+import com.solaria.persistence.domain.enums.PanelType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,14 +26,21 @@ public class Model {
     @Column(name = "model", nullable = false)
     private String model;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false)
+    private PanelType type;
+
     @Column(name = "power_wp", nullable = false)
     private BigDecimal powerWp;
 
     @Column(name = "efficiency", nullable = false)
     private BigDecimal efficiency;
 
-    @Column(name = "dimension", nullable = false)
-    private BigDecimal dimension;
+    @Column(name = "width", nullable = false)
+    private BigDecimal width;
+
+    @Column(name = "length", nullable = false)
+    private BigDecimal length;
 
     @Column(name = "weight", nullable = false)
     private BigDecimal weight;

@@ -42,4 +42,7 @@ public class Company {
 
     @Column(name = "corporate_name", length = 120, nullable = false)
     private String corporateName;
+
+    @Column(name = "slug", length = 160, nullable = false, unique = true)
+    private String slug;
 }
