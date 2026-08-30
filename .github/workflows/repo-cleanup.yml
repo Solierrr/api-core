@@ -1,0 +1,13 @@
+name: Cleanup branches
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  cleanup:
+    permissions:
+      contents: write
+      pull-requests: read
+    uses: Solierrr/.github/.github/workflows/repo-cleanup.yml@main
