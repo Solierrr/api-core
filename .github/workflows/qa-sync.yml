@@ -1,0 +1,13 @@
+name: Sync main <> QA
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync:
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: Solierrr/.github/.github/workflows/qa-sync.yml@main
