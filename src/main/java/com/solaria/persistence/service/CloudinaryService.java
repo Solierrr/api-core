@@ -12,16 +12,28 @@ import com.cloudinary.utils.ObjectUtils;
 import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.StorageException;
 
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
+
 /**
  * Classe centralizadora que fala diretamente com o SDK do Cloudinary.
+ *
+ * <p>
+ * As chamadas ao SDK sao envolvidas em uma {@link Observation} para render um
+ * span filho com latencia/erro dessa dependencia externa no trace da
+ * requisicao.
+ * </p>
  */
 @Service
 public class CloudinaryService {
 
     private final Cloudinary cloudinary;
+    // registry usado para criar o span das chamadas ao Cloudinary
+    private final ObservationRegistry observationRegistry;
 
-    public CloudinaryService(Cloudinary cloudinary) {
+    public CloudinaryService(Cloudinary cloudinary, ObservationRegistry observationRegistry) {
         this.cloudinary = cloudinary;
+        this.observationRegistry = observationRegistry;
     }
 
     // dto simples -> representa o resultado do upload
@@ -46,7 +58,6 @@ public class CloudinaryService {
             long maxBytes) // tamanho maxímo de arquivo permitido
     {
 
-
         // validação (vazio/tipo/tamanho) antes de chamar o SDK do cloudnary
         validate(file, allowedContentTypes, maxBytes);
 
@@ -62,21 +73,30 @@ public class CloudinaryService {
             options.put("public_id", publicId);
         }
 
-        try {
-            // comunicação com cloudnary-> retorna um map com o resultado do upload / upload síncrono
-            Map<?, ?> result = cloudinary // sdk que conversa com o cloudnary 
-            .uploader()
-            .upload(
-                file.getBytes(), // converte o arquivo para byte -> sdk recebe dados nesse formato 
-                options // configs do cloudnary
-                );
+
+        // comunicação com cloudnary + observation(logging)-> retorna um map com o resultado do upload / upload síncrono
+        Observation observation = Observation.createNotStarted("cloudinary.upload", observationRegistry)
+                .lowCardinalityKeyValue("cloudinary.folder", folder) // pasta do cloudinary para traces
+                .start();
+
+        try (Observation.Scope ignored = observation.openScope()) {
+            // comunicação com cloudnary-> retorna um map com o resultado do upload
+
+            Map<?, ?> result = cloudinary // sdk que conversa com o cloudnary
+                    .uploader()
+                    .upload(
+                            file.getBytes(), // converte o arquivo para byte -> sdk recebe dados nesse formato
+                            options // configs do cloudnary
+                    );
 
             // secure_url -> url pública do asset | public_id -> id interno -> usado em delete/sobrescrita
             return new UploadResult((String) result.get("secure_url"), (String) result.get("public_id"));
-
         } catch (IOException e) {
             // qualquer exception vira storageException e retornado como 502
+            observation.error(e);
             throw new StorageException("Falha ao enviar arquivo para o Cloudinary");
+        } finally {
+            observation.stop();
         }
     }
 
@@ -84,10 +104,21 @@ public class CloudinaryService {
         if (publicId == null || publicId.isBlank()) {
             return;
         }
-        try {
-            cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("invalidate", true));
+
+        // destroy sincrono, envolvido numa Observation -> span Sem tags de id
+        Observation observation = Observation.createNotStarted("cloudinary.delete", observationRegistry).start();
+        try (Observation.Scope ignored = observation.openScope()) {
+
+            cloudinary.uploader()
+            .destroy(publicId,
+             ObjectUtils.asMap("invalidate", true)
+             );
+
         } catch (IOException e) {
+            observation.error(e);
             throw new StorageException("Falha ao remover arquivo do Cloudinary");
+        } finally {
+            observation.stop();
         }
     }
 
