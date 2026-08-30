@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.solaria.persistence.dto.request.SupplierRequestDTO;
+import com.solaria.persistence.dto.request.SupplierSearchFilterDTO;
 import com.solaria.persistence.dto.response.SupplierResponseDTO;
+import com.solaria.persistence.dto.response.SupplierSearchResponseDTO;
 import com.solaria.persistence.openapi.SupplierOpenApi;
 import com.solaria.persistence.service.SupplierService;
 
@@ -33,6 +35,13 @@ public class SupplierController implements SupplierOpenApi {
     public ResponseEntity<SupplierResponseDTO> save(@Valid @RequestBody SupplierRequestDTO dto) {
         SupplierResponseDTO response = supplierService.save(dto);
         return ResponseEntity.created(URI.create("/api/suppliers/" + response.getId())).body(response);
+    }
+
+    @Override
+    @PostMapping("/search")
+    public ResponseEntity<SupplierSearchResponseDTO> search(
+            @Valid @RequestBody SupplierSearchFilterDTO filters) {
+        return ResponseEntity.ok(supplierService.search(filters));
     }
 
     @Override

@@ -19,6 +19,10 @@ public interface CompanyRepository extends JpaRepository<Company, UUID> {
 
     boolean existsByBusinessContactId(UUID businessContactId);
 
+    boolean existsBySlug(String slug);
+
+    Optional<Company> findBySlug(String slug);
+
     @Override
     @EntityGraph(attributePaths = {"address", "businessContact"})
     List<Company> findAll();

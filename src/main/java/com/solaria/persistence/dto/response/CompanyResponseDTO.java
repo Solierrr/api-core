@@ -15,6 +15,7 @@ public class CompanyResponseDTO {
     private String cnpj;
     private String tradeName;
     private String corporateName;
+    private String slug;
     private AddressResponseDTO address;
     private BusinessContactResponseDTO businessContact;
 

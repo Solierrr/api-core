@@ -1,33 +1,110 @@
-HELP.md
-target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
 
-### IntelliJ IDEA ###
-.idea
-*.iws
+# JetBrains
+.idea/
 *.iml
+*.iws
 *.ipr
 
-### NetBeans ###
+# Eclipse
+.classpath
+.project
+.settings/
+.factorypath
+
+# NetBeans
 /nbproject/private/
 /nbbuild/
 /dist/
-/nbdist/
 /.nb-gradle/
-build/
+
+# Visual Studio
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+
+# Visual Studio Code / Cursor
+.cursor/
+
+# SonarQube
+.sonar/
+
+# Claude Code
+.claude/
+
+# Fleet
+.fleet/
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Linux
+.directory
+
+# Compiled class files / packages
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# Kotlin
+.kotlin/
+
+# Logs / crash dumps
+*.log
+hs_err_pid*
+replay_pid*
+
+# HELP.md (gerado pelo Spring Initializr)
+HELP.md
+
+# Project-specific: keep generated sources tracked under src/main and src/test
+!**/src/main/**/target/
+!**/src/test/**/target/
 !**/src/main/**/build/
 !**/src/test/**/build/
-
-### VS Code ###
-.vscode/

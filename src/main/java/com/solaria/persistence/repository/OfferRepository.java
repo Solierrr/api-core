@@ -19,5 +19,7 @@ public interface OfferRepository extends JpaRepository<Offer, UUID> {
 
     boolean existsByModelId(UUID modelId);
 
+    boolean existsBySlug(String slug);
+
     List<Offer> findByExpirationDateIsNullOrExpirationDateAfter(OffsetDateTime now);
 }

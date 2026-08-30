@@ -6,7 +6,9 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 
 import com.solaria.persistence.dto.request.SupplierRequestDTO;
+import com.solaria.persistence.dto.request.SupplierSearchFilterDTO;
 import com.solaria.persistence.dto.response.SupplierResponseDTO;
+import com.solaria.persistence.dto.response.SupplierSearchResponseDTO;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -25,6 +27,16 @@ public interface SupplierOpenApi {
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos")
     })
     ResponseEntity<SupplierResponseDTO> save(SupplierRequestDTO dto);
+
+    @Operation(
+        summary = "Pesquisa fornecedores",
+        description = "Pesquisa fornecedores por texto livre e filtros de localização e tipo de negócio, com resultado paginado."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Pesquisa realizada com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Filtros de pesquisa inválidos")
+    })
+    ResponseEntity<SupplierSearchResponseDTO> search(SupplierSearchFilterDTO filters);
 
     @Operation(summary = "Busca um fornecedor pelo id e pela empresa")
     @ApiResponses({
