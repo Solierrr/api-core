@@ -10,13 +10,13 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.solaria.persistence.domain.entity.Position;
-import com.solaria.persistence.domain.entity.User;
-import com.solaria.persistence.domain.entity.UserCompany;
+import com.solaria.persistence.domain.entity.identity.Position;
+import com.solaria.persistence.domain.entity.identity.User;
+import com.solaria.persistence.domain.entity.identity.UserCompany;
 import com.solaria.persistence.exception.UnauthorizedAccessException;
-import com.solaria.persistence.repository.PositionPermissionRepository;
-import com.solaria.persistence.repository.UserCompanyRepository;
-import com.solaria.persistence.repository.UserRepository;
+import com.solaria.persistence.repository.identity.PositionPermissionRepository;
+import com.solaria.persistence.repository.identity.UserCompanyRepository;
+import com.solaria.persistence.repository.identity.UserRepository;
 
  /**
  * Resolve a autorização do usuário, em 2 camadas:
