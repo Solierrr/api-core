@@ -50,31 +50,6 @@
     "description": "A description for 'app.jwt.issuer'"
   },
   {
-    "name": "app.jwt.service.secret",
-    "type": "java.lang.String",
-    "description": "A description for 'app.jwt.service.secret'"
-  },
-  {
-    "name": "app.jwt.service.client-secret",
-    "type": "java.lang.String",
-    "description": "A description for 'app.jwt.service.client-secret'"
-  },
-  {
-    "name": "app.jwt.service.issuer",
-    "type": "java.lang.String",
-    "description": "A description for 'app.jwt.service.issuer'"
-  },
-  {
-    "name": "app.jwt.service.access-ttl-ms",
-    "type": "java.lang.String",
-    "description": "A description for 'app.jwt.service.access-ttl-ms'"
-  },
-  {
-    "name": "app.jwt.service.refresh-ttl-ms",
-    "type": "java.lang.String",
-    "description": "A description for 'app.jwt.service.refresh-ttl-ms'"
-  },
-  {
     "name": "google-translate.api-key",
     "type": "java.lang.String",
     "description": "Chave de API da Google Cloud Translation API (v2), usada para detectar o idioma e traduzir o conteudo das ofertas"
