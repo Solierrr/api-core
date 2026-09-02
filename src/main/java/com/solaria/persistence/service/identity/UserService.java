@@ -18,6 +18,8 @@ import com.solaria.persistence.repository.identity.PersonRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.repository.identity.UserPhotoRepository;
 import com.solaria.persistence.repository.identity.UserRepository;
+import com.solaria.persistence.security.CurrentUserService;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
 
 @Service
@@ -28,46 +30,49 @@ public class UserService {
     private final UserCompanyRepository userCompanyRepository;
     private final UserPhotoRepository userPhotoRepository;
     private final ObjectMapper objectMapper;
+    private final CurrentUserService currentUserService;
+    private final RbacAuthorizationService rbac;
 
     public UserService(UserRepository userRepository,
                         PersonRepository personRepository,
                         UserCompanyRepository userCompanyRepository,
                         UserPhotoRepository userPhotoRepository,
-                        ObjectMapper objectMapper) {
+                        ObjectMapper objectMapper,
+                        CurrentUserService currentUserService,
+                        RbacAuthorizationService rbac) {
         this.userRepository = userRepository;
         this.personRepository = personRepository;
         this.userCompanyRepository = userCompanyRepository;
         this.userPhotoRepository = userPhotoRepository;
         this.objectMapper = objectMapper;
-    }
-
-    @Transactional
-    public UserResponseDTO save(UserRequestDTO dto) {
-        User user = new User();
-        user.setAuth_id(dto.getAuthId());
-        user.setAvatar(dto.getAvatar());
-
-        return toResponse(userRepository.save(user));
+        this.currentUserService = currentUserService;
+        this.rbac = rbac;
     }
 
     @Transactional
     public UserResponseDTO update(UUID id, UserRequestDTO dto) {
+        currentUserService.getProvisionedCurrentUser();
         User user = userRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("Usuário com id:" + id + " não encontrado para atualização"));
+        rbac.requireOwnUser(user.getId());
         if (!user.getAuth_id().equals(dto.getAuthId())) {
             throw new InvalidFieldException("ID de autenticação (authId) imutável: " + dto.getAuthId());
         }
 
+        user.setUsername(dto.getUsername());
         user.setAvatar(dto.getAvatar());
+        user.setBanner(dto.getBanner());
 
         return toResponse(userRepository.save(user));
     }
 
     @Transactional
     public void deleteById(UUID id) {
+        currentUserService.getProvisionedCurrentUser();
         if (!userRepository.existsById(id)) {
             throw new ResourceNotFoundException("Usuário com id:" + id + " não encontrado para exclusão");
         }
+        rbac.requireOwnUser(id);
         if (personRepository.existsByUserId(id)) {
             throw new ResourceInUseException("Usuário não pode ser excluído: possui pessoa vinculada");
         }
@@ -77,6 +82,7 @@ public class UserService {
         if (userPhotoRepository.existsByUserId(id)) {
             throw new ResourceInUseException("Usuário não pode ser excluído: possui foto(s) vinculada(s)");
         }
+        userRepository.removeConnectionReferences(id);
         userRepository.deleteById(id);
     }
 

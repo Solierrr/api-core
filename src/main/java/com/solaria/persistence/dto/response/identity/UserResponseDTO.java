@@ -11,7 +11,8 @@ public class UserResponseDTO {
 
     private UUID id;
     private UUID authId;
+    private String username;
     private String avatar;
-    private Boolean active;
+    private String banner;
 
 }
