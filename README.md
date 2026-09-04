@@ -7,7 +7,7 @@
 3. Suba o serviço com:
 
    ```bash
-   infisical run --env=dev --path=/ --recursive -- ./mvnw spring-boot:run
+   infisical run --env=local --path=/ --recursive -- ./mvnw spring-boot:run
    ```
 
 Não é mais necessário copiar `.env.example` pra `.env` manualmente — o Infisical injeta as variáveis em runtime.
