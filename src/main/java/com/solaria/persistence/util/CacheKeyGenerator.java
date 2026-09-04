@@ -2,7 +2,7 @@ package com.solaria.persistence.util;
 
 import org.springframework.stereotype.Component;
 import com.solaria.persistence.config.RedisProperties;
-import com.solaria.persistence.dto.request.SupplierSearchFilterDTO;
+import com.solaria.persistence.dto.request.catalog.SupplierSearchFilterDTO;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

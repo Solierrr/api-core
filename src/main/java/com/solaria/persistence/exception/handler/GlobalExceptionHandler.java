@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
@@ -22,17 +24,30 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import com.solaria.persistence.exception.BusinessException;
+import com.solaria.persistence.observability.HttpObservationErrors;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Classe responsável por centralizar tratamento de exceções
- * Diferentes handlers foram implementados visando cobrir escopos de: Banco de Dados,
+ * Diferentes handlers foram implementados visando cobrir escopos de: Banco de
+ * Dados,
  * Regras de negócio, Jsons, BEAN validations e erros inesperados.
+ *
+ * Logging -> toda exceção tratada é registrada como erro no tracing e nas
+ * métricas (span {@code ERROR} + tag {@code exception} em
+ * {@code http.server.requests})
+ * gerando um log correlacionado ao trace
+ * 
+ * {@code WARN} para 4xx
+ * {@code ERROR} com stack trace para 5xx
  */
+
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private final ProblemDetailFactory factory;
 
@@ -40,11 +55,31 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         this.factory = factory;
     }
 
+    // Informa à observabilidade que a request teve um erro
+    private void markObservationError(Throwable ex, HttpServletRequest request) {
+        HttpObservationErrors.mark(request, ex);
+    }
+
+    // Marca a observação como erro e registra um log correlacionado ao trace
+    private void recordError(Throwable ex, HttpStatusCode status, HttpServletRequest request) {
+        markObservationError(ex, request);
+        String method = (request != null) ? request.getMethod() : "?";
+        String uri = (request != null) ? request.getRequestURI() : "?";
+        if (status.is5xxServerError()) {
+            log.error("Falha {} em {} {}", status.value(), method, uri, ex);
+        } else {
+            log.warn("Erro {} em {} {}: {}", status.value(), method, uri, ex.getMessage());
+        }
+    }
+
     // Handler responsável por BusinessException e todas as subclasses.
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ProblemDetail> handleBusinessException(BusinessException ex,
-                                                                 HttpServletRequest request) {
+            HttpServletRequest request) {
+
+        recordError(ex, ex.getStatus(), request);
+
         ProblemDetail body = factory.create(
                 ex.getStatus(),
                 ex.getMessage(),
@@ -58,7 +93,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ProblemDetail> handleDataIntegrity(DataIntegrityViolationException ex,
-                                                             HttpServletRequest request) {
+            HttpServletRequest request) {
+
+        recordError(ex, HttpStatus.CONFLICT, request);
+
         ProblemDetail body = factory.create(HttpStatus.CONFLICT,
                 "A operação viola uma restrição do banco.",
                 "DATA_INTEGRITY_VIOLATION",
@@ -69,7 +107,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<ProblemDetail> handleOptimisticLock(OptimisticLockingFailureException ex,
-                                                              HttpServletRequest request) {
+            HttpServletRequest request) {
+
+        recordError(ex, HttpStatus.CONFLICT, request);
+
         ProblemDetail body = factory.create(HttpStatus.CONFLICT,
                 "O registro foi modificado por outra operação simultânea. Recarregue e tente novamente.",
                 "CONCURRENT_MODIFICATION",
@@ -80,7 +121,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ProblemDetail> handleEntityNotFound(EntityNotFoundException ex,
-                                                              HttpServletRequest request) {
+            HttpServletRequest request) {
+        recordError(ex, HttpStatus.NOT_FOUND, request);
+
         ProblemDetail body = factory.create(HttpStatus.NOT_FOUND,
                 "Registro não encontrado.",
                 "RESOURCE_NOT_FOUND",
@@ -89,12 +132,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
-    // Handler para negação de autorização vinda do próprio Spring Security 
-    // sem handler explícito, o catch-all de Exception abaixo capturaria primeiro e devolveria 500 em vez de 403
+    // Handler para negação de autorização vinda do Spring Security
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException ex,
-                                                             HttpServletRequest request) {
+            HttpServletRequest request) {
+        recordError(ex, HttpStatus.FORBIDDEN, request);
+
         ProblemDetail body = factory.create(HttpStatus.FORBIDDEN,
                 "Você não tem permissão para executar esta ação.",
                 "UNAUTHORIZED_ACCESS",
@@ -107,6 +151,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleUnexpected(Exception ex, HttpServletRequest request) {
+
+        // registra no span (status ERROR + evento de excecao) com stack trace
+        markObservationError(ex, request);
+        log.error("Unhandled exception on {} {}", request.getMethod(), request.getRequestURI(), ex);
+
         ProblemDetail body = factory.create(HttpStatus.INTERNAL_SERVER_ERROR,
                 "Ocorreu um erro interno inesperado. Se persistir, contate o suporte.",
                 "INTERNAL_ERROR",
@@ -119,9 +168,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
-                                                                  HttpHeaders headers,
-                                                                  HttpStatusCode status,
-                                                                  WebRequest request) {
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+                
+        recordError(ex, HttpStatus.BAD_REQUEST, servletRequest(request));
+
         List<Map<String, Object>> errors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
@@ -140,13 +192,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
-    // Sobrescrita de handler responsável por BEAN validation / parâmetros dos métodos.
+    // Sobrescrita de handler responsável por BEAN validation / parâmetros dos
+    // métodos.
 
     @Override
     protected ResponseEntity<Object> handleHandlerMethodValidationException(HandlerMethodValidationException ex,
-                                                                            HttpHeaders headers,
-                                                                            HttpStatusCode status,
-                                                                            WebRequest request) {
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        recordError(ex, HttpStatus.BAD_REQUEST, servletRequest(request));
+
         List<Map<String, Object>> errors = ex.getAllErrors()
                 .stream()
                 .map(err -> {
@@ -166,9 +221,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @Override
     protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex,
-                                                                  HttpHeaders headers,
-                                                                  HttpStatusCode status,
-                                                                  WebRequest request) {
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        recordError(ex, HttpStatus.BAD_REQUEST, servletRequest(request));
+
         ProblemDetail body = factory.create(HttpStatus.BAD_REQUEST,
                 "Corpo da requisição malformado ou ilegível.",
                 "MALFORMED_REQUEST",

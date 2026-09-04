@@ -8,7 +8,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -18,26 +17,19 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import com.solaria.persistence.security.service.ServiceTokenAuthFilter;
-import com.solaria.persistence.security.service.ServiceTokenProperties;
-import com.solaria.persistence.security.service.ServiceTokenProvider;
 
 /**
  * Duas SecurityFilterChain, estruturalmente independentes e segregadas
  * por @Order
  *
- * @Order(1): rotas -> internal/**; token/jwt de serviço M2M(API->API);
- * HS256/JJWT;
- * segredo compartilhado (SERVICE_JWT_SECRET), sem JWKS.
+ * @Order(1): rotas -> /internal/**; rotas internas de rede; 
+ * nunca expostas via Kong; alcançáveis apenas dentro do cluster
  *
  * @Order(2): rotas -> sem delimitador; JWT de usuário emitido pelo api-auth;
- * resource server RS256/JWKS; validado via NimbusJwtDecoder.withJwkSetUri(...);
- * sem segredo compartilhado.
+ * resource server RS256/JWKS; validado via NimbusJwtDecoder.withJwkSetUri(...).
  */
 
 // Registra esta classe como fonte de beans de configuração do Spring.
@@ -53,14 +45,12 @@ import com.solaria.persistence.security.service.ServiceTokenProvider;
 @EnableMethodSecurity
 
 // Liga as classes com @ConfigurationProperties como Beans
-@EnableConfigurationProperties({ JwtProperties.class, ServiceTokenProperties.class })
+@EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
 
         private final JwtProperties jwtProperties;
 
-        private final ServiceTokenProvider serviceTokenProvider;
-
-        // Handlers 401/403 compartilhados pelas duas chains
+        // Handlers 401/403 usados pela chain @Order(2)
         private final ProblemDetailAuthenticationEntryPoint problemDetailAuthenticationEntryPoint;
         private final ProblemDetailAccessDeniedHandler problemDetailAccessDeniedHandler;
 
@@ -69,11 +59,9 @@ public class SecurityConfig {
         private String allowedOrigins;
 
         public SecurityConfig(JwtProperties jwtProperties,
-                        ServiceTokenProvider serviceTokenProvider,
                         ProblemDetailAuthenticationEntryPoint problemDetailAuthenticationEntryPoint,
                         ProblemDetailAccessDeniedHandler problemDetailAccessDeniedHandler) {
                 this.jwtProperties = jwtProperties;
-                this.serviceTokenProvider = serviceTokenProvider;
                 this.problemDetailAuthenticationEntryPoint = problemDetailAuthenticationEntryPoint;
                 this.problemDetailAccessDeniedHandler = problemDetailAccessDeniedHandler;
         }
@@ -87,29 +75,14 @@ public class SecurityConfig {
                 http
                                 // Restringe essa chain apenas para /internal/**
                                 .securityMatcher("/internal/**")
-                                // CSRF desabilitado
+                                // CSRF desabilitado 
                                 .csrf(csrf -> csrf.disable())
-                                // HttpSession não é usado/criado. toda request se autentica sozinha pelo header
+                                // HttpSession não é usado/criado
                                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 // CorsConfigurationSource é a mesma para as duas chains
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                // adiciona filtro de token antes de qualquer verificação de autorização
-                                .addFilterBefore(new ServiceTokenAuthFilter(serviceTokenProvider),
-                                                UsernamePasswordAuthenticationFilter.class)
-                                .authorizeHttpRequests(auth -> auth
-                                                // Fora do filtro de Bearer token
-                                                // mint autentica via clientSecret no corpo;
-                                                // refresh autentica via posse de um refresh token válido;
-                                                .requestMatchers(HttpMethod.POST,
-                                                                "/internal/service-tokens",
-                                                                "/internal/service-tokens/refresh")
-                                                .permitAll()
-                                                // Todo o resto de /internal/** exige autenticação
-                                                .anyRequest().authenticated())
-                                // Garante que exceptions usem o formato de ProblemDetail
-                                .exceptionHandling(e -> e
-                                                .authenticationEntryPoint(problemDetailAuthenticationEntryPoint)
-                                                .accessDeniedHandler(problemDetailAccessDeniedHandler));
+                                // Rotas internas -> sem autenticação de aplicação
+                                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
                 // Constrói e devolve a SecurityFilterChain configurada acima como o bean deste
                 // método
                 return http.build();
@@ -188,6 +161,8 @@ public class SecurityConfig {
                 configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
                 // headers permitidos
                 configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "apikey"));
+                // traz o traceId nas respostas de erro
+                configuration.setExposedHeaders(List.of("X-Trace-Id"));
                 // Aplica esta CorsConfiguration a todos os paths ("/**")
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", configuration);

@@ -7,7 +7,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import com.solaria.persistence.security.rbac.EndpointAuthorizationInterceptor;
 
 /**
- * Configuração MVC genérica 
+ * Configuração MVC genérica
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
@@ -22,6 +22,7 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(endpointAuthorizationInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/internal/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html");
+                .excludePathPatterns("/internal/**", "/actuator/**", "/v3/api-docs/**", "/swagger-ui/**",
+                        "/swagger-ui.html");
     }
 }
