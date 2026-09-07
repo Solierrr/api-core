@@ -10,5 +10,5 @@ exec infisical run \
   --token="$INFISICAL_TOKEN" \
   --projectId=2296d19c-5f3b-41e1-afa3-fcde39966a71 \
   --env="${INFISICAL_ENV:-qa}" \
-  --path=/database --path=/redis --path=/cloudinary --path=/google --path=/auth --path=/otel --path=/service-urls \
+  --path=/ \
   -- java -jar app.jar
