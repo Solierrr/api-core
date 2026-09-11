@@ -13,7 +13,5 @@ public class PositionRequestDTO {
     @Size(max = 12)
     private String name;
 
-    @NotBlank(message = "Acessos são obrigatórios")
-    private String accesses;
 
 }

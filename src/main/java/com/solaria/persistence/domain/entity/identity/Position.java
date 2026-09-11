@@ -30,7 +30,5 @@ public class Position {
     @Column(name = "name", length = 12, nullable = false)
     private String name;
 
-    @Column(name = "accesses", nullable = false)
-    private String accesses;
 
 }
