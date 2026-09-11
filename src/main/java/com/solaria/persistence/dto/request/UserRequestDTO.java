@@ -16,7 +16,14 @@ public class UserRequestDTO {
     @NotNull(message = "ID de autenticação é obrigatório")
     private UUID authId;
 
+    @NotNull(message = "Username é obrigatório")
+    @Pattern(regexp = RegexValidator.USERNAME_REGEX, message = "Username inválido")
+    private String username;
+
     @Pattern(regexp = RegexValidator.URL_REGEX, message = "Avatar inválido")
     private String avatar;
+
+    @Pattern(regexp = RegexValidator.URL_REGEX, message = "Banner inválido")
+    private String banner;
 
 }
