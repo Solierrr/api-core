@@ -20,8 +20,14 @@ public class User {
     @Column(name = "auth_id", nullable = false, unique = true)
     private UUID auth_id;
 
+    @Column(name = "username", nullable = false, unique = true, length = 30)
+    private String username;
+
     @Column(name = "avatar")
     private String avatar;
+
+    @Column(name = "banner")
+    private String banner;
 
     @Column(name = "active", nullable = false)
     private Boolean active = true;

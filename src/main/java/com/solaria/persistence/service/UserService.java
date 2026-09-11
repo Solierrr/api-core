@@ -41,7 +41,9 @@ public class UserService {
     public UserResponseDTO save(UserRequestDTO dto) {
         User user = new User();
         user.setAuth_id(dto.getAuthId());
+        user.setUsername(dto.getUsername());
         user.setAvatar(dto.getAvatar());
+        user.setBanner(dto.getBanner());
 
         return toResponse(userRepository.save(user));
     }
@@ -54,7 +56,9 @@ public class UserService {
             throw new InvalidFieldException("ID de autenticação (authId) imutável: " + dto.getAuthId());
         }
 
+        user.setUsername(dto.getUsername());
         user.setAvatar(dto.getAvatar());
+        user.setBanner(dto.getBanner());
 
         return toResponse(userRepository.save(user));
     }
