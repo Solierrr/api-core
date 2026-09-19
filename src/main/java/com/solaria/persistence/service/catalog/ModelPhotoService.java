@@ -18,6 +18,7 @@ import com.solaria.persistence.repository.catalog.ModelPhotoRepository;
 import com.solaria.persistence.repository.catalog.ModelRepository;
 import com.solaria.persistence.service.shared.CloudinaryService.UploadResult;
 import com.solaria.persistence.service.shared.CloudinaryService;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
 @Service
 public class ModelPhotoService {
@@ -29,15 +30,18 @@ public class ModelPhotoService {
     private final ModelRepository modelRepository;
     private final CloudinaryService cloudinaryService;
     private final CloudinaryProperties cloudinaryProperties;
+    private final RbacAuthorizationService rbac;
 
     public ModelPhotoService(ModelPhotoRepository modelPhotoRepository,
                              ModelRepository modelRepository,
                              CloudinaryService cloudinaryService,
-                             CloudinaryProperties cloudinaryProperties) {
+                             CloudinaryProperties cloudinaryProperties,
+                             RbacAuthorizationService rbac) {
         this.modelPhotoRepository = modelPhotoRepository;
         this.modelRepository = modelRepository;
         this.cloudinaryService = cloudinaryService;
         this.cloudinaryProperties = cloudinaryProperties;
+        this.rbac = rbac;
     }
 
 
@@ -46,6 +50,7 @@ public class ModelPhotoService {
         Model model = modelRepository.findById(modelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Modelo não encontrado(a) com ID: " + modelId));
 
+        rbac.requireOwnCompany(model.getCreatorCompanyId());
 
         UploadResult result = cloudinaryService.upload(file, folder(modelId), null, false,
                 ALLOWED_CONTENT_TYPES, MAX_BYTES);
@@ -71,6 +76,7 @@ public class ModelPhotoService {
         ModelPhoto photo = modelPhotoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Foto não encontrada com ID: " + id));
 
+        rbac.requireOwnCompany(photo.getModel().getCreatorCompanyId());
         cloudinaryService.delete(photo.getPublicId());
         modelPhotoRepository.delete(photo);
     }

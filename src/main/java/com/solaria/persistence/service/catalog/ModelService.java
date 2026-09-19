@@ -13,7 +13,6 @@ import com.solaria.persistence.domain.entity.catalog.Model;
 import com.solaria.persistence.domain.enums.catalog.ModelStatus;
 import com.solaria.persistence.dto.request.catalog.ModelRequestDTO;
 import com.solaria.persistence.dto.response.catalog.ModelResponseDTO;
-import com.solaria.persistence.exception.BusinessRuleException;
 import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
@@ -21,6 +20,7 @@ import com.solaria.persistence.repository.catalog.InventoryRepository;
 import com.solaria.persistence.repository.catalog.ModelPhotoRepository;
 import com.solaria.persistence.repository.catalog.ModelRepository;
 import com.solaria.persistence.repository.catalog.OfferRepository;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
 @Service
 public class ModelService {
@@ -30,17 +30,20 @@ public class ModelService {
     private final OfferRepository offerRepository;
     private final ModelPhotoRepository modelPhotoRepository;
     private final ObjectMapper objectMapper;
+    private final RbacAuthorizationService rbac;
 
     public ModelService(ModelRepository modelRepository,
                         InventoryRepository inventoryRepository,
                         OfferRepository offerRepository,
                         ModelPhotoRepository modelPhotoRepository,
-                        ObjectMapper objectMapper) {
+                        ObjectMapper objectMapper,
+                        RbacAuthorizationService rbac) {
         this.modelRepository = modelRepository;
         this.inventoryRepository = inventoryRepository;
         this.offerRepository = offerRepository;
         this.modelPhotoRepository = modelPhotoRepository;
         this.objectMapper = objectMapper;
+        this.rbac = rbac;
     }
 
     @Transactional
@@ -48,6 +51,8 @@ public class ModelService {
         validateNumericFields(dto.getPowerWp(), dto.getEfficiency(), dto.getWidth(), dto.getLength(), dto.getWeight());
 
         Model model = new Model();
+        model.setCreatorCompanyId(rbac.getCurrentCompanyId());
+        model.setStatus(ModelStatus.APPROVED);
         model.setBrand(dto.getBrand());
         model.setModel(dto.getModel());
         model.setType(dto.getType());
@@ -65,9 +70,10 @@ public class ModelService {
         Model model = modelRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("Modelo com id:" + id + " não encontrado(a) para atualização"));
 
-        if (model.getStatus() != ModelStatus.UNDER_ANALYSIS) {
-            throw new BusinessRuleException("Modelo não pode ser atualizado: status atual " + model.getStatus()
-                    + " não permite edição (somente UNDER_ANALYSIS)");
+        rbac.requireOwnCompany(model.getCreatorCompanyId());
+        if (inventoryRepository.existsByModelId(id) || offerRepository.existsByModelId(id)) {
+            throw new ResourceInUseException(
+                    "Modelo não pode ser atualizado: possui estoque/oferta vinculado(s)");
         }
 
         validateNumericFields(dto.getPowerWp(), dto.getEfficiency(), dto.getWidth(), dto.getLength(), dto.getWeight());
@@ -85,40 +91,10 @@ public class ModelService {
     }
 
     @Transactional
-    public ModelResponseDTO approve(UUID id) {
-        Model model = modelRepository.findById(id).orElseThrow(
-                () -> new ResourceNotFoundException("Modelo não encontrado(a) com ID: " + id));
-
-        if (model.getStatus() != ModelStatus.UNDER_ANALYSIS) {
-            throw new BusinessRuleException(
-                    "Transição de status inválida: " + model.getStatus() + " → " + ModelStatus.APPROVED);
-        }
-
-        model.setStatus(ModelStatus.APPROVED);
-
-        return toResponse(modelRepository.save(model));
-    }
-
-    @Transactional
-    public ModelResponseDTO reject(UUID id) {
-        Model model = modelRepository.findById(id).orElseThrow(
-                () -> new ResourceNotFoundException("Modelo não encontrado(a) com ID: " + id));
-
-        if (model.getStatus() != ModelStatus.UNDER_ANALYSIS) {
-            throw new BusinessRuleException(
-                    "Transição de status inválida: " + model.getStatus() + " → " + ModelStatus.REJECTED);
-        }
-
-        model.setStatus(ModelStatus.REJECTED);
-
-        return toResponse(modelRepository.save(model));
-    }
-
-    @Transactional
     public void deleteById(UUID id) {
-        if (!modelRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Modelo com id:" + id + " não encontrado(a) para exclusão");
-        }
+        Model model = modelRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Modelo com id:" + id + " não encontrado(a) para exclusão"));
+        rbac.requireOwnCompany(model.getCreatorCompanyId());
 
         if (inventoryRepository.existsByModelId(id) || offerRepository.existsByModelId(id)
                 || modelPhotoRepository.existsByModelId(id)) {
