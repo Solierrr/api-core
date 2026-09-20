@@ -74,6 +74,7 @@ public class UserService {
         if (userCompanyRepository.existsByUserId(id)) {
             throw new ResourceInUseException("Usuário não pode ser excluído: possui vínculo(s) de empresa");
         }
+        userRepository.removeConnectionReferences(id);
         userRepository.deleteById(id);
     }
 
