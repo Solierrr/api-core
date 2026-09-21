@@ -21,6 +21,7 @@ public interface OfferOpenApi {
         description = "Fornecedor e modelo são obrigatórios e imutáveis; o preço deve ser maior que zero; exige fornecedor ativo/em dia e modelo aprovado; a validade, quando informada, precisa ser futura."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "201", description = "Oferta criada com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos")
     })
@@ -31,6 +32,7 @@ public interface OfferOpenApi {
         description = "Fornecedor e modelo são imutáveis; o preço deve ser maior que zero e a validade, quando informada, precisa ser futura."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Oferta atualizada com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
             @ApiResponse(responseCode = "404", description = "Oferta não encontrada")
@@ -42,6 +44,7 @@ public interface OfferOpenApi {
         description = "Não é permitida a exclusão se a oferta estiver referenciada em algum item de proposta."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "204", description = "Oferta removida com sucesso"),
             @ApiResponse(responseCode = "404", description = "Oferta não encontrada")
     })
@@ -49,6 +52,7 @@ public interface OfferOpenApi {
 
     @Operation(summary = "Busca uma oferta pelo identificador, escopada à empresa")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Oferta encontrada"),
             @ApiResponse(responseCode = "404", description = "Oferta não encontrada")
     })
@@ -56,18 +60,21 @@ public interface OfferOpenApi {
 
     @Operation(summary = "Lista as ofertas cadastradas por um fornecedor")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Listagem realizada com sucesso")
     })
     ResponseEntity<List<OfferResponseDTO>> findBySupplier(UUID supplierId);
 
     @Operation(summary = "Lista todas as ofertas de uma empresa")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Listagem realizada com sucesso")
     })
     ResponseEntity<List<OfferResponseDTO>> findAllByCompany(UUID companyId);
 
     @Operation(summary = "Lista o catálogo público de ofertas vigentes")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Listagem realizada com sucesso")
     })
     ResponseEntity<List<OfferResponseDTO>> findCatalog();
