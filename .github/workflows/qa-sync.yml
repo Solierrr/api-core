@@ -1,12 +1,28 @@
 name: Sync main <> QA
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - main
+  issue_comment:
+    types: [created, edited]
 
 jobs:
+  post-checkbox:
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post sync checkbox
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body $'- [ ] Sync to QA\n\nMarque a caixa acima para sincronizar main -> qa.'
+
   sync:
+    if: github.event_name == 'issue_comment' && github.event.action == 'edited' && github.event.issue.pull_request && contains(github.event.comment.body, '- [x] Sync to QA')
     permissions:
       contents: write
       pull-requests: write
