@@ -1,0 +1,13 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release-please:
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: Solierrr/.github/.github/workflows/release-please.yml@main
