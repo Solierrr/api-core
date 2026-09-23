@@ -17,23 +17,26 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public interface PersonOpenApi {
 
     @Operation(
-        summary = "Cria uma nova pessoa",
-        description = "Nome, CPF e data de nascimento são obrigatórios; o CPF (11 dígitos) deve ser único e a data de nascimento precisa estar no passado; um usuário só pode ter uma Person, e o vínculo com o User é imutável."
+        summary = "Cria a pessoa do titular com contato inline",
+        description = "User vem do JWT. Nome, CPF de 11 dígitos e nascimento passado são obrigatórios. Contato inline opcional é criado na mesma transação; cada titular tem uma Person."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Autenticação necessária"),
             @ApiResponse(responseCode = "201", description = "Pessoa criada com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
-            @ApiResponse(responseCode = "409", description = "CPF já cadastrado para outra pessoa")
+            @ApiResponse(responseCode = "404", description = "Usuário autenticado não provisionado"),
+            @ApiResponse(responseCode = "409", description = "CPF ou usuário já cadastrado")
     })
     ResponseEntity<PersonResponseDTO> save(PersonRequestDTO dto);
 
     @Operation(
-        summary = "Atualiza uma pessoa existente",
-        description = "O CPF deve permanecer único, a data de nascimento precisa estar no passado, e o vínculo com o User é imutável."
+        summary = "Atualiza a pessoa do titular existente",
+        description = "CPF e titular são imutáveis. Contato inline mantém o ID atual; ausente ou null remove o contato na mesma transação."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Pessoa atualizada com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
+            @ApiResponse(responseCode = "403", description = "Recurso de outro titular"),
             @ApiResponse(responseCode = "404", description = "Pessoa não encontrada")
     })
     ResponseEntity<PersonResponseDTO> update(UUID id, PersonRequestDTO dto);
@@ -44,6 +47,7 @@ public interface PersonOpenApi {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Pessoa excluída com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Recurso de outro titular"),
             @ApiResponse(responseCode = "404", description = "Pessoa não encontrada")
     })
     ResponseEntity<Void> deleteById(UUID id);
@@ -51,11 +55,12 @@ public interface PersonOpenApi {
     @Operation(summary = "Busca uma pessoa pelo identificador")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Pessoa encontrada"),
+            @ApiResponse(responseCode = "403", description = "Recurso de outro titular"),
             @ApiResponse(responseCode = "404", description = "Pessoa não encontrada")
     })
     ResponseEntity<PersonResponseDTO> findById(UUID id);
 
-    @Operation(summary = "Lista todas as pessoas cadastradas")
+    @Operation(summary = "Lista somente a pessoa do titular")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de pessoas retornada com sucesso")
     })
