@@ -4,10 +4,20 @@ on:
   push:
     branches:
       - main
+  issue_comment:
+    types: [created, edited]
 
 jobs:
   release-please:
+    if: github.event_name == 'push'
     permissions:
       contents: write
       pull-requests: write
     uses: Solierrr/.github/.github/workflows/release-please.yml@main
+
+  release-please-merge:
+    if: github.event_name == 'issue_comment' && github.event.action == 'edited' && github.event.issue.pull_request && contains(github.event.comment.body, '- [x] Fazer release')
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: Solierrr/.github/.github/workflows/release-please-merge.yml@main
