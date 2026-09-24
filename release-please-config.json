@@ -6,8 +6,7 @@
   "packages": {
     ".": {
       "release-type": "simple",
-      "package-name": "api-core",
-      "release-as": "3.0.0"
+      "package-name": "api-core"
     }
   }
 }
