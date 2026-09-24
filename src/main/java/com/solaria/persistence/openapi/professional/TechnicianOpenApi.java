@@ -21,6 +21,7 @@ public interface TechnicianOpenApi {
         description = "Pessoa e número de registro (CREA) obrigatórios; uma pessoa só pode virar técnico uma vez."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "Autenticação necessária"),
             @ApiResponse(responseCode = "201", description = "Técnico criado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos")
     })
@@ -33,6 +34,7 @@ public interface TechnicianOpenApi {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Técnico atualizado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
+            @ApiResponse(responseCode = "403", description = "Recurso de outro titular"),
             @ApiResponse(responseCode = "404", description = "Técnico não encontrado")
     })
     ResponseEntity<TechnicianResponseDTO> update(UUID id, TechnicianRequestDTO dto);
@@ -40,6 +42,7 @@ public interface TechnicianOpenApi {
     @Operation(summary = "Remove um técnico pelo identificador")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Técnico removido com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Recurso de outro titular"),
             @ApiResponse(responseCode = "404", description = "Técnico não encontrado")
     })
     ResponseEntity<Void> deleteById(UUID id);
@@ -47,11 +50,12 @@ public interface TechnicianOpenApi {
     @Operation(summary = "Busca um técnico pelo identificador")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Técnico encontrado"),
+            @ApiResponse(responseCode = "403", description = "Recurso de outro titular"),
             @ApiResponse(responseCode = "404", description = "Técnico não encontrado")
     })
     ResponseEntity<TechnicianResponseDTO> findById(UUID id);
 
-    @Operation(summary = "Lista todos os técnicos cadastrados")
+    @Operation(summary = "Lista somente os técnicos do titular")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Listagem realizada com sucesso")
     })
