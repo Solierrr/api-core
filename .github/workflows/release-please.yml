@@ -1,0 +1,23 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+  issue_comment:
+    types: [created]
+
+jobs:
+  release-please:
+    if: github.event_name == 'push'
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: Solierrr/.github/.github/workflows/release-please.yml@main
+
+  release-please-merge:
+    if: github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.comment.body == '/release'
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: Solierrr/.github/.github/workflows/release-please-merge.yml@main

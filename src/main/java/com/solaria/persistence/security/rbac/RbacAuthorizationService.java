@@ -5,12 +5,14 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.solaria.persistence.domain.entity.Position;
-import com.solaria.persistence.domain.entity.UserCompany;
+import com.solaria.persistence.domain.entity.identity.Position;
+import com.solaria.persistence.domain.entity.identity.User;
+import com.solaria.persistence.domain.entity.identity.UserCompany;
 import com.solaria.persistence.exception.UnauthorizedAccessException;
-import com.solaria.persistence.repository.PositionPermissionRepository;
-import com.solaria.persistence.repository.UserCompanyRepository;
+import com.solaria.persistence.repository.identity.PositionPermissionRepository;
+import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.security.CurrentUserService;
 
  /**
@@ -55,6 +57,7 @@ public class RbacAuthorizationService {
     }
 
     // Lógica de RBAC
+    @Transactional(readOnly = true)
     public void requireEndpointAccess(String endpointIdentifier) {
         if (BOOTSTRAP_ALWAYS_OPEN.contains(endpointIdentifier)) {
             return;
@@ -71,6 +74,7 @@ public class RbacAuthorizationService {
     }
 
     // Checagem de permissão do usuário / ADMIN ignora isso por ter acesso a todos os Endpoints
+    @Transactional(readOnly = true)
     public boolean hasEndpointAccess(String endpointIdentifier) {
         return resolveUserCompany()
                 .map(uc -> isAdmin(uc.getPosition())
@@ -79,6 +83,7 @@ public class RbacAuthorizationService {
     }
 
     // checagem de empresa pertencente ao usuário
+    @Transactional(readOnly = true)
     public void requireOwnCompany(UUID companyId) {
         boolean sameCompany = resolveUserCompany()
                 .map(uc -> uc.getCompany().getId().equals(companyId))
@@ -88,8 +93,21 @@ public class RbacAuthorizationService {
         }
     }
 
+    @Transactional(readOnly = true)
     public boolean currentUserHasNoCompanyLink() {
         return resolveUserCompany().isEmpty();
+    }
+
+
+    // checagem de usuário dono da entity -> apenas o próprio usuario pode alterar seus dados(admin não faz bypass)
+    @Transactional(readOnly = true)
+    public void requireOwnUser(UUID userId) {
+        boolean isSelf = currentUserService.findCurrentUser()
+                .map(user -> user.getId().equals(userId))
+                .orElse(false);
+        if (!isSelf) {
+            throw new UnauthorizedAccessException("O objeto da operação não foi encontrado.");
+        }
     }
 
     private Optional<UserCompany> resolveUserCompany() {

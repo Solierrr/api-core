@@ -36,6 +36,9 @@
 # Visual Studio Code / Cursor
 .cursor/
 
+# SonarQube
+.sonar/
+
 # Claude Code
 .claude/
 

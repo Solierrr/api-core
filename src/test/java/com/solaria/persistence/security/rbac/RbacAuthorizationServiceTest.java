@@ -9,8 +9,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.solaria.persistence.repository.PositionPermissionRepository;
-import com.solaria.persistence.repository.UserCompanyRepository;
+import com.solaria.persistence.repository.identity.PositionPermissionRepository;
+import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.security.CurrentUserService;
 
 @ExtendWith(MockitoExtension.class)

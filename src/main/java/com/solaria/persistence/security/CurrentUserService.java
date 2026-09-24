@@ -8,10 +8,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 
-import com.solaria.persistence.domain.entity.User;
+import com.solaria.persistence.domain.entity.identity.User;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.exception.UnauthorizedAccessException;
-import com.solaria.persistence.repository.UserRepository;
+import com.solaria.persistence.repository.identity.UserRepository;
 
 @Component
 public class CurrentUserService {

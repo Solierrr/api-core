@@ -1,11 +1,11 @@
 name: Release
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   release:
-    runs-on: ubuntu-latest
-
-    steps:
-      - run: echo "Release ainda não configurada."
+    uses: Solierrr/.github/.github/workflows/docker-publish.yml@main
+    secrets: inherit
