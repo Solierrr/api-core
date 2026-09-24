@@ -4,9 +4,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,7 +13,7 @@ import com.solaria.persistence.domain.entity.identity.UserCompany;
 import com.solaria.persistence.exception.UnauthorizedAccessException;
 import com.solaria.persistence.repository.identity.PositionPermissionRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
-import com.solaria.persistence.repository.identity.UserRepository;
+import com.solaria.persistence.security.CurrentUserService;
 
  /**
  * Resolve a autorização do usuário, em 2 camadas:
@@ -39,14 +36,22 @@ public class RbacAuthorizationService {
             "POST /api/user-companies"
     );
 
-    private final UserRepository userRepository;
+    // Recursos pessoais exigem JWT válido, mas não vínculo ou permissão empresarial.
+    static final Set<String> AUTHENTICATED_USER_ENDPOINTS = Set.of(
+            "POST /api/connections",
+            "GET /api/connections",
+            "GET /api/connections/{id}",
+            "DELETE /api/connections/{id}"
+    );
+
+    private final CurrentUserService currentUserService;
     private final UserCompanyRepository userCompanyRepository;
     private final PositionPermissionRepository positionPermissionRepository;
 
-    public RbacAuthorizationService(UserRepository userRepository,
+    public RbacAuthorizationService(CurrentUserService currentUserService,
                                      UserCompanyRepository userCompanyRepository,
                                      PositionPermissionRepository positionPermissionRepository) {
-        this.userRepository = userRepository;
+        this.currentUserService = currentUserService;
         this.userCompanyRepository = userCompanyRepository;
         this.positionPermissionRepository = positionPermissionRepository;
     }
@@ -55,6 +60,9 @@ public class RbacAuthorizationService {
     @Transactional(readOnly = true)
     public void requireEndpointAccess(String endpointIdentifier) {
         if (BOOTSTRAP_ALWAYS_OPEN.contains(endpointIdentifier)) {
+            return;
+        }
+        if (AUTHENTICATED_USER_ENDPOINTS.contains(endpointIdentifier)) {
             return;
         }
         if (BOOTSTRAP_WHEN_NO_COMPANY_LINK.contains(endpointIdentifier) && currentUserHasNoCompanyLink()) {
@@ -94,23 +102,17 @@ public class RbacAuthorizationService {
     // checagem de usuário dono da entity -> apenas o próprio usuario pode alterar seus dados(admin não faz bypass)
     @Transactional(readOnly = true)
     public void requireOwnUser(UUID userId) {
-        boolean isSelf = currentUser().map(user -> user.getId().equals(userId)).orElse(false);
+        boolean isSelf = currentUserService.findCurrentUser()
+                .map(user -> user.getId().equals(userId))
+                .orElse(false);
         if (!isSelf) {
             throw new UnauthorizedAccessException("O objeto da operação não foi encontrado.");
         }
     }
 
     private Optional<UserCompany> resolveUserCompany() {
-        return currentUser().flatMap(user -> userCompanyRepository.findByUserId(user.getId()));
-    }
-
-    private Optional<User> currentUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!(auth instanceof JwtAuthenticationToken jwtAuth)) {
-            return Optional.empty();
-        }
-        UUID authId = UUID.fromString(jwtAuth.getToken().getSubject());
-        return userRepository.findByAuthId(authId);
+        return currentUserService.findCurrentUser()
+                .flatMap(user -> userCompanyRepository.findByUserId(user.getId()));
     }
 
     private boolean isAdmin(Position position) {

@@ -17,6 +17,8 @@ public final class RegexValidator {
 
     public static final String CPF_REGEX = "^\\d{11}$";
 
+    public static final String USERNAME_REGEX = "^[a-z0-9_]{3,30}$";
+
     private RegexValidator() {}
 
 }
