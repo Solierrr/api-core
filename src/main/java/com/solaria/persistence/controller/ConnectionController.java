@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.solaria.persistence.dto.request.ConnectionRequestDTO;
-import com.solaria.persistence.dto.response.UserResponseDTO;
+import com.solaria.persistence.dto.response.identity.UserResponseDTO;
 import com.solaria.persistence.openapi.ConnectionOpenApi;
 import com.solaria.persistence.service.ConnectionService;
 
