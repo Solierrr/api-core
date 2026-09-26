@@ -1,0 +1,27 @@
+name: Environment Status
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  qa:
+    permissions:
+      deployments: write
+    uses: Solierrr/.github/.github/workflows/environment-status.yml@main
+    with:
+      environment: QA
+      check: http
+      url: https://api-core-cqfn.onrender.com
+
+  production:
+    permissions:
+      deployments: write
+    uses: Solierrr/.github/.github/workflows/environment-status.yml@main
+    with:
+      environment: Production
+      check: gcloud-cluster
+      gcp_project_id: solaria-authenticator
+      gcp_cluster_name: solaria-gke
+      gcp_zone: us-central1-a
+    secrets:
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
