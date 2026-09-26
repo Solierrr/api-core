@@ -18,7 +18,7 @@ jobs:
       deployments: write
     uses: Solierrr/.github/.github/workflows/environment-status.yml@main
     with:
-      environment: Production
+      environment: PROD
       check: gcloud-cluster
       gcp_project_id: solaria-authenticator
       gcp_cluster_name: solaria-gke
