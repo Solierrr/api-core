@@ -10,7 +10,7 @@ on:
 
 jobs:
   post-checkbox:
-    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.head.ref != 'qa'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -19,11 +19,37 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body $'- [ ] Sync to QA\n\nMarque a caixa acima para sincronizar main -> qa.'
+          existing_pr=$(gh pr list --repo "${{ github.repository }}" --base qa --head main --state open --json number --jq '.[0].number')
+
+          message="Essa pull request foi mergeada diretamente na branch \`main\`, portanto a branch \`qa\` ficará desatualizada caso ela não seja sincronizada. Marque a caixa abaixo para sincronizar automaticamente a branch \`qa\`"
+          if [ -n "$existing_pr" ] && [ "$existing_pr" != "null" ]; then
+            existing_pr_url="https://github.com/${{ github.repository }}/pull/$existing_pr"
+            message="$message ou, se achar necessário, acesse diretamente a [pull request da sincronização]($existing_pr_url)."
+          else
+            message="$message."
+          fi
+
+          body=$(printf '%s\n' \
+            "## Sincronização de branches" \
+            "" \
+            "$message" \
+            "" \
+            "- [ ] **Sincronizar automaticamente a branch \`qa\`**" \
+            "" \
+            "<!-- qa-sync-source-command -->")
+
+          gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body "$body"
 
   sync:
-    if: github.event_name == 'issue_comment' && github.event.action == 'edited' && github.event.issue.pull_request && contains(github.event.comment.body, '- [x] Sync to QA')
+    if: |
+      github.event_name == 'issue_comment' && github.event.action == 'edited' && github.event.issue.pull_request &&
+      github.event.sender.login != 'github-actions[bot]' &&
+      contains(github.event.comment.body, '- [x] **Sincronizar automaticamente a branch `qa`**') &&
+      !contains(github.event.comment.body, 'Mergear automaticamente a pull request de sincronização')
     permissions:
       contents: write
       pull-requests: write
     uses: Solierrr/.github/.github/workflows/qa-sync.yml@main
+    with:
+      source-pr-number: ${{ github.event.issue.number }}
+      auto-merge: true

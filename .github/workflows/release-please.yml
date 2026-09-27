@@ -5,7 +5,11 @@ on:
     branches:
       - main
   issue_comment:
-    types: [created]
+    types: [created, edited]
+  pull_request_review:
+    types: [submitted]
+  check_suite:
+    types: [completed]
 
 jobs:
   release-please:
@@ -16,8 +20,37 @@ jobs:
     uses: Solierrr/.github/.github/workflows/release-please.yml@main
 
   release-please-merge:
-    if: github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.comment.body == '/release'
+    if: |
+      github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.sender.login != 'github-actions[bot]' && (
+        (github.event.action == 'created' && github.event.comment.body == '/release') ||
+        (github.event.action == 'edited' && contains(github.event.comment.body, '- [x] **Clique aqui para publicar a release automaticamente!**'))
+      )
     permissions:
       contents: write
       pull-requests: write
     uses: Solierrr/.github/.github/workflows/release-please-merge.yml@main
+    with:
+      update-source-status: true
+
+  release-please-finalize-after-command:
+    needs: release-please-merge
+    if: needs.release-please-merge.outputs.merge-requested == 'true'
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    uses: Solierrr/.github/.github/workflows/release-please-finalize.yml@main
+    with:
+      release-pr-number: ${{ needs.release-please-merge.outputs.release-pr-number }}
+
+  release-please-finalize-after-review:
+    if: |
+      (github.event_name == 'pull_request_review' && github.event.review.state == 'approved' && startsWith(github.event.pull_request.head.ref, 'release-please--')) ||
+      (github.event_name == 'check_suite' && github.event.action == 'completed' && github.event.check_suite.pull_requests[0] != null)
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    uses: Solierrr/.github/.github/workflows/release-please-finalize.yml@main
+    with:
+      release-pr-number: ${{ github.event_name == 'pull_request_review' && github.event.pull_request.number || github.event.check_suite.pull_requests[0].number }}
