@@ -7,7 +7,6 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -15,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.solaria.persistence.dto.patch.unit.UpdateLocalUnitAddressIdDTO;
+import com.solaria.persistence.dto.request.unit.LocalUnitUpdateRequestDTO;
 import com.solaria.persistence.dto.request.unit.LocalUnitRequestDTO;
 import com.solaria.persistence.dto.response.unit.LocalUnitResponseDTO;
 import com.solaria.persistence.openapi.unit.LocalUnitOpenApi;
@@ -42,15 +41,8 @@ public class LocalUnitController implements LocalUnitOpenApi {
     @Override
     @PutMapping("/{id}")
     public ResponseEntity<LocalUnitResponseDTO> update(@PathVariable UUID id,
-                                                         @Valid @RequestBody LocalUnitRequestDTO dto) {
+                                                         @Valid @RequestBody LocalUnitUpdateRequestDTO dto) {
         return ResponseEntity.ok(localUnitService.update(id, dto));
-    }
-
-    @Override
-    @PatchMapping("/{id}/address")
-    public ResponseEntity<LocalUnitResponseDTO> attachAddress(@PathVariable UUID id,
-                                                                 @Valid @RequestBody UpdateLocalUnitAddressIdDTO dto) {
-        return ResponseEntity.ok(localUnitService.attachAddress(id, dto.getAddressId()));
     }
 
     @Override
