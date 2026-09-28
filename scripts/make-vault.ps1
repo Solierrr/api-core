@@ -59,11 +59,15 @@ switch ($Action) {
     }
 
     'auth' {
-        if (-not (Get-Command infisical -ErrorAction SilentlyContinue)) {
+        $InfisicalCommand = Get-Command infisical.exe -ErrorAction SilentlyContinue
+        if (-not $InfisicalCommand) {
+            $InfisicalCommand = Get-Command infisical -ErrorAction SilentlyContinue
+        }
+        if (-not $InfisicalCommand) {
             throw "Infisical CLI not installed. Install it (https://infisical.com/docs/cli/overview), then run 'make vault-auth' again."
         }
 
-        $null = & infisical user get token --silent 2>$null
+        $null = & $InfisicalCommand.Source user get token --silent 2>$null
         if ($LASTEXITCODE -ne 0) {
             throw "No active Infisical session. Run 'infisical login', then retry 'make extract-env'."
         }
@@ -76,18 +80,18 @@ switch ($Action) {
             throw "Cannot find extract-env.ps1 at $ExtractEnvPath. Run 'make vault-config' first."
         }
 
-        $ExtractArguments = @()
+        $ExtractArguments = @{}
         if (-not [string]::IsNullOrWhiteSpace($Service)) {
-            $ExtractArguments += @('-Service', $Service)
+            $ExtractArguments['Service'] = $Service
         }
         if (-not [string]::IsNullOrWhiteSpace($Environment)) {
             if ($Environment -notin @('local', 'qa', 'prod')) {
                 throw "Invalid ENV '$Environment'. Use local, qa or prod (example: make extract-env ENV=qa)."
             }
-            $ExtractArguments += @('-Environment', $Environment)
+            $ExtractArguments['Environment'] = $Environment
         }
         if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
-            $ExtractArguments += @('-OutputPath', $OutputPath)
+            $ExtractArguments['OutputPath'] = $OutputPath
         }
 
         & $ExtractEnvPath @ExtractArguments
