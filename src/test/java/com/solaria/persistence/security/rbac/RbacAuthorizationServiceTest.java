@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.solaria.persistence.repository.identity.PlatformAdminRepository;
 import com.solaria.persistence.repository.identity.PositionPermissionRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.security.CurrentUserService;
@@ -39,12 +40,15 @@ class RbacAuthorizationServiceTest {
     @Mock
     private PositionPermissionRepository positionPermissionRepository;
 
+    @Mock
+    private PlatformAdminRepository platformAdminRepository;
+
     private RbacAuthorizationService rbac;
 
     @BeforeEach
     void setUp() {
         rbac = new RbacAuthorizationService(
-                currentUserService, userCompanyRepository, positionPermissionRepository);
+                currentUserService, userCompanyRepository, positionPermissionRepository, platformAdminRepository);
     }
 
     @Test
@@ -85,5 +89,28 @@ class RbacAuthorizationServiceTest {
                 () -> rbac.requireEndpointAccess("POST /api/user-companies"));
         assertThrows(UnauthorizedAccessException.class,
                 () -> rbac.requireEndpointAccess("POST /api/company-positions"));
+    }
+
+    @Test
+    void platformAdminBypassesCompanyAndPositionChecks() {
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        when(currentUserService.findCurrentUser()).thenReturn(Optional.of(user));
+        when(platformAdminRepository.existsByUserId(user.getId())).thenReturn(true);
+
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("POST /api/offers"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("POST /api/local-units"));
+    }
+
+    @Test
+    void nonPlatformAdminWithoutCompanyLinkIsStillRejected() {
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        when(currentUserService.findCurrentUser()).thenReturn(Optional.of(user));
+        when(platformAdminRepository.existsByUserId(user.getId())).thenReturn(false);
+        when(userCompanyRepository.findByUserId(user.getId())).thenReturn(Optional.empty());
+
+        assertThrows(UnauthorizedAccessException.class,
+                () -> rbac.requireEndpointAccess("POST /api/offers"));
     }
 }

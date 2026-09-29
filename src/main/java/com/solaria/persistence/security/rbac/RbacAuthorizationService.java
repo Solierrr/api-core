@@ -12,6 +12,7 @@ import com.solaria.persistence.domain.entity.identity.User;
 import com.solaria.persistence.domain.entity.identity.UserCompany;
 import com.solaria.persistence.domain.enums.company.CompanyType;
 import com.solaria.persistence.exception.UnauthorizedAccessException;
+import com.solaria.persistence.repository.identity.PlatformAdminRepository;
 import com.solaria.persistence.repository.identity.PositionPermissionRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.security.CurrentUserService;
@@ -44,7 +45,8 @@ public class RbacAuthorizationService {
             "GET /api/connections",
             "GET /api/connections/{id}",
             "DELETE /api/connections/{id}",
-            "POST /api/access-codes/redeem"
+            "POST /api/access-codes/redeem",
+            "GET /api/platform-admins/me"
     );
 
     static final Set<String> PUBLIC_CATALOG_ENDPOINTS = Set.of(
@@ -68,13 +70,16 @@ public class RbacAuthorizationService {
     private final CurrentUserService currentUserService;
     private final UserCompanyRepository userCompanyRepository;
     private final PositionPermissionRepository positionPermissionRepository;
+    private final PlatformAdminRepository platformAdminRepository;
 
     public RbacAuthorizationService(CurrentUserService currentUserService,
                                      UserCompanyRepository userCompanyRepository,
-                                     PositionPermissionRepository positionPermissionRepository) {
+                                     PositionPermissionRepository positionPermissionRepository,
+                                     PlatformAdminRepository platformAdminRepository) {
         this.currentUserService = currentUserService;
         this.userCompanyRepository = userCompanyRepository;
         this.positionPermissionRepository = positionPermissionRepository;
+        this.platformAdminRepository = platformAdminRepository;
     }
 
     // Lógica de RBAC
@@ -86,12 +91,23 @@ public class RbacAuthorizationService {
         if (AUTHENTICATED_USER_ENDPOINTS.contains(endpointIdentifier)) {
             return;
         }
+        // Admin Solaria (platform_admin) tem acesso irrestrito, desacoplado de
+        // qualquer vínculo empresa/cargo — ver fase 06 do plano de telas web.
+        if (isPlatformAdmin()) {
+            return;
+        }
         if (BOOTSTRAP_WHEN_NO_COMPANY_LINK.contains(endpointIdentifier) && currentUserHasNoCompanyLink()) {
             return;
         }
         if (!hasEndpointAccess(endpointIdentifier)) {
             throw new UnauthorizedAccessException("Operação não autorizado para o cargo: " + endpointIdentifier);
         }
+    }
+
+    private boolean isPlatformAdmin() {
+        return currentUserService.findCurrentUser()
+                .map(user -> platformAdminRepository.existsByUserId(user.getId()))
+                .orElse(false);
     }
 
     // Checagem de permissão do usuário / ADMIN ignora isso por ter acesso a todos os Endpoints
