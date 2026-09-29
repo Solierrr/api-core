@@ -9,14 +9,14 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.solaria.persistence.domain.entity.User;
+import com.solaria.persistence.domain.entity.identity.User;
 import com.solaria.persistence.dto.request.ConnectionRequestDTO;
-import com.solaria.persistence.dto.response.UserResponseDTO;
+import com.solaria.persistence.dto.response.identity.UserResponseDTO;
 import com.solaria.persistence.exception.BusinessRuleException;
 import com.solaria.persistence.exception.DuplicateResourceException;
 import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
-import com.solaria.persistence.repository.UserRepository;
+import com.solaria.persistence.repository.identity.UserRepository;
 import com.solaria.persistence.security.CurrentUserService;
 
 @Service

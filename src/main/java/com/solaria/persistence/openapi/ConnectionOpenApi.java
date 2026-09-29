@@ -6,7 +6,7 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 
 import com.solaria.persistence.dto.request.ConnectionRequestDTO;
-import com.solaria.persistence.dto.response.UserResponseDTO;
+import com.solaria.persistence.dto.response.identity.UserResponseDTO;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
