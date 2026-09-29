@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.solaria.persistence.domain.entity.identity.Position;
 import com.solaria.persistence.domain.entity.identity.User;
 import com.solaria.persistence.domain.entity.identity.UserCompany;
+import com.solaria.persistence.domain.enums.company.CompanyType;
 import com.solaria.persistence.exception.UnauthorizedAccessException;
 import com.solaria.persistence.repository.identity.PositionPermissionRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
@@ -26,22 +27,39 @@ public class RbacAuthorizationService {
 
     // Endpoints liberados do estado do usuário
     static final Set<String> BOOTSTRAP_ALWAYS_OPEN = Set.of(
-            "POST /api/users",
             "POST /api/companies"
     );
 
     // endpoints liberados enquanto o usuário não ter nenhum relacionamento UserCompany
-    static final Set<String> BOOTSTRAP_WHEN_NO_COMPANY_LINK = Set.of(
-            "POST /api/company-positions",
-            "POST /api/user-companies"
-    );
+    static final Set<String> BOOTSTRAP_WHEN_NO_COMPANY_LINK = Set.of();
 
     // Recursos pessoais exigem JWT válido, mas não vínculo ou permissão empresarial.
     static final Set<String> AUTHENTICATED_USER_ENDPOINTS = Set.of(
+            "GET /api/companies/{id}/contact-user",
+            "GET /api/users/auth/{authId}/summary",
+            "GET /api/users/me",
+            "PATCH /api/users/me",
+            "GET /api/user-companies/me",
             "POST /api/connections",
             "GET /api/connections",
             "GET /api/connections/{id}",
             "DELETE /api/connections/{id}"
+    );
+
+    static final Set<String> PUBLIC_CATALOG_ENDPOINTS = Set.of(
+            "GET /api/catalog/companies",
+            "GET /api/catalog/companies/{slug}",
+            "GET /api/catalog/offers",
+            "GET /api/catalog/offers/{companySlug}/{offerSlug}"
+    );
+
+    private static final Set<String> SUPPLIER_ENDPOINTS = Set.of(
+            "/api/models", "/api/model-photos", "/api/offers", "/api/inventories", "/api/suppliers"
+    );
+
+    private static final Set<String> DEMANDANT_ENDPOINTS = Set.of(
+            "/api/requesters", "/api/local-units", "/api/local-unit-photos",
+            "/api/unit-specifications", "/api/energy-bills"
     );
 
     private final CurrentUserService currentUserService;
@@ -59,7 +77,7 @@ public class RbacAuthorizationService {
     // Lógica de RBAC
     @Transactional(readOnly = true)
     public void requireEndpointAccess(String endpointIdentifier) {
-        if (BOOTSTRAP_ALWAYS_OPEN.contains(endpointIdentifier)) {
+        if (BOOTSTRAP_ALWAYS_OPEN.contains(endpointIdentifier) || PUBLIC_CATALOG_ENDPOINTS.contains(endpointIdentifier)) {
             return;
         }
         if (AUTHENTICATED_USER_ENDPOINTS.contains(endpointIdentifier)) {
@@ -77,9 +95,21 @@ public class RbacAuthorizationService {
     @Transactional(readOnly = true)
     public boolean hasEndpointAccess(String endpointIdentifier) {
         return resolveUserCompany()
-                .map(uc -> isAdmin(uc.getPosition())
-                        || positionHasPermission(uc.getPosition().getId(), endpointIdentifier))
+                .map(uc -> endpointMatchesCompanyType(uc.getCompany().getType(), endpointIdentifier)
+                        && (isAdmin(uc.getPosition())
+                            || positionHasPermission(uc.getPosition().getId(), endpointIdentifier)))
                 .orElse(false);
+    }
+
+    private boolean endpointMatchesCompanyType(CompanyType type, String endpointIdentifier) {
+        String path = endpointIdentifier.substring(endpointIdentifier.indexOf(' ') + 1);
+        if (SUPPLIER_ENDPOINTS.stream().anyMatch(prefix -> path.equals(prefix) || path.startsWith(prefix + "/"))) {
+            return type == CompanyType.SUPPLIER;
+        }
+        if (DEMANDANT_ENDPOINTS.stream().anyMatch(prefix -> path.equals(prefix) || path.startsWith(prefix + "/"))) {
+            return type == CompanyType.DEMANDANT;
+        }
+        return true;
     }
 
     // checagem de empresa pertencente ao usuário
