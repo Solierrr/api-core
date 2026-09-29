@@ -3,16 +3,21 @@ package com.solaria.persistence.dto.request.company;
 import com.solaria.persistence.util.RegexValidator;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.UUID;
+import com.solaria.persistence.domain.enums.company.CompanyType;
 
 @Setter
 @Getter
 public class CompanyRequestDTO {
+
+    @NotNull(message = "Tipo da empresa é obrigatório")
+    private CompanyType type;
 
     private UUID addressId;
 
