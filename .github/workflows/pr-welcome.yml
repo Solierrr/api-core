@@ -6,6 +6,7 @@ on:
 
 jobs:
   welcome:
+    if: github.actor != 'dependabot[bot]'
     permissions:
       pull-requests: write
     uses: Solierrr/.github/.github/workflows/pr-welcome.yml@main
