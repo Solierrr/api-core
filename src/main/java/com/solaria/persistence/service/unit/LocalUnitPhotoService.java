@@ -46,7 +46,7 @@ public class LocalUnitPhotoService {
 
     @Transactional
     public LocalUnitPhotoResponseDTO upload(UUID localUnitId, MultipartFile file) {
-        LocalUnit localUnit = localUnitRepository.findById(localUnitId)
+        LocalUnit localUnit = localUnitRepository.findForManagementById(localUnitId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Unidade Local não encontrada com ID: " + localUnitId));
 
@@ -73,7 +73,7 @@ public class LocalUnitPhotoService {
 
     @Transactional
     public void delete(UUID id) {
-        LocalUnitPhoto photo = localUnitPhotoRepository.findById(id)
+        LocalUnitPhoto photo = localUnitPhotoRepository.findForManagementById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Foto não encontrada com ID: " + id));
 
         rbac.requireOwnCompany(photo.getLocalUnit().getRequester().getCompany().getId());
@@ -85,6 +85,9 @@ public class LocalUnitPhotoService {
 
     @Transactional(readOnly = true)
     public List<LocalUnitPhotoResponseDTO> findByLocalUnit(UUID localUnitId) {
+        LocalUnit localUnit = localUnitRepository.findForManagementById(localUnitId)
+                .orElseThrow(() -> new ResourceNotFoundException("Unidade Local não encontrada com ID: " + localUnitId));
+        rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
         return localUnitPhotoRepository.findByLocalUnitIdOrderByCreatedAtDesc(localUnitId).stream()
                 .map(this::toResponse)
                 .toList();
