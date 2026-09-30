@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.0.1](https://github.com/Solierrr/api-core/compare/v3.0.0...v3.0.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* grant pull-requests write permission to release workflow ([54b5122](https://github.com/Solierrr/api-core/commit/54b51224129ad84802a91f3237bc4112e6c7262c))
+* pass vault arguments correctly in PowerShell ([0adbfb0](https://github.com/Solierrr/api-core/commit/0adbfb0de8d7bae420624d62344a7385087a159c))
+* support powershell secret extraction ([502254b](https://github.com/Solierrr/api-core/commit/502254bb047182df83875a5b8d42287fe5ef2706))
+
 ## [3.0.0](https://github.com/Solierrr/api-core/compare/v0.1.0...v3.0.0) (2026-09-24)
 
 
