@@ -1,0 +1,11 @@
+name: PR Welcome
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  welcome:
+    permissions:
+      pull-requests: write
+    uses: Solierrr/.github/.github/workflows/pr-welcome.yml@main
