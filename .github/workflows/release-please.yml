@@ -31,6 +31,8 @@ jobs:
     uses: Solierrr/.github/.github/workflows/release-please-merge.yml@main
     with:
       update-source-status: true
+    secrets:
+      RELEASE_BOT_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
 
   release-please-finalize-after-command:
     needs: release-please-merge
