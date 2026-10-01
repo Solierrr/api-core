@@ -21,6 +21,8 @@ import com.solaria.persistence.repository.catalog.InventoryRepository;
 import com.solaria.persistence.repository.catalog.ModelPhotoRepository;
 import com.solaria.persistence.repository.catalog.ModelRepository;
 import com.solaria.persistence.repository.catalog.OfferRepository;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
+import com.solaria.persistence.exception.UnauthorizedAccessException;
 
 @Service
 public class ModelService {
@@ -30,17 +32,20 @@ public class ModelService {
     private final OfferRepository offerRepository;
     private final ModelPhotoRepository modelPhotoRepository;
     private final ObjectMapper objectMapper;
+    private final RbacAuthorizationService rbac;
 
     public ModelService(ModelRepository modelRepository,
                         InventoryRepository inventoryRepository,
                         OfferRepository offerRepository,
                         ModelPhotoRepository modelPhotoRepository,
-                        ObjectMapper objectMapper) {
+                        ObjectMapper objectMapper,
+                        RbacAuthorizationService rbac) {
         this.modelRepository = modelRepository;
         this.inventoryRepository = inventoryRepository;
         this.offerRepository = offerRepository;
         this.modelPhotoRepository = modelPhotoRepository;
         this.objectMapper = objectMapper;
+        this.rbac = rbac;
     }
 
     @Transactional
@@ -48,6 +53,7 @@ public class ModelService {
         validateNumericFields(dto.getPowerWp(), dto.getEfficiency(), dto.getWidth(), dto.getLength(), dto.getWeight());
 
         Model model = new Model();
+        model.setCreatorCompanyId(rbac.getCurrentCompanyId());
         model.setBrand(dto.getBrand());
         model.setModel(dto.getModel());
         model.setType(dto.getType());
@@ -64,6 +70,7 @@ public class ModelService {
     public ModelResponseDTO update(UUID id, ModelRequestDTO dto) {
         Model model = modelRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("Modelo com id:" + id + " não encontrado(a) para atualização"));
+        requireOwner(model);
 
         if (model.getStatus() != ModelStatus.UNDER_ANALYSIS) {
             throw new BusinessRuleException("Modelo não pode ser atualizado: status atual " + model.getStatus()
@@ -116,8 +123,11 @@ public class ModelService {
 
     @Transactional
     public void deleteById(UUID id) {
-        if (!modelRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Modelo com id:" + id + " não encontrado(a) para exclusão");
+        Model model = modelRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Modelo com id:" + id + " não encontrado(a) para exclusão"));
+        requireOwner(model);
+        if (model.getStatus() != ModelStatus.UNDER_ANALYSIS) {
+            throw new BusinessRuleException("Somente modelos em análise podem ser removidos");
         }
 
         if (inventoryRepository.existsByModelId(id) || offerRepository.existsByModelId(id)
@@ -166,5 +176,12 @@ public class ModelService {
 
     private ModelResponseDTO toResponse(Model model) {
         return objectMapper.convertValue(model, ModelResponseDTO.class);
+    }
+
+    private void requireOwner(Model model) {
+        if (model.getCreatorCompanyId() == null) {
+            throw new UnauthorizedAccessException("Modelo sem autoria registrada não permite alteração empresarial");
+        }
+        rbac.requireOwnCompany(model.getCreatorCompanyId());
     }
 }

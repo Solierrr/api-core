@@ -21,6 +21,7 @@ import com.solaria.persistence.repository.shared.ContactRepository;
 import com.solaria.persistence.repository.identity.PersonRepository;
 import com.solaria.persistence.repository.professional.TechnicianRepository;
 import com.solaria.persistence.repository.identity.UserRepository;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
 @Service
 public class PersonService {
@@ -29,19 +30,23 @@ public class PersonService {
     private final UserRepository userRepository;
     private final ContactRepository contactRepository;
     private final TechnicianRepository technicianRepository;
+    private final RbacAuthorizationService rbac;
 
     public PersonService(PersonRepository personRepository,
                          UserRepository userRepository,
                          ContactRepository contactRepository,
-                         TechnicianRepository technicianRepository) {
+                         TechnicianRepository technicianRepository,
+                         RbacAuthorizationService rbac) {
         this.personRepository = personRepository;
         this.userRepository = userRepository;
         this.contactRepository = contactRepository;
         this.technicianRepository = technicianRepository;
+        this.rbac = rbac;
     }
 
     @Transactional
     public PersonResponseDTO save(PersonRequestDTO dto) {
+        rbac.requireOwnUser(dto.getUserId());
         validateBirthDate(dto.getBirthDate());
 
         User user = userRepository.findById(dto.getUserId())

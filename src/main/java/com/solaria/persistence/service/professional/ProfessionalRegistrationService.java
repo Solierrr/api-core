@@ -17,6 +17,7 @@ import com.solaria.persistence.repository.professional.CertificationRecordReposi
 import com.solaria.persistence.repository.professional.ProfessionRepository;
 import com.solaria.persistence.repository.professional.ProfessionalRegistrationRepository;
 import com.solaria.persistence.repository.professional.TechnicianRepository;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
 
 @Service
@@ -26,19 +27,23 @@ public class ProfessionalRegistrationService {
     private final TechnicianRepository technicianRepository;
     private final ProfessionRepository professionRepository;
     private final CertificationRecordRepository certificationRecordRepository;
+    private final RbacAuthorizationService rbac;
 
     public ProfessionalRegistrationService(ProfessionalRegistrationRepository professionalRegistrationRepository,
                                            TechnicianRepository technicianRepository,
                                            ProfessionRepository professionRepository,
-                                           CertificationRecordRepository certificationRecordRepository) {
+                                           CertificationRecordRepository certificationRecordRepository,
+                                           RbacAuthorizationService rbac) {
         this.professionalRegistrationRepository = professionalRegistrationRepository;
         this.technicianRepository = technicianRepository;
         this.professionRepository = professionRepository;
         this.certificationRecordRepository = certificationRecordRepository;
+        this.rbac = rbac;
     }
 
     @Transactional
     public ProfessionalRegistrationResponseDTO save(ProfessionalRegistrationRequestDTO dto) {
+        rbac.requireOwnUser(resolveTechnician(dto.getTechnicianId()).getPerson().getUser().getId());
         ProfessionalRegistration professionalRegistration = new ProfessionalRegistration();
         professionalRegistration.setTechnician(resolveTechnician(dto.getTechnicianId()));
         professionalRegistration.setProfession(resolveProfession(dto.getProfessionId()));

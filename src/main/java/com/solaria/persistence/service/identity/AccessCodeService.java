@@ -37,7 +37,7 @@ public class AccessCodeService {
 
     private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final int CODE_LENGTH = 8;
-    private static final int EXPIRATION_DAYS = 7;
+    private static final int EXPIRATION_DAYS = 1;
 
     private final AccessCodeRepository accessCodeRepository;
     private final CompanyRepository companyRepository;

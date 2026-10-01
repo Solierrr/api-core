@@ -18,6 +18,8 @@ import com.solaria.persistence.exception.UnauthorizedAccessException;
 import com.solaria.persistence.repository.identity.PermissionRepository;
 import com.solaria.persistence.repository.identity.PositionPermissionRepository;
 import com.solaria.persistence.repository.identity.PositionRepository;
+import com.solaria.persistence.repository.company.CompanyPositionsRepository;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
 
 @Service
@@ -26,13 +28,19 @@ public class PositionPermissionService {
     private final PositionPermissionRepository positionPermissionRepository;
     private final PositionRepository positionRepository;
     private final PermissionRepository permissionRepository;
+    private final CompanyPositionsRepository companyPositionsRepository;
+    private final RbacAuthorizationService rbac;
 
     public PositionPermissionService(PositionPermissionRepository positionPermissionRepository,
                                      PositionRepository positionRepository,
-                                     PermissionRepository permissionRepository) {
+                                     PermissionRepository permissionRepository,
+                                     CompanyPositionsRepository companyPositionsRepository,
+                                     RbacAuthorizationService rbac) {
         this.positionPermissionRepository = positionPermissionRepository;
         this.positionRepository = positionRepository;
         this.permissionRepository = permissionRepository;
+        this.companyPositionsRepository = companyPositionsRepository;
+        this.rbac = rbac;
     }
 
     @Transactional
@@ -41,6 +49,11 @@ public class PositionPermissionService {
                 () -> new ResourceNotFoundException("Cargo não encontrado com ID: " + dto.getPositionId()));
         Permission permission = permissionRepository.findById(dto.getPermissionId()).orElseThrow(
                 () -> new ResourceNotFoundException("Permissão não encontrada com ID: " + dto.getPermissionId()));
+
+        requireMutablePosition(position);
+        if (!rbac.hasEndpointAccess(permission.getPermissionName())) {
+            throw new UnauthorizedAccessException("Não é permitido conceder uma permissão que o próprio acesso não possui");
+        }
 
         if (positionPermissionRepository.existsByPositionIdAndPermissionId(dto.getPositionId(), dto.getPermissionId())) {
             throw new DuplicateResourceException(
@@ -60,16 +73,31 @@ public class PositionPermissionService {
                 () -> new ResourceNotFoundException(
                         "Vínculo cargo-permissão com id:" + id + " não encontrado(a) para exclusão"));
 
-        if (Position.ADMIN_NAME.equals(positionPermission.getPosition().getName())) {
-            throw new UnauthorizedAccessException("Revogar permissão de ADMIN não é permitido");
-        }
+        requireMutablePosition(positionPermission.getPosition());
 
         positionPermissionRepository.deleteById(id);
     }
 
     @Transactional(readOnly = true)
     public List<PositionPermissionResponseDTO> findByPosition(UUID positionId) {
+        var links = companyPositionsRepository.findByPositionId(positionId);
+        if (links.isEmpty()) {
+            throw new UnauthorizedAccessException("Cargo não disponível para a empresa");
+        }
+        UUID companyId = rbac.getCurrentCompanyId();
+        boolean ownCompany = links.stream().anyMatch(link -> link.getCompany().getId().equals(companyId));
+        if (!ownCompany) {
+            throw new UnauthorizedAccessException("Cargo não disponível para a empresa");
+        }
         return positionPermissionRepository.findByPositionId(positionId).stream().map(this::toResponse).toList();
+    }
+
+    private void requireMutablePosition(Position position) {
+        var links = companyPositionsRepository.findByPositionId(position.getId());
+        if (Position.ADMIN_NAME.equals(position.getName()) || links.size() != 1) {
+            throw new UnauthorizedAccessException("Permissões de cargos compartilhados não podem ser alteradas");
+        }
+        rbac.requireOwnCompany(links.getFirst().getCompany().getId());
     }
 
     private PositionPermissionResponseDTO toResponse(PositionPermission entity) {
@@ -87,6 +115,8 @@ public class PositionPermissionService {
         PermissionResponseDTO dto = new PermissionResponseDTO();
         dto.setId(permission.getId());
         dto.setPermissionName(permission.getPermissionName());
+        dto.setName(permission.getName());
+        dto.setDescription(permission.getDescription());
         return dto;
     }
 }

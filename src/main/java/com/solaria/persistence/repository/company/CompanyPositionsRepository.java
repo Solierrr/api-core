@@ -13,6 +13,8 @@ public interface CompanyPositionsRepository extends JpaRepository<CompanyPositio
 
     List<CompanyPositions> findByCompanyId(UUID companyId);
 
+    List<CompanyPositions> findByPositionId(UUID positionId);
+
     Optional<CompanyPositions> findByIdAndCompanyId(UUID id, UUID companyId);
 
     boolean existsByCompanyIdAndPositionId(UUID companyId, UUID positionId);

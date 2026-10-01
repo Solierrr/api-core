@@ -16,6 +16,7 @@ import com.solaria.persistence.domain.entity.identity.Position;
 import com.solaria.persistence.exception.DuplicateResourceException;
 import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
+import com.solaria.persistence.exception.UnauthorizedAccessException;
 import com.solaria.persistence.repository.company.CompanyPositionsRepository;
 import com.solaria.persistence.repository.company.CompanyRepository;
 import com.solaria.persistence.repository.identity.PositionRepository;
@@ -48,6 +49,7 @@ public class CompanyPositionsService {
 
     @Transactional
     public CompanyPositionsResponseDTO save(CompanyPositionsRequestDTO dto) {
+        rbac.requireOwnCompany(dto.getCompanyId());
         Company company = companyRepository.findById(dto.getCompanyId()).orElseThrow(
                 () -> new ResourceNotFoundException("Empresa não encontrada com ID: " + dto.getCompanyId()));
         Position position = positionRepository.findById(dto.getPositionId()).orElseThrow(
@@ -58,9 +60,9 @@ public class CompanyPositionsService {
                     "Cargo já disponibilizado para a empresa: " + dto.getCompanyId());
         }
 
-        // primeira company positon não depende de vínculo, pois ele nao existe ainda
-        if (companyPositionsRepository.existsByCompanyId(dto.getCompanyId())) {
-            rbac.requireOwnCompany(dto.getCompanyId());
+        if (!Position.ADMIN_NAME.equals(position.getName()) && companyPositionsRepository.findByPositionId(position.getId())
+                .stream().anyMatch(link -> !link.getCompany().getId().equals(dto.getCompanyId()))) {
+            throw new UnauthorizedAccessException("Cargo já pertence a outra empresa");
         }
 
         CompanyPositions companyPositions = new CompanyPositions();
@@ -104,6 +106,7 @@ public class CompanyPositionsService {
 
     @Transactional(readOnly = true)
     public List<CompanyPositionsResponseDTO> findAllByCompany(UUID companyId) {
+        rbac.requireOwnCompany(companyId);
         return companyPositionsRepository.findByCompanyId(companyId).stream().map(this::toResponse).toList();
     }
 

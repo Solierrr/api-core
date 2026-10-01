@@ -20,6 +20,9 @@ public class Model {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "fk_creator_company")
+    private UUID creatorCompanyId;
+
     @Column(name = "brand", nullable = false)
     private String brand;
 

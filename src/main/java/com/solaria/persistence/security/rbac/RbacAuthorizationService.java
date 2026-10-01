@@ -46,6 +46,13 @@ public class RbacAuthorizationService {
             "GET /api/connections/{id}",
             "DELETE /api/connections/{id}",
             "POST /api/access-codes/redeem",
+            "POST /api/contacts",
+            "POST /api/addresses",
+            "POST /api/business-contacts",
+            "POST /api/persons",
+            "POST /api/technicians",
+            "POST /api/professional-registrations",
+            "GET /api/professions",
             "GET /api/platform-admins/me"
     );
 
@@ -74,7 +81,10 @@ public class RbacAuthorizationService {
             "PATCH /api/companies/{id}/approval",
             "PATCH /api/companies/{id}/rejection",
             "POST /api/models/{id}/approval",
-            "POST /api/models/{id}/rejection"
+            "POST /api/models/{id}/rejection",
+            "GET /api/technicians",
+            "POST /api/technicians/{id}/approval",
+            "POST /api/technicians/{id}/rejection"
     );
 
     private final CurrentUserService currentUserService;
@@ -156,6 +166,12 @@ public class RbacAuthorizationService {
         if (!sameCompany) {
             throw new UnauthorizedAccessException("O objeto da operação não foi encontrado.");
         }
+    }
+
+    @Transactional(readOnly = true)
+    public UUID getCurrentCompanyId() {
+        return resolveUserCompany().map(link -> link.getCompany().getId())
+                .orElseThrow(() -> new UnauthorizedAccessException("A operação exige vínculo com uma empresa"));
     }
 
     @Transactional(readOnly = true)

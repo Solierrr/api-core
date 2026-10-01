@@ -17,6 +17,7 @@ import com.solaria.persistence.repository.company.CompanyPositionsRepository;
 import com.solaria.persistence.repository.identity.PositionPermissionRepository;
 import com.solaria.persistence.repository.identity.PositionRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
 
 @Service
@@ -27,21 +28,27 @@ public class PositionService {
     private final UserCompanyRepository userCompanyRepository;
     private final CompanyPositionsRepository companyPositionsRepository;
     private final ObjectMapper objectMapper;
+    private final RbacAuthorizationService rbac;
 
     public PositionService(PositionRepository positionRepository,
                            PositionPermissionRepository positionPermissionRepository,
                            UserCompanyRepository userCompanyRepository,
                            CompanyPositionsRepository companyPositionsRepository,
-                           ObjectMapper objectMapper) {
+                           ObjectMapper objectMapper,
+                           RbacAuthorizationService rbac) {
         this.positionRepository = positionRepository;
         this.positionPermissionRepository = positionPermissionRepository;
         this.userCompanyRepository = userCompanyRepository;
         this.companyPositionsRepository = companyPositionsRepository;
         this.objectMapper = objectMapper;
+        this.rbac = rbac;
     }
 
     @Transactional
     public PositionResponseDTO save(PositionRequestDTO dto) {
+        if (Position.ADMIN_NAME.equalsIgnoreCase(dto.getName().trim())) {
+            throw new UnauthorizedAccessException("Cargo ADMIN é reservado");
+        }
         Position position = new Position();
         position.setName(dto.getName());
         position.setAccesses(dto.getAccesses());
@@ -54,9 +61,14 @@ public class PositionService {
         Position position = positionRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("Cargo com id:" + id + " não encontrado(a) para atualização"));
 
-        if (Position.ADMIN_NAME.equals(position.getName()) && !Position.ADMIN_NAME.equals(dto.getName())) {
-            throw new UnauthorizedAccessException("Cargo ADMIN não pode ser renomeado");
+        if (Position.ADMIN_NAME.equals(position.getName()) || Position.ADMIN_NAME.equalsIgnoreCase(dto.getName().trim())) {
+            throw new UnauthorizedAccessException("Cargo ADMIN é reservado");
         }
+        var links = companyPositionsRepository.findByPositionId(id);
+        if (links.size() != 1) {
+            throw new UnauthorizedAccessException("Cargo não disponível para edição empresarial");
+        }
+        rbac.requireOwnCompany(links.getFirst().getCompany().getId());
 
         position.setName(dto.getName());
         position.setAccesses(dto.getAccesses());
