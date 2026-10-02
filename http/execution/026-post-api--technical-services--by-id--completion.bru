@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] POST /api/technical-services/{id}/completion
+  type: http
+  seq: 26
+}
+
+post {
+  url: {{baseUrl}}/api/technical-services/{{id}}/completion
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `TechnicalServiceController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/local-unit-photos/local-unit/{localUnitId}
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/local-unit-photos/local-unit/{{localUnitId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `LocalUnitPhotoController.java`.
+}

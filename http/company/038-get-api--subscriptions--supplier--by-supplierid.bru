@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/subscriptions/supplier/{supplierId}
+  type: http
+  seq: 38
+}
+
+get {
+  url: {{baseUrl}}/api/subscriptions/supplier/{{supplierId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `SubscriptionController.java`.
+}

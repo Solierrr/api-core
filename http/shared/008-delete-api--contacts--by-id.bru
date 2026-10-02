@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] DELETE /api/contacts/{id}
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/api/contacts/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ContactController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

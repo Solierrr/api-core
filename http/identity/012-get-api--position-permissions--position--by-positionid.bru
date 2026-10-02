@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/position-permissions/position/{positionId}
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/api/position-permissions/position/{{positionId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `PositionPermissionController.java`.
+}

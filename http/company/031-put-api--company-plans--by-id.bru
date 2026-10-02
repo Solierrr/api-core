@@ -1,0 +1,27 @@
+meta {
+  name: [mutates] PUT /api/company-plans/{id}
+  type: http
+  seq: 31
+}
+
+put {
+  url: {{baseUrl}}/api/company-plans/{{id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "name": "example",
+    "value": 1.0,
+    "cycle": "MONTHLY"
+  }
+}
+
+docs {
+  Source: `CompanyPlansController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

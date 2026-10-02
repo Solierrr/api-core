@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/geolocalizations/address/{addressId}
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/api/geolocalizations/address/{{addressId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `GeolocalizationController.java`.
+}

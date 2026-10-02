@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/professional-reviews/{id}
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{baseUrl}}/api/professional-reviews/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ProfessionalReviewController.java`.
+}

@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/positions/{id}
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{baseUrl}}/api/positions/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `PositionController.java`.
+}

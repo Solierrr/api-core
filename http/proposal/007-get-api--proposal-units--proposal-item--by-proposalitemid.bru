@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/proposal-units/proposal-item/{proposalItemId}
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/proposal-units/proposal-item/{{proposalItemId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ProposalUnitController.java`.
+}

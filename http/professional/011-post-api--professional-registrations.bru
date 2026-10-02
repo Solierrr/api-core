@@ -1,0 +1,29 @@
+meta {
+  name: [mutates] POST /api/professional-registrations
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/professional-registrations
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "technicianId": "{{sampleUuid}}",
+    "professionId": "{{sampleUuid}}",
+    "council": "example",
+    "number": "example",
+    "expirationDate": "2026-10-02T12:00:00Z"
+  }
+}
+
+docs {
+  Source: `ProfessionalRegistrationController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

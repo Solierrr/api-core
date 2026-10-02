@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] POST /api/charges/{id}/cancellation
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/charges/{{id}}/cancellation
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ChargeController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

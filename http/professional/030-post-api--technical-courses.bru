@@ -1,0 +1,28 @@
+meta {
+  name: [mutates] POST /api/technical-courses
+  type: http
+  seq: 30
+}
+
+post {
+  url: {{baseUrl}}/api/technical-courses
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "companyId": "{{sampleUuid}}",
+    "title": "example",
+    "information": "example",
+    "link": "example"
+  }
+}
+
+docs {
+  Source: `TechnicalCourseController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

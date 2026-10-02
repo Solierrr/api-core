@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/unit-specifications/local-unit/{localUnitId}
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{baseUrl}}/api/unit-specifications/local-unit/{{localUnitId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `UnitSpecificationsController.java`.
+}

@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/business-contacts
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/business-contacts
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `BusinessContactController.java`.
+}

@@ -1,0 +1,26 @@
+meta {
+  name: [mutates] PUT /api/geolocalizations/{id}
+  type: http
+  seq: 17
+}
+
+put {
+  url: {{baseUrl}}/api/geolocalizations/{{id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "latitude": 1.0,
+    "longitude": 1.0
+  }
+}
+
+docs {
+  Source: `GeolocalizationController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

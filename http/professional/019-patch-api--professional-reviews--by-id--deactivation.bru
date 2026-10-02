@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] PATCH /api/professional-reviews/{id}/deactivation
+  type: http
+  seq: 19
+}
+
+patch {
+  url: {{baseUrl}}/api/professional-reviews/{{id}}/deactivation
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ProfessionalReviewController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

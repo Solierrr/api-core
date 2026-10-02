@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] DELETE /api/geolocalizations/{id}
+  type: http
+  seq: 15
+}
+
+delete {
+  url: {{baseUrl}}/api/geolocalizations/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `GeolocalizationController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

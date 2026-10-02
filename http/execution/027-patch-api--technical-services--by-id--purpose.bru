@@ -1,0 +1,25 @@
+meta {
+  name: [mutates] PATCH /api/technical-services/{id}/purpose
+  type: http
+  seq: 27
+}
+
+patch {
+  url: {{baseUrl}}/api/technical-services/{{id}}/purpose
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "purpose": "example"
+  }
+}
+
+docs {
+  Source: `TechnicalServiceController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

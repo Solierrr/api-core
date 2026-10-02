@@ -1,0 +1,26 @@
+meta {
+  name: [mutates] PUT /api/certification-records/{id}
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/api/certification-records/{{id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "professionalRegistrationId": "{{sampleUuid}}",
+    "certificationId": "{{sampleUuid}}"
+  }
+}
+
+docs {
+  Source: `CertificationRecordController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

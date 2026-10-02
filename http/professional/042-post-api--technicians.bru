@@ -1,0 +1,26 @@
+meta {
+  name: [mutates] POST /api/technicians
+  type: http
+  seq: 42
+}
+
+post {
+  url: {{baseUrl}}/api/technicians
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "personId": "{{sampleUuid}}",
+    "crea": "example"
+  }
+}
+
+docs {
+  Source: `TechnicianController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

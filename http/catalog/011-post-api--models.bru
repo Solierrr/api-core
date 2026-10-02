@@ -1,0 +1,32 @@
+meta {
+  name: [mutates] POST /api/models
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/models
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "brand": "example",
+    "model": "example",
+    "type": "MONOCRYSTALLINE",
+    "powerWp": 1.0,
+    "efficiency": 1.0,
+    "width": 1.0,
+    "length": 1.0,
+    "weight": 1.0
+  }
+}
+
+docs {
+  Source: `ModelController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

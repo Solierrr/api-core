@@ -1,0 +1,25 @@
+meta {
+  name: [mutates] PATCH /api/service-executors/{id}/function
+  type: http
+  seq: 13
+}
+
+patch {
+  url: {{baseUrl}}/api/service-executors/{{id}}/function
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "function": "example"
+  }
+}
+
+docs {
+  Source: `ServiceExecutorController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

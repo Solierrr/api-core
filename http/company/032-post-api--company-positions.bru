@@ -1,0 +1,26 @@
+meta {
+  name: [mutates] POST /api/company-positions
+  type: http
+  seq: 32
+}
+
+post {
+  url: {{baseUrl}}/api/company-positions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "companyId": "{{sampleUuid}}",
+    "positionId": "{{sampleUuid}}"
+  }
+}
+
+docs {
+  Source: `CompanyPositionsController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}
