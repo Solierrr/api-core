@@ -1,0 +1,25 @@
+meta {
+  name: [mutates] PUT /api/business-contacts/{id}
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/api/business-contacts/{{id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "companyEmail": "{{userEmail}}"
+  }
+}
+
+docs {
+  Source: `BusinessContactController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/professions/{id}
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{baseUrl}}/api/professions/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ProfessionController.java`.
+}

@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/charges/subscription/{subscriptionId}
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/charges/subscription/{{subscriptionId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ChargeController.java`.
+}

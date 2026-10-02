@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] DELETE /api/professional-registrations/{id}
+  type: http
+  seq: 13
+}
+
+delete {
+  url: {{baseUrl}}/api/professional-registrations/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ProfessionalRegistrationController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

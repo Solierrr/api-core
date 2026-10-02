@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/contacts
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/contacts
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ContactController.java`.
+}

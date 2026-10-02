@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/addresses/{id}
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/addresses/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `AddressController.java`.
+}

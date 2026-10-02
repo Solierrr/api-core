@@ -1,0 +1,25 @@
+meta {
+  name: [mutates] POST /api/suppliers
+  type: http
+  seq: 25
+}
+
+post {
+  url: {{baseUrl}}/api/suppliers
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "companyId": "{{sampleUuid}}"
+  }
+}
+
+docs {
+  Source: `SupplierController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

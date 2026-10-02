@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/user-companies/company/{companyId}
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/api/user-companies/company/{{companyId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `UserCompanyController.java`.
+}

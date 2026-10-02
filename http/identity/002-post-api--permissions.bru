@@ -1,0 +1,27 @@
+meta {
+  name: [mutates] POST /api/permissions
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/permissions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "permissionName": "example",
+    "name": "example",
+    "description": "example"
+  }
+}
+
+docs {
+  Source: `PermissionController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

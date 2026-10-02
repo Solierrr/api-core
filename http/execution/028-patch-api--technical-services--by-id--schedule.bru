@@ -1,0 +1,25 @@
+meta {
+  name: [mutates] PATCH /api/technical-services/{id}/schedule
+  type: http
+  seq: 28
+}
+
+patch {
+  url: {{baseUrl}}/api/technical-services/{{id}}/schedule
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "scheduledDate": "2026-10-02T12:00:00Z"
+  }
+}
+
+docs {
+  Source: `TechnicalServiceController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

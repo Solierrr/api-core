@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] DELETE /api/inventories/{id}
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/api/inventories/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `InventoryController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

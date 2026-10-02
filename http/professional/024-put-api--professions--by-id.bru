@@ -1,0 +1,26 @@
+meta {
+  name: [mutates] PUT /api/professions/{id}
+  type: http
+  seq: 24
+}
+
+put {
+  url: {{baseUrl}}/api/professions/{{id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "name": "example",
+    "requiresRegistration": true
+  }
+}
+
+docs {
+  Source: `ProfessionController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

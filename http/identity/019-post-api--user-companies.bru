@@ -1,0 +1,27 @@
+meta {
+  name: [mutates] POST /api/user-companies
+  type: http
+  seq: 19
+}
+
+post {
+  url: {{baseUrl}}/api/user-companies
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "companyId": "{{sampleUuid}}",
+    "userId": "{{sampleUuid}}",
+    "positionId": "{{sampleUuid}}"
+  }
+}
+
+docs {
+  Source: `UserCompanyController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

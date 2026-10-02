@@ -1,0 +1,27 @@
+meta {
+  name: [mutates] POST /api/inventories
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/inventories
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "supplierId": "{{sampleUuid}}",
+    "modelId": "{{sampleUuid}}",
+    "quantity": 1
+  }
+}
+
+docs {
+  Source: `InventoryController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

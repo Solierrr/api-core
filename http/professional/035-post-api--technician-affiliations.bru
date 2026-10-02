@@ -1,0 +1,26 @@
+meta {
+  name: [mutates] POST /api/technician-affiliations
+  type: http
+  seq: 35
+}
+
+post {
+  url: {{baseUrl}}/api/technician-affiliations
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "technicianId": "{{sampleUuid}}",
+    "affiliationType": "INDEPENDENT"
+  }
+}
+
+docs {
+  Source: `TechnicianAffiliationController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

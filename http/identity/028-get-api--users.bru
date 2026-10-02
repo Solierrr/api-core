@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/users
+  type: http
+  seq: 28
+}
+
+get {
+  url: {{baseUrl}}/api/users
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `UserController.java`.
+}

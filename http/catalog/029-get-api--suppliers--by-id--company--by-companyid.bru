@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/suppliers/{id}/company/{companyId}
+  type: http
+  seq: 29
+}
+
+get {
+  url: {{baseUrl}}/api/suppliers/{{id}}/company/{{companyId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `SupplierController.java`.
+}

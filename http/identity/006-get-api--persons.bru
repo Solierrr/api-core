@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/persons
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/persons
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `PersonController.java`.
+}

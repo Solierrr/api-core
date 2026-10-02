@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/companies/cnpj/{cnpj}
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/api/companies/cnpj/{{cnpj}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `CompanyController.java`.
+}
