@@ -32,6 +32,8 @@ jobs:
     with:
       update-source-status: true
     secrets:
+      BOT_APP_ID: ${{ secrets.BOT_APP_ID }}
+      BOT_APP_PRIVATE_KEY: ${{ secrets.BOT_APP_PRIVATE_KEY }}
       RELEASE_BOT_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
 
   release-please-finalize-after-command:
