@@ -7,15 +7,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.solaria.persistence.domain.entity.shared.Address;
+import jakarta.persistence.EntityManager;
+import com.solaria.persistence.domain.entity.proposal.Proposal;
 import com.solaria.persistence.domain.entity.unit.LocalUnit;
 import com.solaria.persistence.domain.entity.proposal.ProposalItem;
 import com.solaria.persistence.domain.entity.proposal.ProposalUnit;
-import com.solaria.persistence.domain.enums.proposal.ProposalStatus;
 import com.solaria.persistence.dto.request.proposal.ProposalUnitRequestDTO;
 import com.solaria.persistence.dto.response.shared.AddressResponseDTO;
 import com.solaria.persistence.dto.response.unit.LocalUnitResponseDTO;
 import com.solaria.persistence.dto.response.proposal.ProposalUnitResponseDTO;
-import com.solaria.persistence.exception.BusinessRuleException;
 import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.exception.UnauthorizedAccessException;
@@ -29,31 +29,42 @@ public class ProposalUnitService {
     private final ProposalUnitRepository proposalUnitRepository;
     private final ProposalItemRepository proposalItemRepository;
     private final LocalUnitRepository localUnitRepository;
+    private final ProposalService proposalService;
+    private final EntityManager entityManager;
 
     public ProposalUnitService(ProposalUnitRepository proposalUnitRepository,
                                ProposalItemRepository proposalItemRepository,
-                               LocalUnitRepository localUnitRepository) {
+                               LocalUnitRepository localUnitRepository,
+                               ProposalService proposalService, EntityManager entityManager) {
         this.proposalUnitRepository = proposalUnitRepository;
         this.proposalItemRepository = proposalItemRepository;
         this.localUnitRepository = localUnitRepository;
+        this.proposalService = proposalService;
+        this.entityManager = entityManager;
     }
 
     @Transactional
     public ProposalUnitResponseDTO save(ProposalUnitRequestDTO dto) {
         validateQuantity(dto.getQuantity());
 
+        UUID proposalId = proposalItemRepository.findProposalIdById(dto.getProposalItemId())
+                .orElseThrow(() -> new ResourceNotFoundException("Item da proposta não encontrado"));
+        Proposal parent = proposalService.lockParticipant(proposalId);
+        proposalService.requireRequester(parent);
+        proposalService.requirePending(parent);
         ProposalItem proposalItem = proposalItemRepository.findById(dto.getProposalItemId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Item da Proposta não encontrado com ID: " + dto.getProposalItemId()));
+
+        entityManager.refresh(proposalItem);
 
         LocalUnit localUnit = localUnitRepository.findById(dto.getLocalUnitId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Unidade Local não encontrada com ID: " + dto.getLocalUnitId()));
 
         validateScopeCoherence(localUnit, proposalItem);
-        validateProposalMutableState(proposalItem);
 
-        Integer currentSum = sumOrZero(proposalUnitRepository.sumQuantityByProposalItemId(dto.getProposalItemId()));
+        long currentSum = sumOrZero(proposalUnitRepository.sumQuantityByProposalItemId(dto.getProposalItemId()));
         if (currentSum + dto.getQuantity() > proposalItem.getQuantity()) {
             throw new InvalidFieldException("Quantidade excede o item de proposta");
         }
@@ -69,9 +80,7 @@ public class ProposalUnitService {
 
     @Transactional
     public ProposalUnitResponseDTO update(UUID id, ProposalUnitRequestDTO dto) {
-        ProposalUnit proposalUnit = proposalUnitRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Unidade da Proposta com id:" + id + " não encontrada para atualização"));
+        ProposalUnit proposalUnit = findLockedUnit(id);
 
         if (!dto.getProposalItemId().equals(proposalUnit.getProposalItem().getId())) {
             throw new InvalidFieldException("proposalItemId imutável: " + dto.getProposalItemId());
@@ -85,10 +94,9 @@ public class ProposalUnitService {
 
         ProposalItem proposalItem = proposalUnit.getProposalItem();
         validateScopeCoherence(localUnit, proposalItem);
-        validateProposalMutableState(proposalItem);
 
-        Integer currentSum = sumOrZero(proposalUnitRepository.sumQuantityByProposalItemId(proposalItem.getId()));
-        int sumExcludingCurrent = currentSum - proposalUnit.getQuantity();
+        long currentSum = sumOrZero(proposalUnitRepository.sumQuantityByProposalItemId(proposalItem.getId()));
+        long sumExcludingCurrent = currentSum - proposalUnit.getQuantity();
         if (sumExcludingCurrent + dto.getQuantity() > proposalItem.getQuantity()) {
             throw new InvalidFieldException("Quantidade excede o item de proposta");
         }
@@ -102,11 +110,8 @@ public class ProposalUnitService {
 
     @Transactional
     public void deleteById(UUID id) {
-        ProposalUnit proposalUnit = proposalUnitRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Unidade da Proposta com id:" + id + " não encontrada para exclusão"));
+        ProposalUnit proposalUnit = findLockedUnit(id);
 
-        validateProposalMutableState(proposalUnit.getProposalItem());
 
         proposalUnitRepository.deleteById(id);
     }
@@ -116,23 +121,36 @@ public class ProposalUnitService {
         ProposalUnit proposalUnit = proposalUnitRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Unidade da Proposta não encontrada com ID: " + id));
+        proposalService.requireParticipant(proposalUnit.getProposalItem().getProposal());
         return toResponse(proposalUnit);
     }
 
     @Transactional(readOnly = true)
     public ProposalUnitResponseDTO findById(UUID id, UUID companyId) {
-        ProposalUnit proposalUnit = proposalUnitRepository
-                .findByIdAndProposalItem_Proposal_Requester_Company_Id(id, companyId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Unidade da Proposta não encontrada com ID: " + id));
-        return toResponse(proposalUnit);
+        proposalService.requireCompanyFilter(companyId);
+        return findById(id);
     }
 
     @Transactional(readOnly = true)
     public List<ProposalUnitResponseDTO> findByProposalItem(UUID proposalItemId) {
+        ProposalItem item = proposalItemRepository.findById(proposalItemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Item da proposta não encontrado"));
+        proposalService.requireParticipant(item.getProposal());
         return proposalUnitRepository.findByProposalItemId(proposalItemId).stream()
-                .map(this::toResponse)
-                .toList();
+                .map(this::toResponse).toList();
+    }
+
+    private ProposalUnit findLockedUnit(UUID id) {
+        UUID proposalId = proposalUnitRepository.findProposalIdById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Unidade da proposta não encontrada"));
+        Proposal parent = proposalService.lockParticipant(proposalId);
+        proposalService.requireRequester(parent);
+        proposalService.requirePending(parent);
+        ProposalUnit unit = proposalUnitRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Unidade da proposta não encontrada"));
+        entityManager.refresh(unit);
+        entityManager.refresh(unit.getProposalItem());
+        return unit;
     }
 
     private void validateQuantity(Integer quantity) {
@@ -149,14 +167,7 @@ public class ProposalUnitService {
         }
     }
 
-    private void validateProposalMutableState(ProposalItem proposalItem) {
-        ProposalStatus status = proposalItem.getProposal().getStatus();
-        if (!ProposalService.isEditable(status)) {
-            throw new BusinessRuleException("Proposta não pode ser alterada no status: " + status);
-        }
-    }
-
-    private Integer sumOrZero(Integer sum) {
+    private long sumOrZero(Long sum) {
         return sum == null ? 0 : sum;
     }
 
@@ -189,6 +200,7 @@ public class ProposalUnitService {
         }
         return AddressResponseDTO.builder()
                 .id(address.getId())
+                .ownerCompanyId(address.getOwnerCompany().getId())
                 .state(address.getState())
                 .city(address.getCity())
                 .neighborhood(address.getNeighborhood())
