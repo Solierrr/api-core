@@ -17,7 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import com.solaria.persistence.dto.request.ConnectionRequestDTO;
-import com.solaria.persistence.dto.response.UserResponseDTO;
+import com.solaria.persistence.dto.response.identity.UserResponseDTO;
 import com.solaria.persistence.service.ConnectionService;
 
 @ExtendWith(MockitoExtension.class)
