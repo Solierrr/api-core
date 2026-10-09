@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.0](https://github.com/Solierrr/api-core/compare/v3.0.1...v3.1.0) (2026-10-09)
+
+
+### Features
+
+* add bruno api collection ([820e287](https://github.com/Solierrr/api-core/commit/820e287d70a612d16aa1f7bb71b105ccd160d783))
+* add the local run commands ([44d1c0c](https://github.com/Solierrr/api-core/commit/44d1c0cc7690a7005c6b870ce3eb993bf3778273))
+
 ## [3.0.1](https://github.com/Solierrr/api-core/compare/v3.0.0...v3.0.1) (2026-09-30)
 
 
