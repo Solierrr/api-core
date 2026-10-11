@@ -23,7 +23,7 @@ public class TechnicalProject {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_requester")
+    @JoinColumn(name = "fk_requester", nullable = false)
     private Requester requester;
 
     @ManyToOne(fetch = FetchType.LAZY)

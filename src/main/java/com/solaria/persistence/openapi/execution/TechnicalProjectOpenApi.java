@@ -21,6 +21,8 @@ public interface TechnicalProjectOpenApi {
         description = "Solicitante e unidade local são opcionais."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "404", description = "Recurso ou parent inexistente"),
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "201", description = "Projeto técnico criado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos")
     })
@@ -31,6 +33,7 @@ public interface TechnicalProjectOpenApi {
         description = "Solicitante e unidade local são opcionais."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "200", description = "Projeto técnico atualizado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
             @ApiResponse(responseCode = "404", description = "Projeto técnico não encontrado")
@@ -42,6 +45,7 @@ public interface TechnicalProjectOpenApi {
         description = "Não pode ser excluído enquanto tiver algum TechnicalService em aberto (OPEN) ou em andamento (IN_PROGRESS)."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "204", description = "Projeto técnico excluído com sucesso"),
             @ApiResponse(responseCode = "404", description = "Projeto técnico não encontrado")
     })
@@ -52,6 +56,7 @@ public interface TechnicalProjectOpenApi {
         description = "Consulta restrita à empresa dona do projeto (isolamento multi-tenant)."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "200", description = "Projeto técnico encontrado"),
             @ApiResponse(responseCode = "404", description = "Projeto técnico não encontrado")
     })
@@ -59,6 +64,8 @@ public interface TechnicalProjectOpenApi {
 
     @Operation(summary = "Lista os projetos técnicos de um solicitante")
     @ApiResponses({
+            @ApiResponse(responseCode = "404", description = "Recurso ou parent inexistente"),
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "200", description = "Lista de projetos técnicos retornada com sucesso")
     })
     ResponseEntity<List<TechnicalProjectResponseDTO>> findByRequester(UUID requesterId);
@@ -68,6 +75,8 @@ public interface TechnicalProjectOpenApi {
         description = "Consulta restrita à empresa dona dos projetos (isolamento multi-tenant)."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "404", description = "Recurso ou parent inexistente"),
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "200", description = "Lista de projetos técnicos retornada com sucesso")
     })
     ResponseEntity<List<TechnicalProjectResponseDTO>> findAllByCompany(UUID companyId);

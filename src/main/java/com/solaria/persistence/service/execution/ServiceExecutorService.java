@@ -6,7 +6,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import tools.jackson.databind.ObjectMapper;
+
 
 import com.solaria.persistence.domain.entity.execution.ServiceExecutor;
 import com.solaria.persistence.domain.entity.execution.TechnicalService;
@@ -16,6 +16,7 @@ import com.solaria.persistence.dto.request.execution.ServiceExecutorRequestDTO;
 import com.solaria.persistence.dto.response.execution.ServiceExecutorResponseDTO;
 import com.solaria.persistence.dto.response.professional.TechnicianAffiliationResponseDTO;
 import com.solaria.persistence.exception.BusinessRuleException;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 import com.solaria.persistence.exception.DuplicateResourceException;
 import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
@@ -30,24 +31,25 @@ public class ServiceExecutorService {
     private final ServiceExecutorRepository serviceExecutorRepository;
     private final TechnicalServiceRepository technicalServiceRepository;
     private final TechnicianAffiliationRepository technicianAffiliationRepository;
-    private final ObjectMapper objectMapper;
+    private final RbacAuthorizationService rbac;
 
     public ServiceExecutorService(ServiceExecutorRepository serviceExecutorRepository,
                                   TechnicalServiceRepository technicalServiceRepository,
                                   TechnicianAffiliationRepository technicianAffiliationRepository,
-                                  ObjectMapper objectMapper) {
+                                  RbacAuthorizationService rbac) {
         this.serviceExecutorRepository = serviceExecutorRepository;
         this.technicalServiceRepository = technicalServiceRepository;
         this.technicianAffiliationRepository = technicianAffiliationRepository;
-        this.objectMapper = objectMapper;
+        this.rbac = rbac;
     }
 
     @Transactional
     public ServiceExecutorResponseDTO save(ServiceExecutorRequestDTO dto) {
-        TechnicalService service = technicalServiceRepository.findById(dto.getServiceId())
+        TechnicalService service = technicalServiceRepository.findForManagementById(dto.getServiceId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Serviço Técnico não encontrado com ID: " + dto.getServiceId()));
 
+        requireOwner(service);
         TechnicianAffiliation technicianAffiliation = technicianAffiliationRepository
                 .findById(dto.getTechnicianAffiliationId())
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -71,10 +73,11 @@ public class ServiceExecutorService {
 
     @Transactional
     public ServiceExecutorResponseDTO updateFunction(UUID id, String function) {
-        ServiceExecutor serviceExecutor = serviceExecutorRepository.findById(id)
+        ServiceExecutor serviceExecutor = serviceExecutorRepository.findForManagementById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Executor do Serviço com id:" + id + " não encontrado para atualização"));
 
+        requireOwner(serviceExecutor.getService());
         if (function == null || function.isBlank()) {
             throw new InvalidFieldException("Função do colaborador é obrigatória");
         }
@@ -88,10 +91,11 @@ public class ServiceExecutorService {
 
     @Transactional
     public void deleteById(UUID id) {
-        ServiceExecutor serviceExecutor = serviceExecutorRepository.findById(id)
+        ServiceExecutor serviceExecutor = serviceExecutorRepository.findForManagementById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Executor do Serviço com id:" + id + " não encontrado para exclusão"));
 
+        requireOwner(serviceExecutor.getService());
         validateServiceMutableState(serviceExecutor.getService());
 
         serviceExecutorRepository.deleteById(id);
@@ -99,9 +103,17 @@ public class ServiceExecutorService {
 
     @Transactional(readOnly = true)
     public List<ServiceExecutorResponseDTO> findByService(UUID serviceId) {
+        TechnicalService service = technicalServiceRepository.findForManagementById(serviceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Serviço Técnico não encontrado com ID: " + serviceId));
+        requireOwner(service);
         return serviceExecutorRepository.findByServiceId(serviceId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    private void requireOwner(TechnicalService service) {
+        var requester = service.getTechnicalProject().getRequester();
+        rbac.requireOwnCompany(requester == null ? null : requester.getCompany().getId());
     }
 
     private void validateServiceMutableState(TechnicalService service) {
@@ -112,7 +124,8 @@ public class ServiceExecutorService {
     }
 
     private ServiceExecutorResponseDTO toResponse(ServiceExecutor entity) {
-        ServiceExecutorResponseDTO response = objectMapper.convertValue(entity, ServiceExecutorResponseDTO.class);
+        ServiceExecutorResponseDTO response = new ServiceExecutorResponseDTO();
+        response.setId(entity.getId());
         response.setServiceId(entity.getService().getId());
         response.setTechnicianAffiliation(toTechnicianAffiliationResponse(entity.getTechnicianAffiliation()));
         response.setPosition(entity.getFunction());
@@ -120,8 +133,11 @@ public class ServiceExecutorService {
     }
 
     private TechnicianAffiliationResponseDTO toTechnicianAffiliationResponse(TechnicianAffiliation entity) {
-        TechnicianAffiliationResponseDTO response = objectMapper.convertValue(entity, TechnicianAffiliationResponseDTO.class);
-        response.setCompanyId(entity.getCompany().getId());
+        TechnicianAffiliationResponseDTO response = new TechnicianAffiliationResponseDTO();
+        response.setId(entity.getId());
+        response.setAffiliationType(entity.getAffiliationType());
+        response.setActive(entity.getActive());
+        response.setCompanyId(entity.getCompany() == null ? null : entity.getCompany().getId());
         response.setTechnicianId(entity.getTechnician().getId());
         return response;
     }

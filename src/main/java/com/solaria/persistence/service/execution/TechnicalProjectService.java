@@ -13,6 +13,9 @@ import com.solaria.persistence.domain.enums.execution.ServiceStatus;
 import com.solaria.persistence.dto.request.execution.TechnicalProjectRequestDTO;
 import com.solaria.persistence.dto.response.execution.TechnicalProjectResponseDTO;
 import com.solaria.persistence.exception.ResourceInUseException;
+import com.solaria.persistence.exception.InvalidFieldException;
+import com.solaria.persistence.exception.BusinessRuleException;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.unit.LocalUnitRepository;
 import com.solaria.persistence.repository.execution.RequesterRepository;
@@ -26,23 +29,29 @@ public class TechnicalProjectService {
     private final RequesterRepository requesterRepository;
     private final LocalUnitRepository localUnitRepository;
     private final TechnicalServiceRepository technicalServiceRepository;
+    private final RbacAuthorizationService rbac;
 
     public TechnicalProjectService(TechnicalProjectRepository technicalProjectRepository,
                                    RequesterRepository requesterRepository,
                                    LocalUnitRepository localUnitRepository,
-                                   TechnicalServiceRepository technicalServiceRepository) {
+                                   TechnicalServiceRepository technicalServiceRepository, RbacAuthorizationService rbac) {
         this.technicalProjectRepository = technicalProjectRepository;
         this.requesterRepository = requesterRepository;
         this.localUnitRepository = localUnitRepository;
         this.technicalServiceRepository = technicalServiceRepository;
+        this.rbac = rbac;
     }
 
     @Transactional
     public TechnicalProjectResponseDTO save(TechnicalProjectRequestDTO dto) {
+        Requester requester = resolveRequester(dto.getRequesterId());
+        rbac.requireOwnCompany(requester.getCompany().getId());
+        LocalUnit unit = resolveLocalUnit(dto.getLocalUnitId());
+        validateUnit(requester, unit);
         TechnicalProject technicalProject = new TechnicalProject();
-        technicalProject.setRequester(resolveRequester(dto.getRequesterId()));
-        technicalProject.setLocalUnit(resolveLocalUnit(dto.getLocalUnitId()));
-        technicalProject.setStatus(dto.getStatus());
+        technicalProject.setRequester(requester);
+        technicalProject.setLocalUnit(unit);
+        technicalProject.setStatus(dto.getStatus() == null ? ServiceStatus.OPEN : dto.getStatus());
         technicalProject.setStartDate(dto.getStartDate());
         technicalProject.setEndDate(dto.getEndDate());
 
@@ -51,13 +60,25 @@ public class TechnicalProjectService {
 
     @Transactional
     public TechnicalProjectResponseDTO update(UUID id, TechnicalProjectRequestDTO dto) {
-        TechnicalProject technicalProject = technicalProjectRepository.findById(id)
+        TechnicalProject technicalProject = technicalProjectRepository.findForManagementById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Projeto Técnico com id:" + id + " não encontrado para atualização"));
 
-        technicalProject.setRequester(resolveRequester(dto.getRequesterId()));
-        technicalProject.setLocalUnit(resolveLocalUnit(dto.getLocalUnitId()));
-        technicalProject.setStatus(dto.getStatus());
+        requireOwner(technicalProject);
+        if (!technicalProject.getRequester().getId().equals(dto.getRequesterId())) {
+            if (dto.getRequesterId() == null) {
+                throw new InvalidFieldException("Solicitante é obrigatório e não pode ser removido");
+            }
+            Requester destination = resolveRequester(dto.getRequesterId());
+            rbac.requireOwnCompany(destination.getCompany().getId());
+            throw new BusinessRuleException("Solicitante do projeto não pode ser alterado");
+        }
+        LocalUnit unit = resolveLocalUnit(dto.getLocalUnitId());
+        validateUnit(technicalProject.getRequester(), unit);
+        technicalProject.setLocalUnit(unit);
+        if (dto.getStatus() != null) {
+            technicalProject.setStatus(dto.getStatus());
+        }
         technicalProject.setStartDate(dto.getStartDate());
         technicalProject.setEndDate(dto.getEndDate());
 
@@ -66,10 +87,9 @@ public class TechnicalProjectService {
 
     @Transactional
     public void deleteById(UUID id) {
-        if (!technicalProjectRepository.existsById(id)) {
-            throw new ResourceNotFoundException(
-                    "Projeto Técnico com id:" + id + " não encontrado para exclusão");
-        }
+        TechnicalProject project = technicalProjectRepository.findForManagementById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto Técnico não encontrado com ID: " + id));
+        requireOwner(project);
 
         if (technicalServiceRepository.existsByTechnicalProjectIdAndStatusIn(
                 id, List.of(ServiceStatus.OPEN, ServiceStatus.IN_PROGRESS))) {
@@ -82,23 +102,26 @@ public class TechnicalProjectService {
 
     @Transactional(readOnly = true)
     public TechnicalProjectResponseDTO findById(UUID id) {
-        TechnicalProject technicalProject = technicalProjectRepository.findById(id)
+        TechnicalProject technicalProject = technicalProjectRepository.findForManagementById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Projeto Técnico não encontrado com ID: " + id));
+        requireOwner(technicalProject);
         return toResponse(technicalProject);
     }
 
     @Transactional(readOnly = true)
     public TechnicalProjectResponseDTO findById(UUID id, UUID companyId) {
-        TechnicalProject technicalProject = technicalProjectRepository
-                .findByIdAndRequester_Company_Id(id, companyId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Projeto Técnico não encontrado com ID: " + id));
+        TechnicalProject technicalProject = technicalProjectRepository.findForManagementById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto Técnico não encontrado com ID: " + id));
+        requireOwner(technicalProject);
+        rbac.requireOwnCompany(companyId);
         return toResponse(technicalProject);
     }
 
     @Transactional(readOnly = true)
     public List<TechnicalProjectResponseDTO> findByRequester(UUID requesterId) {
+        Requester requester = resolveRequester(requesterId);
+        rbac.requireOwnCompany(requester.getCompany().getId());
         return technicalProjectRepository.findByRequesterId(requesterId).stream()
                 .map(this::toResponse)
                 .toList();
@@ -106,14 +129,15 @@ public class TechnicalProjectService {
 
     @Transactional(readOnly = true)
     public List<TechnicalProjectResponseDTO> findAllByCompany(UUID companyId) {
-        return technicalProjectRepository.findByRequester_Company_Id(companyId).stream()
+        rbac.requireOwnCompany(companyId);
+        return technicalProjectRepository.findByRequester_Company_Id(rbac.getCurrentCompanyId()).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     private Requester resolveRequester(UUID requesterId) {
         if (requesterId == null) {
-            return null;
+            throw new InvalidFieldException("Solicitante é obrigatório");
         }
         return requesterRepository.findById(requesterId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -124,9 +148,22 @@ public class TechnicalProjectService {
         if (localUnitId == null) {
             return null;
         }
-        return localUnitRepository.findById(localUnitId)
+        return localUnitRepository.findForManagementById(localUnitId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Unidade Local não encontrada com ID: " + localUnitId));
+    }
+
+    private void requireOwner(TechnicalProject project) {
+        rbac.requireOwnCompany(project.getRequester() == null ? null : project.getRequester().getCompany().getId());
+    }
+
+    private void validateUnit(Requester requester, LocalUnit unit) {
+        if (unit != null) {
+            rbac.requireOwnCompany(unit.getRequester().getCompany().getId());
+            if (!requester.getId().equals(unit.getRequester().getId())) {
+                throw new BusinessRuleException("Unidade Local deve pertencer ao solicitante do projeto");
+            }
+        }
     }
 
     private TechnicalProjectResponseDTO toResponse(TechnicalProject entity) {
