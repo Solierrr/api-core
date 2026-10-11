@@ -1,0 +1,27 @@
+meta {
+  name: [mutates] PUT /api/proposal-units/{id}
+  type: http
+  seq: 9
+}
+
+put {
+  url: {{baseUrl}}/api/proposal-units/{{id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "proposalItemId": "{{sampleUuid}}",
+    "localUnitId": "{{sampleUuid}}",
+    "quantity": 1
+  }
+}
+
+docs {
+  Source: `ProposalUnitController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

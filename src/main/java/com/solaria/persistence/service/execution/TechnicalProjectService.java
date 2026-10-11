@@ -25,6 +25,8 @@ import com.solaria.persistence.repository.execution.TechnicalServiceRepository;
 @Service
 public class TechnicalProjectService {
 
+    private static final String TECHNICAL_PROJECT_NOT_FOUND = "Projeto Técnico não encontrado com ID: ";
+
     private final TechnicalProjectRepository technicalProjectRepository;
     private final RequesterRepository requesterRepository;
     private final LocalUnitRepository localUnitRepository;
@@ -88,7 +90,7 @@ public class TechnicalProjectService {
     @Transactional
     public void deleteById(UUID id) {
         TechnicalProject project = technicalProjectRepository.findForManagementById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Projeto Técnico não encontrado com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(TECHNICAL_PROJECT_NOT_FOUND + id));
         requireOwner(project);
 
         if (technicalServiceRepository.existsByTechnicalProjectIdAndStatusIn(
@@ -104,7 +106,7 @@ public class TechnicalProjectService {
     public TechnicalProjectResponseDTO findById(UUID id) {
         TechnicalProject technicalProject = technicalProjectRepository.findForManagementById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Projeto Técnico não encontrado com ID: " + id));
+                        TECHNICAL_PROJECT_NOT_FOUND + id));
         requireOwner(technicalProject);
         return toResponse(technicalProject);
     }
@@ -112,7 +114,7 @@ public class TechnicalProjectService {
     @Transactional(readOnly = true)
     public TechnicalProjectResponseDTO findById(UUID id, UUID companyId) {
         TechnicalProject technicalProject = technicalProjectRepository.findForManagementById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Projeto Técnico não encontrado com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(TECHNICAL_PROJECT_NOT_FOUND + id));
         requireOwner(technicalProject);
         rbac.requireOwnCompany(companyId);
         return toResponse(technicalProject);

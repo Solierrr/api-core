@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/offers/company/{companyId}
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/api/offers/company/{{companyId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `OfferController.java`.
+}

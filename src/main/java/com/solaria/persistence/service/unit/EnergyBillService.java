@@ -27,6 +27,7 @@ import com.solaria.persistence.service.shared.CloudinaryService;
 @Service
 public class EnergyBillService {
 
+    private static final String LOCAL_UNIT_NOT_FOUND = "Unidade Local não encontrada com ID: ";
     private static final BigDecimal ZERO = BigDecimal.ZERO;
 
     private static final Set<String> ALLOWED_PHOTO_CONTENT_TYPES = Set.of("image/jpeg", "image/png", "application/pdf");
@@ -64,7 +65,7 @@ public class EnergyBillService {
 
         LocalUnit localUnit = localUnitRepository.findForManagementById(dto.getLocalUnitId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Unidade Local não encontrada com ID: " + dto.getLocalUnitId()));
+                        LOCAL_UNIT_NOT_FOUND + dto.getLocalUnitId()));
         rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
 
         EnergyBill energyBill = new EnergyBill();
@@ -91,7 +92,7 @@ public class EnergyBillService {
 
         LocalUnit localUnit = localUnitRepository.findForManagementById(dto.getLocalUnitId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Unidade Local não encontrada com ID: " + dto.getLocalUnitId()));
+                        LOCAL_UNIT_NOT_FOUND + dto.getLocalUnitId()));
         rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
 
         energyBill.setLocalUnit(localUnit);
@@ -122,7 +123,7 @@ public class EnergyBillService {
     @Transactional(readOnly = true)
     public List<EnergyBillResponseDTO> findByLocalUnit(UUID localUnitId) {
         LocalUnit localUnit = localUnitRepository.findForManagementById(localUnitId)
-                .orElseThrow(() -> new ResourceNotFoundException("Unidade Local não encontrada com ID: " + localUnitId));
+                .orElseThrow(() -> new ResourceNotFoundException(LOCAL_UNIT_NOT_FOUND + localUnitId));
         rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
         return energyBillRepository.findByLocalUnitId(localUnitId).stream()
                 .map(this::toResponse)

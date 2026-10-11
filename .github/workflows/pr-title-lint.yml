@@ -1,0 +1,9 @@
+name: PR Title Lint
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  lint:
+    uses: Solierrr/.github/.github/workflows/pr-title-lint.yml@main

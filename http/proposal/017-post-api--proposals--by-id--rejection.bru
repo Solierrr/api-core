@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] POST /api/proposals/{id}/rejection
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/api/proposals/{{id}}/rejection
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ProposalController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

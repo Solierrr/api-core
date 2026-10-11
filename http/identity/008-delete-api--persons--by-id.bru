@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] DELETE /api/persons/{id}
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/api/persons/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `PersonController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

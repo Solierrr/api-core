@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/company-positions/{id}/company/{companyId}
+  type: http
+  seq: 35
+}
+
+get {
+  url: {{baseUrl}}/api/company-positions/{{id}}/company/{{companyId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `CompanyPositionsController.java`.
+}

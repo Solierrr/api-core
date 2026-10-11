@@ -138,7 +138,7 @@ public class RbacAuthorizationService {
 
     @Transactional(readOnly = true)
     public UUID getCurrentCompanyId() {
-        return findCurrentCompanyId().orElseThrow(
+        return resolveUserCompany().map(CompanyAccess::companyId).orElseThrow(
                 () -> new UnauthorizedAccessException("Usuário sem vínculo empresarial"));
     }
 

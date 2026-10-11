@@ -1,0 +1,24 @@
+meta {
+  name: [mutates] POST /api/local-unit-photos
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/local-unit-photos
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:multipart-form {
+  localUnitId: {{localUnitId}}
+  file: @file(fixtures/example.png)
+}
+
+docs {
+  Source: `LocalUnitPhotoController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

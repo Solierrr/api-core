@@ -1,0 +1,23 @@
+meta {
+  name: [mutates] PUT /api/company-photos/company/{companyId}/type/{type}
+  type: http
+  seq: 26
+}
+
+put {
+  url: {{baseUrl}}/api/company-photos/company/{{companyId}}/type/{{type}}
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:multipart-form {
+  file: @file(fixtures/example.png)
+}
+
+docs {
+  Source: `CompanyPhotoController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

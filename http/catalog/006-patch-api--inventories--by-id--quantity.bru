@@ -1,0 +1,25 @@
+meta {
+  name: [mutates] PATCH /api/inventories/{id}/quantity
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/api/inventories/{{id}}/quantity
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "quantity": 1
+  }
+}
+
+docs {
+  Source: `InventoryController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

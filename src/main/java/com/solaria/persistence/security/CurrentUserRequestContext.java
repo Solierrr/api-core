@@ -20,9 +20,12 @@ public final class CurrentUserRequestContext {
 
     private final UUID authId;
     private final Thread requestThread = Thread.currentThread();
-    private Optional<UUID> userId;
-    private Optional<User> user;
-    private Optional<CompanyAccess> companyAccess;
+    private Optional<UUID> userId = Optional.empty();
+    private Optional<User> user = Optional.empty();
+    private Optional<CompanyAccess> companyAccess = Optional.empty();
+    private boolean userIdLoaded;
+    private boolean userLoaded;
+    private boolean companyAccessLoaded;
     private final Map<String, Boolean> endpointGrants = new HashMap<>();
 
     private CurrentUserRequestContext(UUID authId) {
@@ -59,23 +62,27 @@ public final class CurrentUserRequestContext {
     }
 
     Optional<User> findUser(UserRepository repository) {
-        if (user == null) {
-            user = userId == null ? repository.findByAuthId(authId) : userId.flatMap(repository::findById);
+        if (!userLoaded) {
+            user = userIdLoaded ? userId.flatMap(repository::findById) : repository.findByAuthId(authId);
             userId = user.map(User::getId);
+            userIdLoaded = true;
+            userLoaded = true;
         }
         return user;
     }
 
     Optional<UUID> findUserId(UserRepository repository) {
-        if (userId == null) {
+        if (!userIdLoaded) {
             userId = repository.findIdByAuthId(authId);
+            userIdLoaded = true;
         }
         return userId;
     }
 
     public Optional<CompanyAccess> findCompanyAccess(Supplier<Optional<CompanyAccess>> lookup) {
-        if (companyAccess == null) {
+        if (!companyAccessLoaded) {
             companyAccess = lookup.get();
+            companyAccessLoaded = true;
         }
         return companyAccess;
     }

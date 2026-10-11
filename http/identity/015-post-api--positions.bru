@@ -1,0 +1,26 @@
+meta {
+  name: [mutates] POST /api/positions
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{baseUrl}}/api/positions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "name": "example",
+    "accesses": "example"
+  }
+}
+
+docs {
+  Source: `PositionController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

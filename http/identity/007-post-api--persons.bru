@@ -1,0 +1,29 @@
+meta {
+  name: [mutates] POST /api/persons
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/persons
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "userId": "{{sampleUuid}}",
+    "contactId": "{{sampleUuid}}",
+    "name": "example",
+    "cpf": "12345678901",
+    "birthDate": "2026-10-02"
+  }
+}
+
+docs {
+  Source: `PersonController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

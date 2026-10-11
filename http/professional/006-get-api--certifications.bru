@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/certifications
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/certifications
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `CertificationController.java`.
+}

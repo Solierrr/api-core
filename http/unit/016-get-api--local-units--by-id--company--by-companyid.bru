@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/local-units/{id}/company/{companyId}
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/api/local-units/{{id}}/company/{{companyId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `LocalUnitController.java`.
+}

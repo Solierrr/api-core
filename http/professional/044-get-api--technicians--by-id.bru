@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/technicians/{id}
+  type: http
+  seq: 44
+}
+
+get {
+  url: {{baseUrl}}/api/technicians/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `TechnicianController.java`.
+}

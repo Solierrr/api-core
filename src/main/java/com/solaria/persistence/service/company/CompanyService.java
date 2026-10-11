@@ -41,6 +41,8 @@ import com.solaria.persistence.util.SlugUtil;
 @Service
 public class CompanyService {
 
+    private static final String COMPANY_NOT_FOUND = "Empresa não encontrada com ID: ";
+
     private final CurrentUserService currentUserService;
     private final PositionRepository positionRepository;
     private final RbacAuthorizationService rbac;
@@ -119,7 +121,7 @@ public class CompanyService {
     public CompanyResponseDTO update(UUID id, CompanyUpdateRequestDTO dto) {
         rbac.requireOwnCompany(id);
         Company company = companyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(COMPANY_NOT_FOUND + id));
         company.setAddress(resolveAddress(dto.getAddressId(), id));
         updateBusinessContact(company, dto.getBusinessContact());
         company.setTradeName(dto.getTradeName());
@@ -162,7 +164,7 @@ public class CompanyService {
     public CompanyResponseDTO attachAddress(UUID companyId, UUID addressId) {
         rbac.requireOwnCompany(companyId);
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada com ID: " + companyId));
+                .orElseThrow(() -> new ResourceNotFoundException(COMPANY_NOT_FOUND + companyId));
         company.setAddress(resolveAddress(addressId, companyId));
         return CompanyResponseMapper.toResponse(companyRepository.save(company), companyId);
     }
@@ -191,7 +193,7 @@ public class CompanyService {
     public CompanyResponseDTO findById(UUID id) {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Empresa não encontrada com ID: " + id));
+                        COMPANY_NOT_FOUND + id));
         return CompanyResponseMapper.toResponse(company, rbac.findCurrentCompanyId().orElse(null));
     }
 

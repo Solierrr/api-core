@@ -1,0 +1,27 @@
+meta {
+  name: [mutates] POST /api/company-plans
+  type: http
+  seq: 28
+}
+
+post {
+  url: {{baseUrl}}/api/company-plans
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "name": "example",
+    "value": 1.0,
+    "cycle": "MONTHLY"
+  }
+}
+
+docs {
+  Source: `CompanyPlansController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

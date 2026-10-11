@@ -1,0 +1,30 @@
+meta {
+  name: [mutates] PUT /api/offers/{id}
+  type: http
+  seq: 23
+}
+
+put {
+  url: {{baseUrl}}/api/offers/{{id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "supplierId": "{{sampleUuid}}",
+    "modelId": "{{sampleUuid}}",
+    "title": "example",
+    "description": "example",
+    "unitPrice": 1.0,
+    "availability": 1
+  }
+}
+
+docs {
+  Source: `OfferController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

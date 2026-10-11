@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/shifts/technician/{technicianId}
+  type: http
+  seq: 26
+}
+
+get {
+  url: {{baseUrl}}/api/shifts/technician/{{technicianId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ShiftController.java`.
+}

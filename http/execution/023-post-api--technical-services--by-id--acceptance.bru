@@ -1,0 +1,25 @@
+meta {
+  name: [mutates] POST /api/technical-services/{id}/acceptance
+  type: http
+  seq: 23
+}
+
+post {
+  url: {{baseUrl}}/api/technical-services/{{id}}/acceptance
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "acceptedBy": "{{sampleUuid}}"
+  }
+}
+
+docs {
+  Source: `TechnicalServiceController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

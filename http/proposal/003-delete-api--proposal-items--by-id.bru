@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] DELETE /api/proposal-items/{id}
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/api/proposal-items/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ProposalItemController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

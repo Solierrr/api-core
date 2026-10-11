@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] POST /api/subscriptions/{id}/end
+  type: http
+  seq: 40
+}
+
+post {
+  url: {{baseUrl}}/api/subscriptions/{{id}}/end
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `SubscriptionController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

@@ -1,0 +1,27 @@
+meta {
+  name: [mutates] PUT /api/companies/{id}
+  type: http
+  seq: 19
+}
+
+put {
+  url: {{baseUrl}}/api/companies/{{id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "cnpj": "12345678000195",
+    "tradeName": "example",
+    "corporateName": "example"
+  }
+}
+
+docs {
+  Source: `CompanyController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

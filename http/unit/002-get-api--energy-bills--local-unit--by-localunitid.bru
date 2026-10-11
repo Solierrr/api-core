@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/energy-bills/local-unit/{localUnitId}
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/energy-bills/local-unit/{{localUnitId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `EnergyBillController.java`.
+}

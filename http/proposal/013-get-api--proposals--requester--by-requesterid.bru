@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/proposals/requester/{requesterId}
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/api/proposals/requester/{{requesterId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ProposalController.java`.
+}

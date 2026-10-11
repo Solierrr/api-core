@@ -1,0 +1,22 @@
+meta {
+  name: [mutates] POST /dev/login
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/dev/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{userEmail}}",
+    "password": "{{userPassword}}"
+  }
+}
+
+docs {
+  Source: `DevAuthController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

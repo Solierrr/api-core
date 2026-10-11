@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/technical-projects/company/{companyId}
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/api/technical-projects/company/{{companyId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `TechnicalProjectController.java`.
+}

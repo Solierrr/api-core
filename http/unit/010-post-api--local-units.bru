@@ -1,0 +1,26 @@
+meta {
+  name: [mutates] POST /api/local-units
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/local-units
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "requesterId": "{{sampleUuid}}",
+    "locationType": "BUILDING"
+  }
+}
+
+docs {
+  Source: `LocalUnitController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

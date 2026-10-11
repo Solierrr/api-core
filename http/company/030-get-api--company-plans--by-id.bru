@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/company-plans/{id}
+  type: http
+  seq: 30
+}
+
+get {
+  url: {{baseUrl}}/api/company-plans/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `CompanyPlansController.java`.
+}

@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/requesters/{id}/company/{companyId}
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/requesters/{{id}}/company/{{companyId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `RequesterController.java`.
+}

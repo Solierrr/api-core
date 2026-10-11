@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] DELETE /api/service-executors/{id}
+  type: http
+  seq: 12
+}
+
+delete {
+  url: {{baseUrl}}/api/service-executors/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ServiceExecutorController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

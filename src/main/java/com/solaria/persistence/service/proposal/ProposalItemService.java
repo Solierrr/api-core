@@ -28,6 +28,10 @@ public class ProposalItemService {
 
     @Transactional(readOnly = true)
     public ProposalItemResponseDTO findById(UUID id) {
+        return findParticipantItem(id);
+    }
+
+    private ProposalItemResponseDTO findParticipantItem(UUID id) {
         ProposalItem item = proposalItemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Item de Proposta não encontrado com ID: " + id));
@@ -38,7 +42,7 @@ public class ProposalItemService {
     @Transactional(readOnly = true)
     public ProposalItemResponseDTO findById(UUID id, UUID companyId) {
         proposalService.requireCompanyFilter(companyId);
-        return findById(id);
+        return findParticipantItem(id);
     }
 
     @Transactional(readOnly = true)

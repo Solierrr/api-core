@@ -27,6 +27,8 @@ import com.solaria.persistence.dto.request.shared.ContactRequestDTO;
 @Service
 public class PersonService {
 
+    private static final String PERSON_NOT_FOUND = "Pessoa não encontrada com ID: ";
+
     private final PersonRepository personRepository;
     private final CurrentUserService currentUserService;
     private final RbacAuthorizationService rbac;
@@ -74,7 +76,7 @@ public class PersonService {
     public PersonResponseDTO update(UUID id, PersonRequestDTO dto) {
         currentUserService.getProvisionedCurrentUserId();
         Person person = personRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Pessoa não encontrada com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(PERSON_NOT_FOUND + id));
         rbac.requireOwnUser(person.getUser() == null ? null : person.getUser().getId());
         if (!person.getCpf().equals(dto.getCpf())) {
             throw new InvalidFieldException("CPF imutável: " + dto.getCpf());
@@ -96,7 +98,7 @@ public class PersonService {
     public void deleteById(UUID id) {
         currentUserService.getProvisionedCurrentUserId();
         Person person = personRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Pessoa não encontrada com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(PERSON_NOT_FOUND + id));
         rbac.requireOwnUser(person.getUser() == null ? null : person.getUser().getId());
         Contact contact = person.getContact();
 
@@ -117,7 +119,7 @@ public class PersonService {
         currentUserService.getProvisionedCurrentUserId();
         Person person = personRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Pessoa não encontrada com ID: " + id));
+                        PERSON_NOT_FOUND + id));
         rbac.requireOwnUser(person.getUser() == null ? null : person.getUser().getId());
         return toResponse(person);
     }

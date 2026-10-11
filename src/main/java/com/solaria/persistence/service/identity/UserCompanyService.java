@@ -32,6 +32,8 @@ import jakarta.persistence.PersistenceContext;
 @Service
 public class UserCompanyService {
 
+    private static final String USER_COMPANY_NOT_FOUND = "Vínculo usuário-empresa não encontrado com ID: ";
+
     private final UserCompanyRepository userCompanyRepository;
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
@@ -135,11 +137,11 @@ public class UserCompanyService {
 
     private UserCompany loadMembershipForMutation(UUID id) {
         UserCompany membership = userCompanyRepository.findById(id).orElseThrow(
-                () -> new ResourceNotFoundException("Vínculo usuário-empresa não encontrado com ID: " + id));
+                () -> new ResourceNotFoundException(USER_COMPANY_NOT_FOUND + id));
         try {
             entityManager.refresh(membership);
         } catch (EntityNotFoundException removed) {
-            throw new ResourceNotFoundException("Vínculo usuário-empresa não encontrado com ID: " + id);
+            throw new ResourceNotFoundException(USER_COMPANY_NOT_FOUND + id);
         }
         return membership;
     }
@@ -170,7 +172,7 @@ public class UserCompanyService {
     @Transactional(readOnly = true)
     public UserCompanyResponseDTO findById(UUID id) {
         UserCompany userCompany = userCompanyRepository.findById(id).orElseThrow(
-                () -> new ResourceNotFoundException("Vínculo usuário-empresa não encontrado com ID: " + id));
+                () -> new ResourceNotFoundException(USER_COMPANY_NOT_FOUND + id));
         rbac.requireOwnCompany(userCompany.getCompany().getId());
         return toResponse(userCompany);
     }
@@ -179,7 +181,7 @@ public class UserCompanyService {
     public UserCompanyResponseDTO findById(UUID id, UUID companyId) {
         rbac.requireOwnCompany(companyId);
         UserCompany userCompany = userCompanyRepository.findByIdAndCompanyId(id, companyId).orElseThrow(
-                () -> new ResourceNotFoundException("Vínculo usuário-empresa não encontrado com ID: " + id));
+                () -> new ResourceNotFoundException(USER_COMPANY_NOT_FOUND + id));
         return toResponse(userCompany);
     }
 

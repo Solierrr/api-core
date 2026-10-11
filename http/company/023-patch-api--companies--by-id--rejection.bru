@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] PATCH /api/companies/{id}/rejection
+  type: http
+  seq: 23
+}
+
+patch {
+  url: {{baseUrl}}/api/companies/{{id}}/rejection
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `CompanyController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

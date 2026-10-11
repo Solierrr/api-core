@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/permissions
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/permissions
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `PermissionController.java`.
+}

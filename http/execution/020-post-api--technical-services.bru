@@ -1,0 +1,26 @@
+meta {
+  name: [mutates] POST /api/technical-services
+  type: http
+  seq: 20
+}
+
+post {
+  url: {{baseUrl}}/api/technical-services
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "technicalProjectId": "{{sampleUuid}}",
+    "purpose": "example"
+  }
+}
+
+docs {
+  Source: `TechnicalServiceController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

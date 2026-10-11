@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/charges/{id}/company/{companyId}
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/api/charges/{{id}}/company/{{companyId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ChargeController.java`.
+}

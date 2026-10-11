@@ -1,0 +1,28 @@
+meta {
+  name: [mutates] POST /api/addresses
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/addresses
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "state": "SP",
+    "city": "example",
+    "zipCode": "01001000",
+    "street": "example"
+  }
+}
+
+docs {
+  Source: `AddressController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

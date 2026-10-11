@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/connections
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/connections
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ConnectionController.java`.
+}

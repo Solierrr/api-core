@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/technician-affiliations/{id}/company/{companyId}
+  type: http
+  seq: 39
+}
+
+get {
+  url: {{baseUrl}}/api/technician-affiliations/{{id}}/company/{{companyId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `TechnicianAffiliationController.java`.
+}

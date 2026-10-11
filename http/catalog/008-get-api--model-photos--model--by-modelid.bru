@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/model-photos/model/{modelId}
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/model-photos/model/{{modelId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ModelPhotoController.java`.
+}

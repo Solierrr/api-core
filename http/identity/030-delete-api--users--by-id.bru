@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] DELETE /api/users/{id}
+  type: http
+  seq: 30
+}
+
+delete {
+  url: {{baseUrl}}/api/users/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `UserController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

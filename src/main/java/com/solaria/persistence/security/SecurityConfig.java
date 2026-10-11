@@ -8,6 +8,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -115,6 +116,9 @@ public class SecurityConfig {
                                                 // Docs OpenAPI/Swagger ficam públicas
                                                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**",
                                                                 "/swagger-ui.html")
+                                                .permitAll()
+                                                // Endpoint de conveniência para autenticar direto pelo Swagger
+                                                .requestMatchers(HttpMethod.POST, "/dev/login")
                                                 .permitAll()
                                                 // todos os outros endpoints exigem um jwt de usuário válido,
                                                 // decodificado por userJwtDecoder()

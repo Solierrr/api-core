@@ -1,0 +1,26 @@
+meta {
+  name: [mutates] PUT /api/service-contracts/{id}
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{baseUrl}}/api/service-contracts/{{id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "serviceId": "{{sampleUuid}}",
+    "insurance": true
+  }
+}
+
+docs {
+  Source: `ServiceContractController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

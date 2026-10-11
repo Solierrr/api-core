@@ -28,6 +28,8 @@ import com.solaria.persistence.repository.unit.UnitSpecificationsRepository;
 @Service
 public class LocalUnitService {
 
+    private static final String LOCAL_UNIT_NOT_FOUND = "Unidade Local não encontrada com ID: ";
+
     private final RbacAuthorizationService rbac;
     private final LocalUnitRepository localUnitRepository;
     private final RequesterRepository requesterRepository;
@@ -89,7 +91,7 @@ public class LocalUnitService {
     @Transactional
     public void deleteById(UUID id) {
         LocalUnit localUnit = localUnitRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Unidade Local não encontrada com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(LOCAL_UNIT_NOT_FOUND + id));
         rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
         if (unitSpecificationsRepository.existsByLocalUnitId(id)
                 || energyBillRepository.existsByLocalUnitId(id)
@@ -105,7 +107,7 @@ public class LocalUnitService {
     public LocalUnitResponseDTO findById(UUID id) {
         LocalUnit localUnit = localUnitRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Unidade Local não encontrada com ID: " + id));
+                        LOCAL_UNIT_NOT_FOUND + id));
         rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
         return toResponse(localUnit);
     }
@@ -115,7 +117,7 @@ public class LocalUnitService {
         rbac.requireOwnCompany(companyId);
         LocalUnit localUnit = localUnitRepository.findByIdAndRequester_Company_Id(id, companyId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Unidade Local não encontrada com ID: " + id));
+                        LOCAL_UNIT_NOT_FOUND + id));
         rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
         return toResponse(localUnit);
     }

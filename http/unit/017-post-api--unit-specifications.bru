@@ -1,0 +1,25 @@
+meta {
+  name: [mutates] POST /api/unit-specifications
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/api/unit-specifications
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "localUnitId": "{{sampleUuid}}"
+  }
+}
+
+docs {
+  Source: `UnitSpecificationsController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

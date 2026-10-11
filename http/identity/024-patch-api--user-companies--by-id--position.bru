@@ -1,0 +1,25 @@
+meta {
+  name: [mutates] PATCH /api/user-companies/{id}/position
+  type: http
+  seq: 24
+}
+
+patch {
+  url: {{baseUrl}}/api/user-companies/{{id}}/position
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "positionId": "{{sampleUuid}}"
+  }
+}
+
+docs {
+  Source: `UserCompanyController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

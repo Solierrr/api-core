@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] DELETE /api/offers/{id}
+  type: http
+  seq: 22
+}
+
+delete {
+  url: {{baseUrl}}/api/offers/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `OfferController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

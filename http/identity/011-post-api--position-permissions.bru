@@ -1,0 +1,26 @@
+meta {
+  name: [mutates] POST /api/position-permissions
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/position-permissions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "positionId": "{{sampleUuid}}",
+    "permissionId": "{{sampleUuid}}"
+  }
+}
+
+docs {
+  Source: `PositionPermissionController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

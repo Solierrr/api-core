@@ -1,0 +1,25 @@
+meta {
+  name: [mutates] PATCH /api/technician-affiliations/{id}/type
+  type: http
+  seq: 40
+}
+
+patch {
+  url: {{baseUrl}}/api/technician-affiliations/{{id}}/type
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "affiliationType": "INDEPENDENT"
+  }
+}
+
+docs {
+  Source: `TechnicianAffiliationController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

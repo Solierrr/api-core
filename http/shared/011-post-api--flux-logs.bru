@@ -1,0 +1,26 @@
+meta {
+  name: [mutates] POST /api/flux-logs
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/flux-logs
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "userId": "{{sampleUuid}}",
+    "action": "example"
+  }
+}
+
+docs {
+  Source: `FluxLogController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

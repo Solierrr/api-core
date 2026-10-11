@@ -1,0 +1,25 @@
+meta {
+  name: [mutates] PATCH /api/proposals/{id}/notes
+  type: http
+  seq: 16
+}
+
+patch {
+  url: {{baseUrl}}/api/proposals/{{id}}/notes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "notes": "example"
+  }
+}
+
+docs {
+  Source: `ProposalController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

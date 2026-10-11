@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] DELETE /api/company-plans/{id}
+  type: http
+  seq: 29
+}
+
+delete {
+  url: {{baseUrl}}/api/company-plans/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `CompanyPlansController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

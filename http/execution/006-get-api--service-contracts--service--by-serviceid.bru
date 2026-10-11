@@ -1,0 +1,19 @@
+meta {
+  name: GET /api/service-contracts/service/{serviceId}
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/service-contracts/service/{{serviceId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `ServiceContractController.java`.
+}

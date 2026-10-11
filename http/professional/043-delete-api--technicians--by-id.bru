@@ -1,0 +1,19 @@
+meta {
+  name: [mutates] DELETE /api/technicians/{id}
+  type: http
+  seq: 43
+}
+
+delete {
+  url: {{baseUrl}}/api/technicians/{{id}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `TechnicianController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

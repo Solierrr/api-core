@@ -1,0 +1,28 @@
+meta {
+  name: [mutates] POST /api/certifications
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/certifications
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "name": "example",
+    "issuer": "example",
+    "validity": "2026-10-02T12:00:00Z",
+    "description": "example"
+  }
+}
+
+docs {
+  Source: `CertificationController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

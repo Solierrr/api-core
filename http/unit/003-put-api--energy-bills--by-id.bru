@@ -1,0 +1,27 @@
+meta {
+  name: [mutates] PUT /api/energy-bills/{id}
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/energy-bills/{{id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "localUnitId": "{{sampleUuid}}",
+    "consumption": 1.0,
+    "price": 1.0
+  }
+}
+
+docs {
+  Source: `EnergyBillController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

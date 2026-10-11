@@ -1,0 +1,23 @@
+meta {
+  name: [mutates] PUT /api/energy-bills/{id}/photo
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/api/energy-bills/{{id}}/photo
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:multipart-form {
+  file: @file(fixtures/example.png)
+}
+
+docs {
+  Source: `EnergyBillController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

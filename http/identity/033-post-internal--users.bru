@@ -1,0 +1,21 @@
+meta {
+  name: [mutates] POST /internal/users
+  type: http
+  seq: 33
+}
+
+post {
+  url: {{baseUrl}}/internal/users
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "authId": "{{sampleUuid}}"
+  }
+}
+
+docs {
+  Source: `InternalUserProvisioningController.java`. This operation can change local state or trigger a workflow; review its effect before sending. Internal route: use only with the local service and trusted local network.
+}

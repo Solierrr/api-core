@@ -1,0 +1,27 @@
+meta {
+  name: [mutates] POST /api/service-executors
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/service-executors
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+body:json {
+  {
+    "serviceId": "{{sampleUuid}}",
+    "technicianAffiliationId": "{{sampleUuid}}",
+    "function": "example"
+  }
+}
+
+docs {
+  Source: `ServiceExecutorController.java`. This operation can change local state or trigger a workflow; review its effect before sending.
+}

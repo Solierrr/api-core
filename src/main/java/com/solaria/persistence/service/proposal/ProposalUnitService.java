@@ -110,14 +110,16 @@ public class ProposalUnitService {
 
     @Transactional
     public void deleteById(UUID id) {
-        ProposalUnit proposalUnit = findLockedUnit(id);
-
-
+        findLockedUnit(id);
         proposalUnitRepository.deleteById(id);
     }
 
     @Transactional(readOnly = true)
     public ProposalUnitResponseDTO findById(UUID id) {
+        return findParticipantUnit(id);
+    }
+
+    private ProposalUnitResponseDTO findParticipantUnit(UUID id) {
         ProposalUnit proposalUnit = proposalUnitRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Unidade da Proposta não encontrada com ID: " + id));
@@ -128,7 +130,7 @@ public class ProposalUnitService {
     @Transactional(readOnly = true)
     public ProposalUnitResponseDTO findById(UUID id, UUID companyId) {
         proposalService.requireCompanyFilter(companyId);
-        return findById(id);
+        return findParticipantUnit(id);
     }
 
     @Transactional(readOnly = true)
