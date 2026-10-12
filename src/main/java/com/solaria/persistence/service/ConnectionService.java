@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.solaria.persistence.domain.entity.identity.User;
 import com.solaria.persistence.dto.request.ConnectionRequestDTO;
 import com.solaria.persistence.dto.response.identity.UserResponseDTO;
-import com.solaria.persistence.exception.BusinessRuleException;
 import com.solaria.persistence.exception.DuplicateResourceException;
 import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
@@ -43,10 +42,6 @@ public class ConnectionService {
         User connectedUser = userRepository.findById(dto.getConnectedUserId()).orElseThrow(
                 () -> new ResourceNotFoundException(
                         "Usuário não encontrado com ID: " + dto.getConnectedUserId()));
-
-        if (!Boolean.TRUE.equals(connectedUser.getActive())) {
-            throw new BusinessRuleException("Não é possível conectar-se a um usuário inativo");
-        }
 
         List<UUID> connections = mutableConnections(owner);
         if (connections.contains(connectedUser.getId())) {
@@ -127,7 +122,6 @@ public class ConnectionService {
         response.setUsername(user.getUsername());
         response.setAvatar(user.getAvatar());
         response.setBanner(user.getBanner());
-        response.setActive(user.getActive());
         return response;
     }
 }

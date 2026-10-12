@@ -11,32 +11,29 @@ import com.solaria.persistence.domain.entity.shared.FluxLog;
 import com.solaria.persistence.domain.entity.identity.User;
 import com.solaria.persistence.dto.request.shared.FluxLogRequestDTO;
 import com.solaria.persistence.dto.response.shared.FluxLogResponseDTO;
-import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.shared.FluxLogRepository;
-import com.solaria.persistence.repository.identity.UserRepository;
+import com.solaria.persistence.security.CurrentUserService;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
 
 @Service
 public class FluxLogService {
 
     private final FluxLogRepository fluxLogRepository;
-    private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
+    private final RbacAuthorizationService rbac;
 
-    public FluxLogService(FluxLogRepository fluxLogRepository, UserRepository userRepository) {
+    public FluxLogService(FluxLogRepository fluxLogRepository, CurrentUserService currentUserService,
+                          RbacAuthorizationService rbac) {
         this.fluxLogRepository = fluxLogRepository;
-        this.userRepository = userRepository;
+        this.currentUserService = currentUserService;
+        this.rbac = rbac;
     }
 
     @Transactional
     public FluxLogResponseDTO record(FluxLogRequestDTO dto) {
-        User user = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Usuário não encontrado com ID: " + dto.getUserId()));
-
-        if (!user.getActive()) {
-            user.setActive(true);
-            userRepository.save(user);
-        }
+        User user = currentUserService.getProvisionedCurrentUser();
+        rbac.requireOwnUser(dto.getUserId());
 
         FluxLog fluxLog = new FluxLog();
         fluxLog.setUser(user);
@@ -48,6 +45,8 @@ public class FluxLogService {
 
     @Transactional(readOnly = true)
     public List<FluxLogResponseDTO> findByUser(UUID userId) {
+        currentUserService.getProvisionedCurrentUserId();
+        rbac.requireOwnUser(userId);
         return fluxLogRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(this::toResponse)
                 .toList();

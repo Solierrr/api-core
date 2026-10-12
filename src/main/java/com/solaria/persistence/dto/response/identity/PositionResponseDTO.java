@@ -11,6 +11,6 @@ public class PositionResponseDTO {
 
     private UUID id;
     private String name;
-    private String accesses;
+    private UUID companyId;
 
 }

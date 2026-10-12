@@ -19,6 +19,8 @@ import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.identity.PersonRepository;
 import com.solaria.persistence.repository.professional.TechnicianRepository;
 import com.solaria.persistence.util.SlugUtil;
+import com.solaria.persistence.security.CurrentUserService;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
 
 @Service
@@ -26,18 +28,27 @@ public class TechnicianService {
 
     private final TechnicianRepository technicianRepository;
     private final PersonRepository personRepository;
+    private final CurrentUserService currentUserService;
+    private final RbacAuthorizationService rbac;
 
     public TechnicianService(TechnicianRepository technicianRepository,
-                             PersonRepository personRepository) {
+                             PersonRepository personRepository,
+                             CurrentUserService currentUserService,
+                             RbacAuthorizationService rbac) {
         this.technicianRepository = technicianRepository;
         this.personRepository = personRepository;
+        this.currentUserService = currentUserService;
+        this.rbac = rbac;
     }
 
     @Transactional
     public TechnicianResponseDTO save(TechnicianRequestDTO dto) {
+        currentUserService.getProvisionedCurrentUserId();
         Person person = personRepository.findById(dto.getPersonId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Pessoa não encontrada com ID: " + dto.getPersonId()));
+
+        rbac.requireOwnUser(person.getUser() == null ? null : person.getUser().getId());
 
         if (technicianRepository.existsByPersonId(dto.getPersonId())) {
             throw new DuplicateResourceException(
@@ -54,9 +65,11 @@ public class TechnicianService {
 
     @Transactional
     public TechnicianResponseDTO update(UUID id, TechnicianRequestDTO dto) {
+        currentUserService.getProvisionedCurrentUserId();
         Technician technician = technicianRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Técnico com id:" + id + " não encontrado para atualização"));
+        requireOwner(technician);
         if (!technician.getPerson().getId().equals(dto.getPersonId())) {
             throw new InvalidFieldException("Pessoa (personId) imutável: " + dto.getPersonId());
         }
@@ -68,25 +81,32 @@ public class TechnicianService {
 
     @Transactional
     public void deleteById(UUID id) {
-        if (!technicianRepository.existsById(id)) {
-            throw new ResourceNotFoundException(
-                    "Técnico com id:" + id + " não encontrado para exclusão");
-        }
-
-        technicianRepository.deleteById(id);
+        currentUserService.getProvisionedCurrentUserId();
+        Technician technician = technicianRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Técnico não encontrado com ID: " + id));
+        requireOwner(technician);
+        technicianRepository.delete(technician);
     }
 
     @Transactional(readOnly = true)
     public TechnicianResponseDTO findById(UUID id) {
+        currentUserService.getProvisionedCurrentUserId();
         Technician technician = technicianRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Técnico não encontrado com ID: " + id));
+        requireOwner(technician);
         return toResponse(technician);
     }
 
     @Transactional(readOnly = true)
     public List<TechnicianResponseDTO> findAll() {
-        return technicianRepository.findAll().stream().map(this::toResponse).toList();
+        UUID userId = currentUserService.getProvisionedCurrentUserId();
+        return technicianRepository.findByPersonUserId(userId).stream().map(this::toResponse).toList();
+    }
+
+    private void requireOwner(Technician technician) {
+        Person person = technician.getPerson();
+        rbac.requireOwnUser(person.getUser() == null ? null : person.getUser().getId());
     }
 
     private String generateUniqueSlug(String name) {

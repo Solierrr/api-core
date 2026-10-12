@@ -21,6 +21,7 @@ public interface LocalUnitPhotoOpenApi {
         description = "Faz upload da imagem para o Cloudinary e associa à unidade local informada."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "201", description = "Foto criada com sucesso"),
             @ApiResponse(responseCode = "404", description = "Unidade local não encontrada")
     })
@@ -28,6 +29,7 @@ public interface LocalUnitPhotoOpenApi {
 
     @Operation(summary = "Remove uma foto da unidade local")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "204", description = "Foto removida com sucesso"),
             @ApiResponse(responseCode = "404", description = "Foto não encontrada")
     })
@@ -35,6 +37,8 @@ public interface LocalUnitPhotoOpenApi {
 
     @Operation(summary = "Lista as fotos cadastradas para a unidade local")
     @ApiResponses({
+            @ApiResponse(responseCode = "404", description = "Recurso ou parent inexistente"),
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "200", description = "Lista de fotos retornada com sucesso")
     })
     ResponseEntity<List<LocalUnitPhotoResponseDTO>> findByLocalUnit(UUID localUnitId);

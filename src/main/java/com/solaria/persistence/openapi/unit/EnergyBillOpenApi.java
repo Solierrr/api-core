@@ -22,6 +22,8 @@ public interface EnergyBillOpenApi {
         description = "Consumo é obrigatório e deve ser maior que zero; preço é obrigatório e deve ser maior ou igual a zero."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "404", description = "Recurso ou parent inexistente"),
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "201", description = "Conta de energia criada com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos")
     })
@@ -32,6 +34,7 @@ public interface EnergyBillOpenApi {
         description = "Consumo é obrigatório e deve ser maior que zero; preço é obrigatório e deve ser maior ou igual a zero."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "200", description = "Conta de energia atualizada com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
             @ApiResponse(responseCode = "404", description = "Conta de energia não encontrada")
@@ -40,6 +43,7 @@ public interface EnergyBillOpenApi {
 
     @Operation(summary = "Busca uma conta de energia pelo id e pela empresa")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "200", description = "Conta de energia encontrada"),
             @ApiResponse(responseCode = "404", description = "Conta de energia não encontrada")
     })
@@ -47,6 +51,8 @@ public interface EnergyBillOpenApi {
 
     @Operation(summary = "Lista as contas de energia de uma unidade local")
     @ApiResponses({
+            @ApiResponse(responseCode = "404", description = "Recurso ou parent inexistente"),
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "200", description = "Listagem retornada com sucesso")
     })
     ResponseEntity<List<EnergyBillResponseDTO>> findByLocalUnit(UUID localUnitId);
@@ -56,6 +62,7 @@ public interface EnergyBillOpenApi {
         description = "Faz upload da imagem para o Cloudinary e associa à conta de energia informada."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "200", description = "Foto anexada com sucesso"),
             @ApiResponse(responseCode = "404", description = "Conta de energia não encontrada")
     })
@@ -63,6 +70,7 @@ public interface EnergyBillOpenApi {
 
     @Operation(summary = "Remove a foto da conta de energia")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "204", description = "Foto removida com sucesso"),
             @ApiResponse(responseCode = "404", description = "Conta de energia não encontrada")
     })

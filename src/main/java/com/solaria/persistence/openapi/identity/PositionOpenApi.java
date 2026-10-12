@@ -16,14 +16,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Cargos", description = "Gerenciamento dos cargos disponíveis na plataforma")
 public interface PositionOpenApi {
 
-    @Operation(summary = "Cria um novo cargo")
+    @Operation(summary = "Cria cargo privado na empresa do ator")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Cargo criado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos")
     })
     ResponseEntity<PositionResponseDTO> save(PositionRequestDTO dto);
 
-    @Operation(summary = "Atualiza um cargo existente")
+    @Operation(summary = "Atualiza o nome de um cargo da própria empresa",
+        description = "ADMIN é reservado ao bootstrap e não pode ser criado ou renomeado publicamente. Entrada contém somente name; resposta contém id, name e companyId.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Cargo atualizado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
@@ -33,7 +34,7 @@ public interface PositionOpenApi {
 
     @Operation(
         summary = "Remove um cargo",
-        description = "Não é permitida a exclusão de um cargo em uso (UserCompany/CompanyPositions); ao excluir um cargo sem uso, suas permissões são removidas automaticamente. O cargo ADMIN tem permissões protegidas contra revogação."
+        description = "Somente a própria empresa pode excluir cargo sem usuários. Grants e associação interna são removidos atomicamente. ADMIN não pode ser excluído."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Cargo removido com sucesso"),
@@ -48,7 +49,7 @@ public interface PositionOpenApi {
     })
     ResponseEntity<PositionResponseDTO> findById(UUID id);
 
-    @Operation(summary = "Lista todos os cargos")
+    @Operation(summary = "Lista os cargos da empresa do ator")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Listagem retornada com sucesso")
     })

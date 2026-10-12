@@ -32,9 +32,12 @@ import com.solaria.persistence.repository.proposal.ProposalItemRepository;
 import com.solaria.persistence.repository.catalog.SupplierRepository;
 import com.solaria.persistence.util.SlugUtil;
 import com.solaria.persistence.service.company.SubscriptionService;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
 @Service
 public class OfferService {
+
+    private final RbacAuthorizationService rbac;
 
     private final OfferRepository offerRepository;
     private final SupplierRepository supplierRepository;
@@ -50,7 +53,9 @@ public class OfferService {
                         ProposalItemRepository proposalItemRepository,
                         SubscriptionService subscriptionService,
                         OfferTranslationRepository offerTranslationRepository,
-                        OfferTranslationService offerTranslationService) {
+                        OfferTranslationService offerTranslationService,
+                            RbacAuthorizationService rbac) {
+        this.rbac = rbac;
         this.offerRepository = offerRepository;
         this.supplierRepository = supplierRepository;
         this.modelRepository = modelRepository;
@@ -71,6 +76,8 @@ public class OfferService {
         Supplier supplier = supplierRepository.findById(dto.getSupplierId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Fornecedor não encontrado com ID: " + dto.getSupplierId()));
+
+        rbac.requireOwnCompany(supplier.getCompany().getId());
 
         Model model = modelRepository.findById(dto.getModelId())
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -114,6 +121,8 @@ public class OfferService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Oferta com id:" + id + " não encontrada para atualização"));
 
+        rbac.requireOwnCompany(offer.getSupplier().getCompany().getId());
+
         if (dto.getSupplierId() != null && !dto.getSupplierId().equals(offer.getSupplier().getId())) {
             throw new InvalidFieldException("Fornecedor (supplierId) imutável: " + dto.getSupplierId());
         }
@@ -140,10 +149,10 @@ public class OfferService {
 
     @Transactional
     public void deleteById(UUID id) {
-        if (!offerRepository.existsById(id)) {
-            throw new ResourceNotFoundException(
-                    "Oferta com id:" + id + " não encontrada para exclusão");
-        }
+        Offer resource = offerRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException(
+                    "Oferta com id:" + id + " não encontrada para exclusão"));
+        rbac.requireOwnCompany(resource.getSupplier().getCompany().getId());
         if (proposalItemRepository.existsByOfferId(id)) {
             throw new ResourceInUseException(
                     "Oferta não pode ser excluída: possui item(ns) de proposta vinculado(s)");
@@ -272,6 +281,7 @@ public class OfferService {
         }
         return ModelResponseDTO.builder()
                 .id(model.getId())
+                .creatorCompanyId(model.getCreatorCompanyId())
                 .brand(model.getBrand())
                 .model(model.getModel())
                 .type(model.getType())

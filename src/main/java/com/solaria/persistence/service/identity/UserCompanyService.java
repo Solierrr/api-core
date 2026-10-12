@@ -15,7 +15,6 @@ import com.solaria.persistence.domain.entity.identity.Position;
 import com.solaria.persistence.domain.entity.identity.User;
 import com.solaria.persistence.domain.entity.identity.UserCompany;
 import com.solaria.persistence.exception.DuplicateResourceException;
-import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.exception.UnauthorizedAccessException;
 import com.solaria.persistence.repository.company.CompanyPositionsRepository;
@@ -24,10 +23,16 @@ import com.solaria.persistence.repository.identity.PositionRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.repository.identity.UserRepository;
 import com.solaria.persistence.security.rbac.RbacAuthorizationService;
+import com.solaria.persistence.security.CurrentUserService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.PersistenceContext;
 
 
 @Service
 public class UserCompanyService {
+
+    private static final String USER_COMPANY_NOT_FOUND = "Vínculo usuário-empresa não encontrado com ID: ";
 
     private final UserCompanyRepository userCompanyRepository;
     private final UserRepository userRepository;
@@ -36,6 +41,9 @@ public class UserCompanyService {
     private final CompanyPositionsRepository companyPositionsRepository;
     private final RbacAuthorizationService rbac;
     private final ObjectMapper objectMapper;
+    private final CurrentUserService currentUserService;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public UserCompanyService(UserCompanyRepository userCompanyRepository,
                               UserRepository userRepository,
@@ -43,7 +51,8 @@ public class UserCompanyService {
                               PositionRepository positionRepository,
                               CompanyPositionsRepository companyPositionsRepository,
                               RbacAuthorizationService rbac,
-                              ObjectMapper objectMapper) {
+                              ObjectMapper objectMapper,
+                              CurrentUserService currentUserService) {
         this.userCompanyRepository = userCompanyRepository;
         this.userRepository = userRepository;
         this.companyRepository = companyRepository;
@@ -51,14 +60,15 @@ public class UserCompanyService {
         this.companyPositionsRepository = companyPositionsRepository;
         this.rbac = rbac;
         this.objectMapper = objectMapper;
+        this.currentUserService = currentUserService;
     }
 
     @Transactional
     public UserCompanyResponseDTO save(UserCompanyRequestDTO dto) {
+        Company company = lockActorCompany();
+        rbac.requireOwnCompany(dto.getCompanyId());
         User user = userRepository.findById(dto.getUserId()).orElseThrow(
                 () -> new ResourceNotFoundException("Usuário não encontrado com ID: " + dto.getUserId()));
-        Company company = companyRepository.findById(dto.getCompanyId()).orElseThrow(
-                () -> new ResourceNotFoundException("Empresa não encontrada com ID: " + dto.getCompanyId()));
         Position position = positionRepository.findById(dto.getPositionId()).orElseThrow(
                 () -> new ResourceNotFoundException("Cargo não encontrado com ID: " + dto.getPositionId()));
 
@@ -71,13 +81,7 @@ public class UserCompanyService {
             throw new UnauthorizedAccessException("Cargo não disponível para a empresa");
         }
 
-        if (!userCompanyRepository.existsByCompanyId(dto.getCompanyId())) {
-            if (!Position.ADMIN_NAME.equals(position.getName())) {
-                throw new InvalidFieldException("A primeira conta de uma empresa deve ter o cargo ADMIN");
-            }
-        } else {
-            rbac.requireOwnCompany(dto.getCompanyId());
-        }
+        requireAdminAssignment(position, company.getId());
 
         UserCompany userCompany = new UserCompany();
         userCompany.setUser(user);
@@ -89,9 +93,8 @@ public class UserCompanyService {
 
     @Transactional
     public UserCompanyResponseDTO updatePosition(UUID id, UUID positionId) {
-        UserCompany userCompany = userCompanyRepository.findById(id).orElseThrow(
-                () -> new ResourceNotFoundException(
-                        "Vínculo usuário-empresa com id:" + id + " não encontrado(a) para atualização"));
+        Company company = lockActorCompany();
+        UserCompany userCompany = loadMembershipForMutation(id);
 
         Position position = positionRepository.findById(positionId).orElseThrow(
                 () -> new ResourceNotFoundException("Cargo não encontrado com ID: " + positionId));
@@ -99,6 +102,7 @@ public class UserCompanyService {
         UUID companyId = userCompany.getCompany().getId();
 
         rbac.requireOwnCompany(companyId);
+        requireAdminAssignment(position, company.getId());
 
         if (!companyPositionsRepository.existsByCompanyIdAndPositionId(companyId, positionId)) {
             throw new UnauthorizedAccessException("Cargo não disponível para a empresa");
@@ -117,9 +121,8 @@ public class UserCompanyService {
 
     @Transactional
     public void deleteById(UUID id) {
-        UserCompany userCompany = userCompanyRepository.findById(id).orElseThrow(
-                () -> new ResourceNotFoundException(
-                        "Vínculo usuário-empresa com id:" + id + " não encontrado para exclusão"));
+        lockActorCompany();
+        UserCompany userCompany = loadMembershipForMutation(id);
 
         UUID companyId = userCompany.getCompany().getId();
 
@@ -132,28 +135,59 @@ public class UserCompanyService {
         userCompanyRepository.deleteById(id);
     }
 
+    private UserCompany loadMembershipForMutation(UUID id) {
+        UserCompany membership = userCompanyRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException(USER_COMPANY_NOT_FOUND + id));
+        try {
+            entityManager.refresh(membership);
+        } catch (EntityNotFoundException removed) {
+            throw new ResourceNotFoundException(USER_COMPANY_NOT_FOUND + id);
+        }
+        return membership;
+    }
+
     private boolean isLastAdminOfCompany(UUID companyId, UUID excludingId) {
-        return userCompanyRepository.findByCompanyId(companyId).stream()
-                .filter(uc -> !uc.getId().equals(excludingId))
-                .noneMatch(uc -> Position.ADMIN_NAME.equals(uc.getPosition().getName()));
+        return !userCompanyRepository.existsByCompanyIdAndPosition_NameAndIdNot(
+                companyId, Position.ADMIN_NAME, excludingId);
+    }
+
+    private Company lockActorCompany() {
+        UUID companyId = rbac.getCurrentCompanyId();
+        return companyRepository.findByIdForUpdate(companyId).orElseThrow(
+                () -> new ResourceNotFoundException("Empresa não encontrada com ID: " + companyId));
+    }
+
+    private void requireAdminAssignment(Position position, UUID companyId) {
+        if (!Position.ADMIN_NAME.equals(position.getName())) {
+            return;
+        }
+        UUID actorId = currentUserService.findCurrentUserId().orElseThrow(
+                () -> new UnauthorizedAccessException("Usuário sem vínculo empresarial"));
+        if (!userCompanyRepository.existsByUserIdAndCompanyIdAndPosition_Name(
+                actorId, companyId, Position.ADMIN_NAME)) {
+            throw new UnauthorizedAccessException("Somente ADMIN da própria empresa pode atribuir ADMIN");
+        }
     }
 
     @Transactional(readOnly = true)
     public UserCompanyResponseDTO findById(UUID id) {
         UserCompany userCompany = userCompanyRepository.findById(id).orElseThrow(
-                () -> new ResourceNotFoundException("Vínculo usuário-empresa não encontrado com ID: " + id));
+                () -> new ResourceNotFoundException(USER_COMPANY_NOT_FOUND + id));
+        rbac.requireOwnCompany(userCompany.getCompany().getId());
         return toResponse(userCompany);
     }
 
     @Transactional(readOnly = true)
     public UserCompanyResponseDTO findById(UUID id, UUID companyId) {
+        rbac.requireOwnCompany(companyId);
         UserCompany userCompany = userCompanyRepository.findByIdAndCompanyId(id, companyId).orElseThrow(
-                () -> new ResourceNotFoundException("Vínculo usuário-empresa não encontrado com ID: " + id));
+                () -> new ResourceNotFoundException(USER_COMPANY_NOT_FOUND + id));
         return toResponse(userCompany);
     }
 
     @Transactional(readOnly = true)
     public List<UserCompanyResponseDTO> findAllByCompany(UUID companyId) {
+        rbac.requireOwnCompany(companyId);
         return userCompanyRepository.findByCompanyId(companyId).
                 stream()
                 .map(this::toResponse)
@@ -164,7 +198,10 @@ public class UserCompanyService {
     public List<UserCompanyResponseDTO> findByUser(UUID userId) {
         return userCompanyRepository.findByUserId(userId)
                 .stream()
-                .map(this::toResponse)
+                .map(membership -> {
+                    rbac.requireOwnCompany(membership.getCompany().getId());
+                    return toResponse(membership);
+                })
                 .toList();
     }
 
@@ -172,7 +209,9 @@ public class UserCompanyService {
         UserCompanyResponseDTO response = objectMapper.convertValue(entity, UserCompanyResponseDTO.class);
         response.setCompanyId(entity.getCompany().getId());
         response.setUserId(entity.getUser().getId());
-        response.setPosition(objectMapper.convertValue(entity.getPosition(), PositionResponseDTO.class));
+        PositionResponseDTO position = objectMapper.convertValue(entity.getPosition(), PositionResponseDTO.class);
+        position.setCompanyId(entity.getCompany().getId());
+        response.setPosition(position);
         return response;
     }
 }

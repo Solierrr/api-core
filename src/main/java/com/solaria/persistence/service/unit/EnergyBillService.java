@@ -27,6 +27,7 @@ import com.solaria.persistence.service.shared.CloudinaryService;
 @Service
 public class EnergyBillService {
 
+    private static final String LOCAL_UNIT_NOT_FOUND = "Unidade Local não encontrada com ID: ";
     private static final BigDecimal ZERO = BigDecimal.ZERO;
 
     private static final Set<String> ALLOWED_PHOTO_CONTENT_TYPES = Set.of("image/jpeg", "image/png", "application/pdf");
@@ -62,9 +63,10 @@ public class EnergyBillService {
             throw new InvalidFieldException("Preço inválido: " + dto.getPrice());
         }
 
-        LocalUnit localUnit = localUnitRepository.findById(dto.getLocalUnitId())
+        LocalUnit localUnit = localUnitRepository.findForManagementById(dto.getLocalUnitId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Unidade Local não encontrada com ID: " + dto.getLocalUnitId()));
+                        LOCAL_UNIT_NOT_FOUND + dto.getLocalUnitId()));
+        rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
 
         EnergyBill energyBill = new EnergyBill();
         energyBill.setLocalUnit(localUnit);
@@ -83,13 +85,15 @@ public class EnergyBillService {
             throw new InvalidFieldException("Preço inválido: " + dto.getPrice());
         }
 
-        EnergyBill energyBill = energyBillRepository.findById(id)
+        EnergyBill energyBill = energyBillRepository.findForManagementById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Conta de Energia não encontrada com ID: " + id));
+        rbac.requireOwnCompany(energyBill.getLocalUnit().getRequester().getCompany().getId());
 
-        LocalUnit localUnit = localUnitRepository.findById(dto.getLocalUnitId())
+        LocalUnit localUnit = localUnitRepository.findForManagementById(dto.getLocalUnitId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Unidade Local não encontrada com ID: " + dto.getLocalUnitId()));
+                        LOCAL_UNIT_NOT_FOUND + dto.getLocalUnitId()));
+        rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
 
         energyBill.setLocalUnit(localUnit);
         energyBill.setConsumption(dto.getConsumption());
@@ -100,23 +104,27 @@ public class EnergyBillService {
 
     @Transactional(readOnly = true)
     public EnergyBillResponseDTO findById(UUID id) {
-        EnergyBill energyBill = energyBillRepository.findById(id)
+        EnergyBill energyBill = energyBillRepository.findForManagementById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Conta de Energia não encontrada com ID: " + id));
+        rbac.requireOwnCompany(energyBill.getLocalUnit().getRequester().getCompany().getId());
         return toResponse(energyBill);
     }
 
     @Transactional(readOnly = true)
     public EnergyBillResponseDTO findById(UUID id, UUID companyId) {
-        EnergyBill energyBill = energyBillRepository
-                .findByIdAndLocalUnit_Requester_Company_Id(id, companyId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Conta de Energia não encontrada com ID: " + id));
+        EnergyBill energyBill = energyBillRepository.findForManagementById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Recurso não encontrado com ID: " + id));
+        rbac.requireOwnCompany(energyBill.getLocalUnit().getRequester().getCompany().getId());
+        rbac.requireOwnCompany(companyId);
         return toResponse(energyBill);
     }
 
     @Transactional(readOnly = true)
     public List<EnergyBillResponseDTO> findByLocalUnit(UUID localUnitId) {
+        LocalUnit localUnit = localUnitRepository.findForManagementById(localUnitId)
+                .orElseThrow(() -> new ResourceNotFoundException(LOCAL_UNIT_NOT_FOUND + localUnitId));
+        rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
         return energyBillRepository.findByLocalUnitId(localUnitId).stream()
                 .map(this::toResponse)
                 .toList();
@@ -124,7 +132,7 @@ public class EnergyBillService {
 
     @Transactional
     public EnergyBillResponseDTO attachPhoto(UUID id, MultipartFile file) {
-        EnergyBill energyBill = energyBillRepository.findById(id)
+        EnergyBill energyBill = energyBillRepository.findForManagementById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Conta de Energia não encontrada com ID: " + id));
 
@@ -149,7 +157,7 @@ public class EnergyBillService {
 
     @Transactional
     public void removePhoto(UUID id) {
-        EnergyBill energyBill = energyBillRepository.findById(id)
+        EnergyBill energyBill = energyBillRepository.findForManagementById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Conta de Energia não encontrada com ID: " + id));
 

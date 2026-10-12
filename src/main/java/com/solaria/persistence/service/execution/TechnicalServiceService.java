@@ -7,46 +7,55 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import tools.jackson.databind.ObjectMapper;
+
 import com.solaria.persistence.dto.request.execution.TechnicalServiceRequestDTO;
 import com.solaria.persistence.dto.response.execution.TechnicalServiceResponseDTO;
+import com.solaria.persistence.dto.response.execution.PersonalTechnicalServiceResponseDTO;
 import com.solaria.persistence.domain.entity.execution.TechnicalProject;
 import com.solaria.persistence.domain.entity.execution.TechnicalService;
 import com.solaria.persistence.domain.enums.execution.ServiceStatus;
 import com.solaria.persistence.exception.BusinessRuleException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
-import com.solaria.persistence.repository.execution.ServiceExecutorRepository;
+import com.solaria.persistence.exception.ServiceTransitionConflictException;
 import com.solaria.persistence.repository.execution.TechnicalProjectRepository;
 import com.solaria.persistence.repository.execution.TechnicalServiceRepository;
 import com.solaria.persistence.security.rbac.RbacAuthorizationService;
+import com.solaria.persistence.security.CurrentUserService;
+import com.solaria.persistence.security.mobile.TechnicalServiceMobileAccess;
+import com.solaria.persistence.security.mobile.TechnicalServiceMobileAccess.ActionMode;
+import com.solaria.persistence.security.mobile.TechnicalServiceMobileAccess.ServiceAction;
 
 @Service
 public class TechnicalServiceService {
 
     private final TechnicalServiceRepository technicalServiceRepository;
     private final TechnicalProjectRepository technicalProjectRepository;
-    private final ServiceExecutorRepository serviceExecutorRepository;
     private final RbacAuthorizationService rbac;
-    private final ObjectMapper objectMapper;
+    private final CurrentUserService currentUserService;
+    private final TechnicalServiceMobileAccess mobileAccess;
+    private final PersonalTechnicalServiceAssembler personalAssembler;
 
     public TechnicalServiceService(TechnicalServiceRepository technicalServiceRepository,
                                    TechnicalProjectRepository technicalProjectRepository,
-                                   ServiceExecutorRepository serviceExecutorRepository,
                                    RbacAuthorizationService rbac,
-                                   ObjectMapper objectMapper) {
+                                   CurrentUserService currentUserService,
+                                   TechnicalServiceMobileAccess mobileAccess,
+                                   PersonalTechnicalServiceAssembler personalAssembler) {
         this.technicalServiceRepository = technicalServiceRepository;
         this.technicalProjectRepository = technicalProjectRepository;
-        this.serviceExecutorRepository = serviceExecutorRepository;
         this.rbac = rbac;
-        this.objectMapper = objectMapper;
+        this.currentUserService = currentUserService;
+        this.mobileAccess = mobileAccess;
+        this.personalAssembler = personalAssembler;
     }
 
     @Transactional
     public TechnicalServiceResponseDTO save(TechnicalServiceRequestDTO dto) {
-        TechnicalProject technicalProject = technicalProjectRepository.findById(dto.getTechnicalProjectId())
+        TechnicalProject technicalProject = technicalProjectRepository.findForManagementById(dto.getTechnicalProjectId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Projeto Técnico não encontrado com ID: " + dto.getTechnicalProjectId()));
 
+        requireProjectOwner(technicalProject);
         TechnicalService technicalService = new TechnicalService();
         technicalService.setTechnicalProject(technicalProject);
         technicalService.setPurpose(dto.getPurpose());
@@ -59,9 +68,10 @@ public class TechnicalServiceService {
 
     @Transactional
     public TechnicalServiceResponseDTO reschedule(UUID id, OffsetDateTime scheduledDate) {
-        TechnicalService technicalService = technicalServiceRepository.findById(id)
+        TechnicalService technicalService = technicalServiceRepository.findForManagementById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Serviço Técnico com id:" + id + " não encontrado para agendamento"));
+        requireOwner(technicalService);
 
         if (technicalService.getStatus() != ServiceStatus.OPEN
                 && technicalService.getStatus() != ServiceStatus.IN_PROGRESS) {
@@ -75,9 +85,10 @@ public class TechnicalServiceService {
 
     @Transactional
     public TechnicalServiceResponseDTO updatePurpose(UUID id, String purpose) {
-        TechnicalService technicalService = technicalServiceRepository.findById(id)
+        TechnicalService technicalService = technicalServiceRepository.findForManagementById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Serviço Técnico com id:" + id + " não encontrado para atualização"));
+        requireOwner(technicalService);
 
         if (technicalService.getStatus() != ServiceStatus.OPEN) {
             throw new BusinessRuleException(
@@ -90,55 +101,60 @@ public class TechnicalServiceService {
     }
 
     @Transactional
-    public TechnicalServiceResponseDTO accept(UUID id, UUID acceptedBy) {
-        TechnicalService technicalService = technicalServiceRepository.findById(id)
+    public PersonalTechnicalServiceResponseDTO accept(UUID id, UUID ignoredAcceptedBy) {
+        UUID userId = currentUserService.getProvisionedCurrentUser().getId();
+        TechnicalService technicalService = technicalServiceRepository.findForMobileById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Serviço Técnico não encontrado com ID: " + id));
 
-        rbac.requireOwnCompany(technicalService.getTechnicalProject().getRequester().getCompany().getId());
+        var crew = personalAssembler.loadCrew(List.of(technicalService));
+        var accessFacts = mobileAccess.evaluateOne(technicalService, userId, crew);
+        ActionMode mode = mobileAccess.authorizeAction(accessFacts, ServiceAction.ACCEPT);
+        requireTransition(technicalService, ServiceStatus.OPEN, ServiceStatus.IN_PROGRESS);
 
-        if (technicalService.getStatus() != ServiceStatus.OPEN) {
-            throw new BusinessRuleException(
-                    "Transição de status inválida: " + technicalService.getStatus() + " → IN_PROGRESS");
-        }
-
-        if (!serviceExecutorRepository.existsByServiceId(id)) {
+        if (mode == ActionMode.REQUESTER && crew.isEmpty()) {
             throw new BusinessRuleException("Serviço requer ao menos um executor antes do aceite");
         }
 
         technicalService.setStatus(ServiceStatus.IN_PROGRESS);
-        technicalService.setAcceptedBy(acceptedBy);
+        technicalService.setAcceptedBy(userId);
         technicalService.setAcceptedAt(OffsetDateTime.now());
 
-        return toResponse(technicalServiceRepository.save(technicalService));
+        return personalAssembler.assembleOne(technicalServiceRepository.save(technicalService), accessFacts, crew);
     }
 
     @Transactional
-    public TechnicalServiceResponseDTO complete(UUID id) {
-        TechnicalService technicalService = technicalServiceRepository.findById(id)
+    public PersonalTechnicalServiceResponseDTO complete(UUID id) {
+        UUID userId = currentUserService.getProvisionedCurrentUser().getId();
+        TechnicalService technicalService = technicalServiceRepository.findForMobileById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Serviço Técnico não encontrado com ID: " + id));
 
-        rbac.requireOwnCompany(technicalService.getTechnicalProject().getRequester().getCompany().getId());
-
-        if (technicalService.getStatus() != ServiceStatus.IN_PROGRESS) {
-            throw new BusinessRuleException(
-                    "Transição de status inválida: " + technicalService.getStatus() + " → COMPLETED");
-        }
+        var crew = personalAssembler.loadCrew(List.of(technicalService));
+        var accessFacts = mobileAccess.evaluateOne(technicalService, userId, crew);
+        mobileAccess.authorizeAction(accessFacts, ServiceAction.COMPLETE);
+        requireTransition(technicalService, ServiceStatus.IN_PROGRESS, ServiceStatus.COMPLETED);
 
         technicalService.setStatus(ServiceStatus.COMPLETED);
         technicalService.setEndDate(OffsetDateTime.now());
 
-        return toResponse(technicalServiceRepository.save(technicalService));
+        return personalAssembler.assembleOne(technicalServiceRepository.save(technicalService), accessFacts, crew);
+    }
+
+    private void requireTransition(TechnicalService service, ServiceStatus expected, ServiceStatus target) {
+        if (service.getStatus() != expected) {
+            String message = "Transição de status inválida: " + service.getStatus() + " → " + target;
+            throw new ServiceTransitionConflictException(message);
+        }
     }
 
     @Transactional
     public TechnicalServiceResponseDTO cancel(UUID id) {
-        TechnicalService technicalService = technicalServiceRepository.findById(id)
+        TechnicalService technicalService = technicalServiceRepository.findForManagementById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Serviço Técnico não encontrado com ID: " + id));
 
-        rbac.requireOwnCompany(technicalService.getTechnicalProject().getRequester().getCompany().getId());
+        requireOwner(technicalService);
 
         if (technicalService.getStatus() != ServiceStatus.OPEN && technicalService.getStatus() != ServiceStatus.IN_PROGRESS) {
             throw new BusinessRuleException(
@@ -152,23 +168,27 @@ public class TechnicalServiceService {
 
     @Transactional(readOnly = true)
     public TechnicalServiceResponseDTO findById(UUID id) {
-        TechnicalService technicalService = technicalServiceRepository.findById(id)
+        TechnicalService technicalService = technicalServiceRepository.findForManagementById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Serviço Técnico não encontrado com ID: " + id));
+        requireOwner(technicalService);
         return toResponse(technicalService);
     }
 
     @Transactional(readOnly = true)
     public TechnicalServiceResponseDTO findById(UUID id, UUID companyId) {
-        TechnicalService technicalService = technicalServiceRepository
-                .findByIdAndTechnicalProject_Requester_Company_Id(id, companyId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Serviço Técnico não encontrado com ID: " + id));
+        TechnicalService technicalService = technicalServiceRepository.findForManagementById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Serviço Técnico não encontrado com ID: " + id));
+        requireOwner(technicalService);
+        rbac.requireOwnCompany(companyId);
         return toResponse(technicalService);
     }
 
     @Transactional(readOnly = true)
     public List<TechnicalServiceResponseDTO> findByTechnicalProject(UUID technicalProjectId) {
+        TechnicalProject project = technicalProjectRepository.findForManagementById(technicalProjectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto Técnico não encontrado com ID: " + technicalProjectId));
+        requireProjectOwner(project);
         return technicalServiceRepository.findByTechnicalProjectId(technicalProjectId).stream()
                 .map(this::toResponse)
                 .toList();
@@ -176,13 +196,29 @@ public class TechnicalServiceService {
 
     @Transactional(readOnly = true)
     public List<TechnicalServiceResponseDTO> findAllByCompany(UUID companyId) {
-        return technicalServiceRepository.findByTechnicalProject_Requester_Company_Id(companyId).stream()
+        rbac.requireOwnCompany(companyId);
+        return technicalServiceRepository.findByTechnicalProject_Requester_Company_Id(rbac.getCurrentCompanyId()).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
+    private void requireOwner(TechnicalService service) {
+        requireProjectOwner(service.getTechnicalProject());
+    }
+
+    private void requireProjectOwner(TechnicalProject project) {
+        rbac.requireOwnCompany(project.getRequester() == null ? null : project.getRequester().getCompany().getId());
+    }
+
     private TechnicalServiceResponseDTO toResponse(TechnicalService entity) {
-        TechnicalServiceResponseDTO response = objectMapper.convertValue(entity, TechnicalServiceResponseDTO.class);
+        TechnicalServiceResponseDTO response = new TechnicalServiceResponseDTO();
+        response.setId(entity.getId());
+        response.setPurpose(entity.getPurpose());
+        response.setStatus(entity.getStatus());
+        response.setScheduledDate(entity.getScheduledDate());
+        response.setCreatedAt(entity.getCreatedAt());
+        response.setAcceptedBy(entity.getAcceptedBy());
+        response.setAcceptedAt(entity.getAcceptedAt());
         response.setTechnicalProjectId(entity.getTechnicalProject().getId());
         response.setEndDate(entity.getEndDate());
         return response;

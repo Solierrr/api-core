@@ -18,6 +18,8 @@ import com.solaria.persistence.exception.UnauthorizedAccessException;
 import com.solaria.persistence.repository.identity.PermissionRepository;
 import com.solaria.persistence.repository.identity.PositionPermissionRepository;
 import com.solaria.persistence.repository.identity.PositionRepository;
+import com.solaria.persistence.repository.company.CompanyPositionsRepository;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
 
 @Service
@@ -26,19 +28,26 @@ public class PositionPermissionService {
     private final PositionPermissionRepository positionPermissionRepository;
     private final PositionRepository positionRepository;
     private final PermissionRepository permissionRepository;
+    private final CompanyPositionsRepository companyPositionsRepository;
+    private final RbacAuthorizationService rbac;
 
     public PositionPermissionService(PositionPermissionRepository positionPermissionRepository,
                                      PositionRepository positionRepository,
-                                     PermissionRepository permissionRepository) {
+                                     PermissionRepository permissionRepository,
+                                     CompanyPositionsRepository companyPositionsRepository,
+                                     RbacAuthorizationService rbac) {
         this.positionPermissionRepository = positionPermissionRepository;
         this.positionRepository = positionRepository;
         this.permissionRepository = permissionRepository;
+        this.companyPositionsRepository = companyPositionsRepository;
+        this.rbac = rbac;
     }
 
     @Transactional
     public PositionPermissionResponseDTO grant(PositionPermissionRequestDTO dto) {
         Position position = positionRepository.findById(dto.getPositionId()).orElseThrow(
                 () -> new ResourceNotFoundException("Cargo não encontrado com ID: " + dto.getPositionId()));
+        requireOwnedPosition(position.getId());
         Permission permission = permissionRepository.findById(dto.getPermissionId()).orElseThrow(
                 () -> new ResourceNotFoundException("Permissão não encontrada com ID: " + dto.getPermissionId()));
 
@@ -60,6 +69,7 @@ public class PositionPermissionService {
                 () -> new ResourceNotFoundException(
                         "Vínculo cargo-permissão com id:" + id + " não encontrado(a) para exclusão"));
 
+        requireOwnedPosition(positionPermission.getPosition().getId());
         if (Position.ADMIN_NAME.equals(positionPermission.getPosition().getName())) {
             throw new UnauthorizedAccessException("Revogar permissão de ADMIN não é permitido");
         }
@@ -69,7 +79,14 @@ public class PositionPermissionService {
 
     @Transactional(readOnly = true)
     public List<PositionPermissionResponseDTO> findByPosition(UUID positionId) {
+        requireOwnedPosition(positionId);
         return positionPermissionRepository.findByPositionId(positionId).stream().map(this::toResponse).toList();
+    }
+
+    private void requireOwnedPosition(UUID positionId) {
+        var association = companyPositionsRepository.findByPositionId(positionId).orElseThrow(
+                () -> new ResourceNotFoundException("Cargo não encontrado com ID: " + positionId));
+        rbac.requireOwnCompany(association.getCompany().getId());
     }
 
     private PositionPermissionResponseDTO toResponse(PositionPermission entity) {

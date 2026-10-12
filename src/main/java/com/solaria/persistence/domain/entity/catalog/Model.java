@@ -20,6 +20,9 @@ public class Model {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "fk_creator_company", nullable = false, updatable = false)
+    private UUID creatorCompanyId;
+
     @Column(name = "brand", nullable = false)
     private String brand;
 
@@ -47,5 +50,5 @@ public class Model {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private ModelStatus status = ModelStatus.UNDER_ANALYSIS;
+    private ModelStatus status = ModelStatus.APPROVED;
 }

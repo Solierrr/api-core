@@ -18,6 +18,5 @@ public interface PositionPermissionRepository extends JpaRepository<PositionPerm
 
     void deleteByPositionId(UUID positionId);
 
-    void deleteByPermissionId(UUID permissionId);
 
 }

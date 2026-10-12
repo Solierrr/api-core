@@ -18,12 +18,17 @@ import com.solaria.persistence.exception.DuplicateResourceException;
 import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.catalog.InventoryRepository;
+import com.solaria.persistence.repository.company.CompanyRepository;
 import com.solaria.persistence.repository.catalog.ModelRepository;
 import com.solaria.persistence.repository.catalog.SupplierRepository;
 import com.solaria.persistence.service.company.SubscriptionService;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
 @Service
 public class InventoryService {
+
+    private final RbacAuthorizationService rbac;
+    private final CompanyRepository companyRepository;
 
     private final InventoryRepository inventoryRepository;
     private final SupplierRepository supplierRepository;
@@ -33,7 +38,11 @@ public class InventoryService {
     public InventoryService(InventoryRepository inventoryRepository,
                             SupplierRepository supplierRepository,
                             ModelRepository modelRepository,
-                            SubscriptionService subscriptionService) {
+                            SubscriptionService subscriptionService,
+                            RbacAuthorizationService rbac,
+                            CompanyRepository companyRepository) {
+        this.companyRepository = companyRepository;
+        this.rbac = rbac;
         this.inventoryRepository = inventoryRepository;
         this.supplierRepository = supplierRepository;
         this.modelRepository = modelRepository;
@@ -47,6 +56,8 @@ public class InventoryService {
         Supplier supplier = supplierRepository.findById(dto.getSupplierId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Fornecedor não encontrado com ID: " + dto.getSupplierId()));
+
+        rbac.requireOwnCompany(supplier.getCompany().getId());
 
         Model model = modelRepository.findById(dto.getModelId())
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -75,6 +86,8 @@ public class InventoryService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Estoque com id:" + id + " não encontrado para atualização"));
 
+        rbac.requireOwnCompany(inventory.getSupplier().getCompany().getId());
+
         validateSupplierAndSubscriptionGates(inventory.getSupplier());
 
         inventory.setQuantity(quantity);
@@ -83,10 +96,10 @@ public class InventoryService {
 
     @Transactional
     public void deleteById(UUID id) {
-        if (!inventoryRepository.existsById(id)) {
-            throw new ResourceNotFoundException(
-                    "Estoque com id:" + id + " não encontrado para exclusão");
-        }
+        Inventory resource = inventoryRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException(
+                    "Estoque com id:" + id + " não encontrado para exclusão"));
+        rbac.requireOwnCompany(resource.getSupplier().getCompany().getId());
         inventoryRepository.deleteById(id);
     }
 
@@ -95,19 +108,25 @@ public class InventoryService {
         Inventory inventory = inventoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Estoque não encontrado com ID: " + id));
+        rbac.requireOwnCompany(inventory.getSupplier().getCompany().getId());
         return toResponse(inventory);
     }
 
     @Transactional(readOnly = true)
     public InventoryResponseDTO findById(UUID id, UUID companyId) {
-        Inventory inventory = inventoryRepository.findByIdAndSupplier_Company_Id(id, companyId)
+        requireCompany(companyId);
+        Inventory inventory = inventoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Estoque não encontrado com ID: " + id));
+        rbac.requireOwnCompany(inventory.getSupplier().getCompany().getId());
         return toResponse(inventory);
     }
 
     @Transactional(readOnly = true)
     public List<InventoryResponseDTO> findBySupplier(UUID supplierId) {
+        Supplier supplier = supplierRepository.findById(supplierId).orElseThrow(
+                () -> new ResourceNotFoundException("Fornecedor não encontrado com ID: " + supplierId));
+        rbac.requireOwnCompany(supplier.getCompany().getId());
         return inventoryRepository.findBySupplierId(supplierId).stream()
                 .map(this::toResponse)
                 .toList();
@@ -115,9 +134,16 @@ public class InventoryService {
 
     @Transactional(readOnly = true)
     public List<InventoryResponseDTO> findAllByCompany(UUID companyId) {
+        requireCompany(companyId);
         return inventoryRepository.findBySupplier_Company_Id(companyId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    private void requireCompany(UUID companyId) {
+        var company = companyRepository.findById(companyId).orElseThrow(
+                () -> new ResourceNotFoundException("Empresa inexistente: " + companyId));
+        rbac.requireOwnCompany(company.getId());
     }
 
     private void validateQuantity(Integer quantity) {
@@ -150,6 +176,7 @@ public class InventoryService {
         }
         return ModelResponseDTO.builder()
                 .id(model.getId())
+                .creatorCompanyId(model.getCreatorCompanyId())
                 .brand(model.getBrand())
                 .model(model.getModel())
                 .type(model.getType())

@@ -22,4 +22,8 @@ public interface UserCompanyRepository extends JpaRepository<UserCompany, UUID> 
     boolean existsByPositionId(UUID positionId);
 
     boolean existsByCompanyId(UUID companyId);
+
+    boolean existsByCompanyIdAndPosition_NameAndIdNot(UUID companyId, String name, UUID id);
+
+    boolean existsByUserIdAndCompanyIdAndPosition_Name(UUID userId, UUID companyId, String name);
 }

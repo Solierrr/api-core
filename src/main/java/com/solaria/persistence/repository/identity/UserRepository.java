@@ -17,6 +17,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("select u from User u where u.auth_id = :authId")
     Optional<User> findByAuthId(@Param("authId") UUID authId);
 
+    @Query("select u.id from User u where u.auth_id = :authId")
+    Optional<UUID> findIdByAuthId(@Param("authId") UUID authId);
+
+    boolean existsByUsername(String username);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.id = :id")
     Optional<User> findByIdForUpdate(@Param("id") UUID id);
@@ -26,7 +31,4 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             + "WHERE :userId = ANY(connections)", nativeQuery = true)
     void removeConnectionReferences(@Param("userId") UUID userId);
 
-    @Modifying
-    @Query(value = "CALL sp_deactivate_inactive_users(:inactiveDays)", nativeQuery = true)
-    void callDeactivateInactiveUsers(@Param("inactiveDays") int inactiveDays);
 }

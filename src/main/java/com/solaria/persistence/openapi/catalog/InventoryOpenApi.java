@@ -14,7 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "Estoque", description = "Gerenciamento dos itens de estoque")
+@Tag(name = "Estoque", description = "Estoque privado da empresa do fornecedor; listas validam o parent mesmo vazias")
 public interface InventoryOpenApi {
 
     @Operation(
@@ -22,6 +22,7 @@ public interface InventoryOpenApi {
         description = "A quantidade não pode ser negativa, deve existir apenas um registro por par fornecedor+modelo, e o fornecedor precisa estar ativo e com assinatura em dia."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "201", description = "Item de estoque criado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos para criação do item de estoque")
     })
@@ -32,6 +33,7 @@ public interface InventoryOpenApi {
         description = "A quantidade não pode ser negativa e o fornecedor precisa estar ativo e com assinatura em dia."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Quantidade do item de estoque atualizada com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos para atualização da quantidade"),
             @ApiResponse(responseCode = "404", description = "Item de estoque não encontrado")
@@ -40,6 +42,7 @@ public interface InventoryOpenApi {
 
     @Operation(summary = "Remove um item de estoque pelo id")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "204", description = "Item de estoque removido com sucesso"),
             @ApiResponse(responseCode = "404", description = "Item de estoque não encontrado")
     })
@@ -47,6 +50,7 @@ public interface InventoryOpenApi {
 
     @Operation(summary = "Busca um item de estoque pelo id e pela empresa")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Item de estoque encontrado"),
             @ApiResponse(responseCode = "404", description = "Item de estoque não encontrado")
     })
@@ -54,12 +58,14 @@ public interface InventoryOpenApi {
 
     @Operation(summary = "Lista os itens de estoque de um fornecedor")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Lista de itens de estoque retornada com sucesso")
     })
     ResponseEntity<List<InventoryResponseDTO>> findBySupplier(UUID supplierId);
 
     @Operation(summary = "Lista todos os itens de estoque de uma empresa")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Lista de itens de estoque retornada com sucesso")
     })
     ResponseEntity<List<InventoryResponseDTO>> findAllByCompany(UUID companyId);

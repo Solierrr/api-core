@@ -8,15 +8,18 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.UUID;
+import jakarta.validation.Valid;
+import com.solaria.persistence.dto.request.shared.AddressRequestDTO;
 
 @Setter
 @Getter
-public class CompanyRequestDTO {
+public class CompanyCreateRequestDTO {
 
-    private UUID addressId;
+    @Valid
+    private AddressRequestDTO address;
 
-    private UUID businessContactId;
+    @Valid
+    private BusinessContactRequestDTO businessContact;
 
     @NotBlank(message = "CNPJ é obrigatório")
     @Size(max = 14)

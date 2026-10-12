@@ -14,6 +14,7 @@ import lombok.Setter;
 @Setter
 public class GeolocalizationRequestDTO {
 
+    @NotNull(message = "ID do Endereço é obrigatório")
     private UUID addressId;
 
     @NotNull(message = "Latitude é obrigatória")

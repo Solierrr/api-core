@@ -19,7 +19,7 @@ public class Technician {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_person", nullable = false)
+    @JoinColumn(name = "fk_person", nullable = false, unique = true)
     private Person person;
 
     @Column(name = "crea", nullable = false)
