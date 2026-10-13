@@ -14,5 +14,7 @@ public interface ModelPhotoRepository extends JpaRepository<ModelPhoto, UUID> {
 
     Optional<ModelPhoto> findByIdAndModelId(UUID id, UUID modelId);
 
+    List<ModelPhoto> findByModelIdAndPrimaryTrue(UUID modelId);
+
     boolean existsByModelId(UUID modelId);
 }

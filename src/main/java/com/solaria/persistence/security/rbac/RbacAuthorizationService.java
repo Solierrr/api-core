@@ -57,6 +57,7 @@ public class RbacAuthorizationService {
     );
 
     static final Set<String> PUBLIC_CATALOG_ENDPOINTS = Set.of(
+            "GET /api/catalog/teams",
             "GET /api/catalog/companies",
             "GET /api/catalog/companies/{slug}",
             "GET /api/catalog/offers",
@@ -78,13 +79,18 @@ public class RbacAuthorizationService {
     // nenhuma empresa) é exclusiva do Admin Solaria — nenhum admin de empresa comum
     // deve poder aprovar/rejeitar outra empresa ou um modelo que não é seu.
     static final Set<String> PLATFORM_ADMIN_ONLY_ENDPOINTS = Set.of(
+            "GET /api/brand-review",
+            "POST /api/brand-review/{id}/decision",
             "PATCH /api/companies/{id}/approval",
             "PATCH /api/companies/{id}/rejection",
             "POST /api/models/{id}/approval",
             "POST /api/models/{id}/rejection",
             "GET /api/technicians",
             "POST /api/technicians/{id}/approval",
-            "POST /api/technicians/{id}/rejection"
+            "POST /api/technicians/{id}/rejection",
+            "POST /api/professions",
+            "PUT /api/professions/{id}",
+            "DELETE /api/professions/{id}"
     );
 
     private final CurrentUserService currentUserService;
@@ -105,6 +111,16 @@ public class RbacAuthorizationService {
     // Lógica de RBAC
     @Transactional(readOnly = true)
     public void requireEndpointAccess(String endpointIdentifier) {
+        if (endpointIdentifier.contains(" /api/projects") || endpointIdentifier.contains(" /api/professional-onboarding/")
+                || endpointIdentifier.equals("GET /api/users/me/mobile-eligibility")
+                || endpointIdentifier.equals("GET /api/professions/{id}/requirements")) {
+            currentUserService.getCurrentUser();
+            return;
+        }
+        if (endpointIdentifier.contains(" /api/professional-review/")) {
+            if (!isPlatformAdmin()) throw new UnauthorizedAccessException("Operação restrita ao Admin Solaria");
+            return;
+        }
         if (BOOTSTRAP_ALWAYS_OPEN.contains(endpointIdentifier) || PUBLIC_CATALOG_ENDPOINTS.contains(endpointIdentifier)) {
             return;
         }
@@ -130,7 +146,7 @@ public class RbacAuthorizationService {
         }
     }
 
-    private boolean isPlatformAdmin() {
+    public boolean isPlatformAdmin() {
         return currentUserService.findCurrentUser()
                 .map(user -> platformAdminRepository.existsByUserId(user.getId()))
                 .orElse(false);

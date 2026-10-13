@@ -28,6 +28,9 @@ public class ModelPhoto {
     @Column(name = "public_id", nullable = false)
     private String publicId;
 
+    @Column(name = "is_primary", nullable = false)
+    private boolean primary;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 }

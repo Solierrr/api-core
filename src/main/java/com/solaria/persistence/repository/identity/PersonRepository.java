@@ -7,6 +7,7 @@ import java.util.UUID;
 
 
 public interface PersonRepository extends JpaRepository<Person, UUID> {
+    java.util.Optional<Person> findByUserId(UUID userId);
 
     boolean existsByCpf(String cpf);
 

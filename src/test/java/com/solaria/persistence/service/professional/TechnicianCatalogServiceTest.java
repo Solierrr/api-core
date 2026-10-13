@@ -47,6 +47,7 @@ class TechnicianCatalogServiceTest {
         technicianId = UUID.randomUUID();
         technician = new Technician();
         technician.setId(technicianId);
+        technician.setStatus(com.solaria.persistence.domain.enums.professional.TechnicianStatus.APPROVED);
         technician.setPerson(person);
         technician.setCrea("SP-123456");
         technician.setSlug("fulano-da-silva");

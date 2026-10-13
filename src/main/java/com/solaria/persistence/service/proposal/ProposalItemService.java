@@ -50,9 +50,12 @@ public class ProposalItemService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Proposta não encontrada com ID: " + dto.getProposalId()));
 
-        Offer offer = offerRepository.findById(dto.getOfferId())
+        Offer offer = offerRepository.lockById(dto.getOfferId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Oferta não encontrada com ID: " + dto.getOfferId()));
+        if (offer.getCommercialStatus() != com.solaria.persistence.domain.enums.catalog.OfferStatus.ACTIVE) {
+            throw new BusinessRuleException("Oferta não está ativa para novas propostas");
+        }
 
         if (proposalItemRepository.existsByProposalIdAndOfferId(dto.getProposalId(), dto.getOfferId())) {
             throw new DuplicateResourceException(
@@ -210,8 +213,12 @@ public class ProposalItemService {
         }
         return ModelResponseDTO.builder()
                 .id(model.getId())
+                .brandId(model.getBrandId())
                 .brand(model.getBrand())
                 .model(model.getModel())
+                .productType(model.getProductType())
+                .infrastructureType(model.getInfrastructureType())
+                .material(model.getMaterial())
                 .type(model.getType())
                 .powerWp(model.getPowerWp())
                 .efficiency(model.getEfficiency())

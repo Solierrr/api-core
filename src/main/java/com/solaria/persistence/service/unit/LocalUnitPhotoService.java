@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.solaria.persistence.config.CloudinaryProperties;
 import com.solaria.persistence.domain.entity.unit.LocalUnit;
 import com.solaria.persistence.domain.entity.unit.LocalUnitPhoto;
+import com.solaria.persistence.domain.enums.unit.LocalUnitPhotoType;
 import com.solaria.persistence.dto.response.unit.LocalUnitPhotoResponseDTO;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.unit.LocalUnitPhotoRepository;
@@ -45,7 +46,7 @@ public class LocalUnitPhotoService {
     }
 
     @Transactional
-    public LocalUnitPhotoResponseDTO upload(UUID localUnitId, MultipartFile file) {
+    public LocalUnitPhotoResponseDTO upload(UUID localUnitId, MultipartFile file, LocalUnitPhotoType type) {
         LocalUnit localUnit = localUnitRepository.findById(localUnitId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Unidade Local não encontrada com ID: " + localUnitId));
@@ -58,12 +59,21 @@ public class LocalUnitPhotoService {
 
         LocalUnitPhoto photo = new LocalUnitPhoto();
         photo.setLocalUnit(localUnit);
+        photo.setType(type);
         photo.setUrl(result.url());
         photo.setPublicId(result.publicId());
         photo.setCreatedAt(OffsetDateTime.now());
 
         // em caso de falha do BD, remove o asset do cloudnary
         try {
+            if (type != LocalUnitPhotoType.GALLERY) {
+                // principal e banner sao unicos por unidade: o novo substitui o anterior
+                localUnitPhotoRepository.findByLocalUnitIdAndType(localUnitId, type).ifPresent(existing -> {
+                    localUnitPhotoRepository.delete(existing);
+                    localUnitPhotoRepository.flush();
+                    cloudinaryService.deleteAfterCommit(existing.getPublicId());
+                });
+            }
             return toResponse(localUnitPhotoRepository.save(photo));
         } catch (RuntimeException e) {
             cloudinaryService.delete(result.publicId());
@@ -98,6 +108,7 @@ public class LocalUnitPhotoService {
         LocalUnitPhotoResponseDTO response = new LocalUnitPhotoResponseDTO();
         response.setId(photo.getId());
         response.setLocalUnitId(photo.getLocalUnit().getId());
+        response.setType(photo.getType());
         response.setUrl(photo.getUrl());
         response.setCreatedAt(photo.getCreatedAt());
         return response;

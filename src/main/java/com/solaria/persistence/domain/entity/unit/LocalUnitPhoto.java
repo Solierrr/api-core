@@ -1,5 +1,6 @@
 package com.solaria.persistence.domain.entity.unit;
 
+import com.solaria.persistence.domain.enums.unit.LocalUnitPhotoType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,6 +22,10 @@ public class LocalUnitPhoto {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fk_local_unit", nullable = false)
     private LocalUnit localUnit;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false)
+    private LocalUnitPhotoType type = LocalUnitPhotoType.GALLERY;
 
     @Column(name = "url", nullable = false)
     private String url;

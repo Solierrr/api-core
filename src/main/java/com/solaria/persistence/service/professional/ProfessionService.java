@@ -36,6 +36,8 @@ public class ProfessionService {
         Profession profession = new Profession();
         profession.setName(dto.getName());
         profession.setRequiresRegistration(dto.getRequiresRegistration());
+        profession.setRequiresNr10(dto.getRequiresNr10());
+        profession.setRequiresNr35(dto.getRequiresNr35());
 
         return toResponse(professionRepository.save(profession));
     }
@@ -47,6 +49,8 @@ public class ProfessionService {
 
         profession.setName(dto.getName());
         profession.setRequiresRegistration(dto.getRequiresRegistration());
+        profession.setRequiresNr10(dto.getRequiresNr10());
+        profession.setRequiresNr35(dto.getRequiresNr35());
 
         return toResponse(professionRepository.save(profession));
     }
