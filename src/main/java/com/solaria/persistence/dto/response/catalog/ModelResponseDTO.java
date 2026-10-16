@@ -19,6 +19,7 @@ import java.util.UUID;
 public class ModelResponseDTO {
 
     private UUID id;
+    private UUID creatorCompanyId;
     private String brand;
     private String model;
     private PanelType type;

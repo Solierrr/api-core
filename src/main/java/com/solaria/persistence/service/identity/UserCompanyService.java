@@ -25,6 +25,7 @@ import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.repository.identity.UserRepository;
 import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 import com.solaria.persistence.security.CurrentUserService;
+import com.solaria.persistence.repository.identity.PositionPermissionRepository;
 
 
 @Service
@@ -38,6 +39,7 @@ public class UserCompanyService {
     private final RbacAuthorizationService rbac;
     private final ObjectMapper objectMapper;
     private final CurrentUserService currentUserService;
+    private final PositionPermissionRepository positionPermissionRepository;
 
     public UserCompanyService(UserCompanyRepository userCompanyRepository,
                               UserRepository userRepository,
@@ -46,7 +48,8 @@ public class UserCompanyService {
                               CompanyPositionsRepository companyPositionsRepository,
                               RbacAuthorizationService rbac,
                               ObjectMapper objectMapper,
-                              CurrentUserService currentUserService) {
+                              CurrentUserService currentUserService,
+                              PositionPermissionRepository positionPermissionRepository) {
         this.userCompanyRepository = userCompanyRepository;
         this.userRepository = userRepository;
         this.companyRepository = companyRepository;
@@ -55,6 +58,7 @@ public class UserCompanyService {
         this.rbac = rbac;
         this.objectMapper = objectMapper;
         this.currentUserService = currentUserService;
+        this.positionPermissionRepository = positionPermissionRepository;
     }
 
     @Transactional(readOnly = true)
@@ -185,6 +189,8 @@ public class UserCompanyService {
         response.setCompanyId(entity.getCompany().getId());
         response.setUserId(entity.getUser().getId());
         response.setPosition(objectMapper.convertValue(entity.getPosition(), PositionResponseDTO.class));
+        response.setPermissions(positionPermissionRepository.findByPositionId(entity.getPosition().getId()).stream()
+                .map(link -> link.getPermission().getPermissionName()).toList());
         return response;
     }
 }

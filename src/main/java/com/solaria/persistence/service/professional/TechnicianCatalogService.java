@@ -11,6 +11,7 @@ import com.solaria.persistence.dto.response.professional.CatalogTechnicianRespon
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.professional.ProfessionalRegistrationRepository;
 import com.solaria.persistence.repository.professional.TechnicianRepository;
+import com.solaria.persistence.domain.enums.professional.TechnicianStatus;
 
 @Service
 public class TechnicianCatalogService {
@@ -26,12 +27,13 @@ public class TechnicianCatalogService {
 
     @Transactional(readOnly = true)
     public List<CatalogTechnicianResponseDTO> findAll() {
-        return technicianRepository.findAll().stream().map(this::toResponse).toList();
+        return technicianRepository.findAll().stream().filter(item -> item.getStatus() == TechnicianStatus.APPROVED).map(this::toResponse).toList();
     }
 
     @Transactional(readOnly = true)
     public CatalogTechnicianResponseDTO findBySlug(String slug) {
         Technician technician = technicianRepository.findBySlug(slug)
+                .filter(item -> item.getStatus() == TechnicianStatus.APPROVED)
                 .orElseThrow(() -> new ResourceNotFoundException("Profissional não encontrado"));
         return toResponse(technician);
     }
