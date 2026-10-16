@@ -30,13 +30,16 @@ public class TechnicianService {
     private final TechnicianRepository technicianRepository;
     private final PersonRepository personRepository;
     private final RbacAuthorizationService rbac;
+    private final com.solaria.persistence.service.professional.ApprovedProfessionalGuard approvedGuard;
 
     public TechnicianService(TechnicianRepository technicianRepository,
                              PersonRepository personRepository,
-                             RbacAuthorizationService rbac) {
+                             RbacAuthorizationService rbac,
+                         com.solaria.persistence.service.professional.ApprovedProfessionalGuard approvedGuard) {
         this.technicianRepository = technicianRepository;
         this.personRepository = personRepository;
         this.rbac = rbac;
+        this.approvedGuard = approvedGuard;
     }
 
     @Transactional
@@ -69,6 +72,7 @@ public class TechnicianService {
             throw new InvalidFieldException("Pessoa (personId) imutável: " + dto.getPersonId());
         }
 
+        approvedGuard.requireLegacyChangesAllowed(technician.getPerson().getUser().getId());
         technician.setCrea(dto.getCrea());
 
         return toResponse(technicianRepository.save(technician));
@@ -78,6 +82,7 @@ public class TechnicianService {
     public TechnicianResponseDTO decide(UUID id, boolean approved) {
         Technician technician = technicianRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("Profissional não encontrado"));
+        approvedGuard.requireLegacyChangesAllowed(technician.getPerson().getUser().getId());
         if (technician.getStatus() != TechnicianStatus.UNDER_ANALYSIS) {
             throw new BusinessRuleException("Somente profissionais em análise podem receber uma decisão");
         }
@@ -92,6 +97,8 @@ public class TechnicianService {
                     "Técnico com id:" + id + " não encontrado para exclusão");
         }
 
+        var technician = technicianRepository.findById(id).orElseThrow();
+        approvedGuard.requireLegacyChangesAllowed(technician.getPerson().getUser().getId());
         technicianRepository.deleteById(id);
     }
 
