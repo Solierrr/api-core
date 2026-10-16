@@ -120,6 +120,9 @@ public class SecurityConfig {
                                                 // Endpoint de conveniência para autenticar direto pelo Swagger
                                                 .requestMatchers(HttpMethod.POST, "/dev/login")
                                                 .permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/catalog/companies", "/api/catalog/companies/*",
+                                                                "/api/catalog/offers", "/api/catalog/offers/*/*")
+                                                .permitAll()
                                                 // todos os outros endpoints exigem um jwt de usuário válido,
                                                 // decodificado por userJwtDecoder()
                                                 .anyRequest().authenticated())
