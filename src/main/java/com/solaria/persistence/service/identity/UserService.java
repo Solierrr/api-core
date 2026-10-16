@@ -32,24 +32,28 @@ public class UserService {
     private final UserPhotoRepository userPhotoRepository;
     private final ObjectMapper objectMapper;
     private final InternalUserProvisioningService provisioningService;
+    private final com.solaria.persistence.security.rbac.RbacAuthorizationService rbac;
 
     public UserService(UserRepository userRepository,
                         PersonRepository personRepository,
                         UserCompanyRepository userCompanyRepository,
                         UserPhotoRepository userPhotoRepository,
                         ObjectMapper objectMapper,
-                        InternalUserProvisioningService provisioningService) {
+                        InternalUserProvisioningService provisioningService,
+                        com.solaria.persistence.security.rbac.RbacAuthorizationService rbac) {
         this.userRepository = userRepository;
         this.personRepository = personRepository;
         this.userCompanyRepository = userCompanyRepository;
         this.userPhotoRepository = userPhotoRepository;
         this.objectMapper = objectMapper;
         this.provisioningService = provisioningService;
+        this.rbac = rbac;
     }
 
     @Transactional
     public UserResponseDTO save(UserRequestDTO dto) {
         User user = new User();
+        user.setManagedByCompanyId(rbac.getCurrentCompanyId());
         user.setAuth_id(dto.getAuthId());
         user.setUsername(dto.getUsername());
         user.setAvatar(dto.getAvatar());

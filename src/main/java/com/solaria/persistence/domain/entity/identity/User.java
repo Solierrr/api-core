@@ -33,6 +33,9 @@ public class User {
     @Column(name = "banner")
     private String banner;
 
+    @Column(name = "managed_by_company_id")
+    private UUID managedByCompanyId;
+
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
