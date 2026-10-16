@@ -50,7 +50,9 @@ public class RbacAuthorizationService {
             "GET /api/catalog/companies",
             "GET /api/catalog/companies/{slug}",
             "GET /api/catalog/offers",
-            "GET /api/catalog/offers/{companySlug}/{offerSlug}"
+            "GET /api/catalog/offers/{companySlug}/{offerSlug}",
+            "GET /api/catalog/technicians",
+            "GET /api/catalog/technicians/{slug}"
     );
 
     private static final Set<String> SUPPLIER_ENDPOINTS = Set.of(
