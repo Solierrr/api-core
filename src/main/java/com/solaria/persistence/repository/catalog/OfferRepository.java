@@ -10,6 +10,12 @@ import java.util.UUID;
 
 
 public interface OfferRepository extends JpaRepository<Offer, UUID> {
+    @org.springframework.data.jpa.repository.Query(value = "SELECT EXISTS(SELECT 1 FROM offer_status_history WHERE offer_id = :id)", nativeQuery = true)
+    boolean existsStatusHistory(@org.springframework.data.repository.query.Param("id") UUID id);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select o from Offer o where o.id = :id")
+    Optional<Offer> lockById(@org.springframework.data.repository.query.Param("id") UUID id);
 
     List<Offer> findBySupplier_Company_Id(UUID companyId);
 

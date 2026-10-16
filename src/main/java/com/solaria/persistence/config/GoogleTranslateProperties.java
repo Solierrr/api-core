@@ -2,21 +2,16 @@ package com.solaria.persistence.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/**
- * Credenciais da Google Cloud Translation API (v2).
- */
-
-// Habilita essa classe com as variaveis em application.properties com prefixo google-translate
-@ConfigurationProperties(prefix = "google-translate")
+@ConfigurationProperties(prefix = "google-registry")
 public class GoogleTranslateProperties {
+    private String baseUrl = "http://localhost:8000";
+    private String consumerToken = "";
+    private int timeoutSeconds = 30;
 
-    private String apiKey;
-
-    public String getApiKey() {
-        return apiKey;
-    }
-
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
-    }
+    public String getBaseUrl() { return baseUrl; }
+    public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
+    public String getConsumerToken() { return consumerToken; }
+    public void setConsumerToken(String consumerToken) { this.consumerToken = consumerToken; }
+    public int getTimeoutSeconds() { return timeoutSeconds; }
+    public void setTimeoutSeconds(int timeoutSeconds) { this.timeoutSeconds = timeoutSeconds; }
 }
