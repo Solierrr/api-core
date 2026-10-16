@@ -1,5 +1,6 @@
 package com.solaria.persistence.service.company;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,6 +14,8 @@ import com.solaria.persistence.domain.entity.company.CompanyPositions;
 import com.solaria.persistence.domain.enums.company.CompanyStatus;
 import com.solaria.persistence.domain.enums.company.CompanyType;
 import com.solaria.persistence.domain.entity.catalog.Supplier;
+import com.solaria.persistence.domain.entity.company.CompanyPlans;
+import com.solaria.persistence.domain.entity.company.Subscription;
 import com.solaria.persistence.domain.entity.execution.Requester;
 import com.solaria.persistence.dto.request.company.CompanyRequestDTO;
 import com.solaria.persistence.dto.response.shared.AddressResponseDTO;
@@ -31,6 +34,8 @@ import com.solaria.persistence.repository.company.CompanyPositionsRepository;
 import com.solaria.persistence.repository.company.CompanyRepository;
 import com.solaria.persistence.repository.execution.RequesterRepository;
 import com.solaria.persistence.repository.catalog.SupplierRepository;
+import com.solaria.persistence.repository.company.CompanyPlansRepository;
+import com.solaria.persistence.repository.company.SubscriptionRepository;
 import com.solaria.persistence.repository.professional.TechnicianAffiliationRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.repository.identity.PositionRepository;
@@ -53,6 +58,8 @@ public class CompanyService {
     private final CompanyPhotoRepository companyPhotoRepository;
     private final PositionRepository positionRepository;
     private final CurrentUserService currentUserService;
+    private final CompanyPlansRepository companyPlansRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
     public CompanyService(CompanyRepository companyRepository,
                           AddressRepository addressRepository,
@@ -64,7 +71,9 @@ public class CompanyService {
                           CompanyPositionsRepository companyPositionsRepository,
                           CompanyPhotoRepository companyPhotoRepository,
                           PositionRepository positionRepository,
-                          CurrentUserService currentUserService) {
+                          CurrentUserService currentUserService,
+                          CompanyPlansRepository companyPlansRepository,
+                          SubscriptionRepository subscriptionRepository) {
         this.companyRepository = companyRepository;
         this.addressRepository = addressRepository;
         this.businessContactRepository = businessContactRepository;
@@ -76,7 +85,11 @@ public class CompanyService {
         this.companyPhotoRepository = companyPhotoRepository;
         this.positionRepository = positionRepository;
         this.currentUserService = currentUserService;
+        this.companyPlansRepository = companyPlansRepository;
+        this.subscriptionRepository = subscriptionRepository;
     }
+
+    private static final String DEFAULT_PLAN_NAME = "Gratuito";
 
     @Transactional
     public CompanyResponseDTO save(CompanyRequestDTO dto) {
@@ -110,7 +123,17 @@ public class CompanyService {
         if (dto.getType() == CompanyType.SUPPLIER) {
             Supplier supplier = new Supplier();
             supplier.setCompany(saved);
-            supplierRepository.save(supplier);
+            Supplier savedSupplier = supplierRepository.save(supplier);
+
+            // Assinatura no plano gratuito, pré-requisito técnico pra criar ofertas
+            // (ver OfferService.save / SubscriptionService.isSupplierSubscriptionActive).
+            CompanyPlans defaultPlan = companyPlansRepository.findByName(DEFAULT_PLAN_NAME)
+                    .orElseThrow(() -> new ResourceNotFoundException("Plano padrão não configurado"));
+            Subscription subscription = new Subscription();
+            subscription.setSupplier(savedSupplier);
+            subscription.setPlan(defaultPlan);
+            subscription.setStartDate(OffsetDateTime.now());
+            subscriptionRepository.save(subscription);
         } else {
             Requester requester = new Requester();
             requester.setCompany(saved);
