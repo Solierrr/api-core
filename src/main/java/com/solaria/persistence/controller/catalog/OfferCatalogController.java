@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.solaria.persistence.domain.enums.catalog.ProductType;
 import com.solaria.persistence.dto.response.catalog.CatalogOfferResponseDTO;
 import com.solaria.persistence.service.catalog.OfferCatalogService;
 
@@ -21,8 +22,9 @@ public class OfferCatalogController {
     private final OfferCatalogService offerCatalogService;
 
     @GetMapping
-    public ResponseEntity<List<CatalogOfferResponseDTO>> findAll(@RequestParam(defaultValue = "pt-BR") String locale) {
-        return ResponseEntity.ok(offerCatalogService.findAll(locale));
+    public ResponseEntity<List<CatalogOfferResponseDTO>> findAll(@RequestParam(defaultValue = "pt-BR") String locale,
+            @RequestParam(required = false) ProductType productType) {
+        return ResponseEntity.ok(offerCatalogService.findAll(locale, productType));
     }
 
     @GetMapping("/{companySlug}/{offerSlug}")
