@@ -67,6 +67,16 @@ public class RbacAuthorizationService {
             "/api/unit-specifications", "/api/energy-bills"
     );
 
+    // Aprovação/rejeição de empresas e modelos (catálogo compartilhado, não pertence a
+    // nenhuma empresa) é exclusiva do Admin Solaria — nenhum admin de empresa comum
+    // deve poder aprovar/rejeitar outra empresa ou um modelo que não é seu.
+    static final Set<String> PLATFORM_ADMIN_ONLY_ENDPOINTS = Set.of(
+            "PATCH /api/companies/{id}/approval",
+            "PATCH /api/companies/{id}/rejection",
+            "POST /api/models/{id}/approval",
+            "POST /api/models/{id}/rejection"
+    );
+
     private final CurrentUserService currentUserService;
     private final UserCompanyRepository userCompanyRepository;
     private final PositionPermissionRepository positionPermissionRepository;
@@ -90,6 +100,12 @@ public class RbacAuthorizationService {
         }
         if (AUTHENTICATED_USER_ENDPOINTS.contains(endpointIdentifier)) {
             return;
+        }
+        if (PLATFORM_ADMIN_ONLY_ENDPOINTS.contains(endpointIdentifier)) {
+            if (isPlatformAdmin()) {
+                return;
+            }
+            throw new UnauthorizedAccessException("Operação restrita ao Admin Solaria: " + endpointIdentifier);
         }
         // Admin Solaria (platform_admin) tem acesso irrestrito, desacoplado de
         // qualquer vínculo empresa/cargo — ver fase 06 do plano de telas web.

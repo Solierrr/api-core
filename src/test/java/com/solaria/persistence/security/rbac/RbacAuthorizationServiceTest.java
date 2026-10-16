@@ -103,6 +103,34 @@ class RbacAuthorizationServiceTest {
     }
 
     @Test
+    void onlyAPlatformAdminCanApproveOrRejectCompaniesAndModels() {
+        Company company = new Company();
+        company.setType(CompanyType.SUPPLIER);
+        Position admin = new Position();
+        admin.setName(Position.ADMIN_NAME);
+        User companyAdmin = new User();
+        companyAdmin.setId(UUID.randomUUID());
+        UserCompany membership = new UserCompany();
+        membership.setCompany(company);
+        membership.setPosition(admin);
+        when(currentUserService.findCurrentUser()).thenReturn(Optional.of(companyAdmin));
+        when(platformAdminRepository.existsByUserId(companyAdmin.getId())).thenReturn(false);
+
+        assertThrows(UnauthorizedAccessException.class,
+                () -> rbac.requireEndpointAccess("PATCH /api/companies/{id}/approval"));
+        assertThrows(UnauthorizedAccessException.class,
+                () -> rbac.requireEndpointAccess("POST /api/models/{id}/approval"));
+
+        User platformAdmin = new User();
+        platformAdmin.setId(UUID.randomUUID());
+        when(currentUserService.findCurrentUser()).thenReturn(Optional.of(platformAdmin));
+        when(platformAdminRepository.existsByUserId(platformAdmin.getId())).thenReturn(true);
+
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("PATCH /api/companies/{id}/approval"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("POST /api/models/{id}/approval"));
+    }
+
+    @Test
     void nonPlatformAdminWithoutCompanyLinkIsStillRejected() {
         User user = new User();
         user.setId(UUID.randomUUID());
