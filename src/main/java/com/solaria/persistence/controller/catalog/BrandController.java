@@ -31,7 +31,7 @@ public class BrandController implements BrandOpenApi {
                         null,
                         false,
                         java.util.Set.of("image/jpeg", "image/png", "image/webp"),
-                        8 * 1024 * 1024);
+                        8L * 1024 * 1024);
         return java.util.Map.of("url", result.url());
     }
 
