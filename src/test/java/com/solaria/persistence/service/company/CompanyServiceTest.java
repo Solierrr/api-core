@@ -76,7 +76,6 @@ class CompanyServiceTest {
 
     private void stubCommonBootstrap(User creator) {
         when(currentUserService.getCurrentUser()).thenReturn(creator);
-        when(userCompanyRepository.existsByUserId(creator.getId())).thenReturn(false);
         Position admin = new Position();
         admin.setId(UUID.randomUUID());
         admin.setName(Position.ADMIN_NAME);
