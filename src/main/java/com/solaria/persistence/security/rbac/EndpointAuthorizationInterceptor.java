@@ -14,9 +14,11 @@ import jakarta.servlet.http.HttpServletResponse;
 public class EndpointAuthorizationInterceptor implements HandlerInterceptor {
 
     private final RbacAuthorizationService rbac;
+    private final com.solaria.persistence.security.MobileSessionGuard mobile;
 
-    public EndpointAuthorizationInterceptor(RbacAuthorizationService rbac) {
+    public EndpointAuthorizationInterceptor(RbacAuthorizationService rbac, com.solaria.persistence.security.MobileSessionGuard mobile) {
         this.rbac = rbac;
+        this.mobile = mobile;
     }
 
     @Override
@@ -26,6 +28,7 @@ public class EndpointAuthorizationInterceptor implements HandlerInterceptor {
             return true;
         }
         String endpointIdentifier = request.getMethod() + " " + pattern;
+        mobile.requireAccess(endpointIdentifier);
         rbac.requireEndpointAccess(endpointIdentifier);
         return true;
     }
