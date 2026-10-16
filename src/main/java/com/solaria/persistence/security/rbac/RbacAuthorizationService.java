@@ -43,7 +43,8 @@ public class RbacAuthorizationService {
             "POST /api/connections",
             "GET /api/connections",
             "GET /api/connections/{id}",
-            "DELETE /api/connections/{id}"
+            "DELETE /api/connections/{id}",
+            "POST /api/access-codes/redeem"
     );
 
     static final Set<String> PUBLIC_CATALOG_ENDPOINTS = Set.of(
