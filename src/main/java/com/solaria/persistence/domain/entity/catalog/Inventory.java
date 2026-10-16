@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "inventory")
+@Table(name = "inventory", uniqueConstraints = @jakarta.persistence.UniqueConstraint(name = "uq_inventory_supplier_model", columnNames = {"fk_supplier", "fk_model"}))
 @Getter
 @Setter
 @NoArgsConstructor
