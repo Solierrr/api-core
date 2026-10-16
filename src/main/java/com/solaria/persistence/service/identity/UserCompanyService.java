@@ -24,6 +24,7 @@ import com.solaria.persistence.repository.identity.PositionRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.repository.identity.UserRepository;
 import com.solaria.persistence.security.rbac.RbacAuthorizationService;
+import com.solaria.persistence.security.CurrentUserService;
 
 
 @Service
@@ -36,6 +37,7 @@ public class UserCompanyService {
     private final CompanyPositionsRepository companyPositionsRepository;
     private final RbacAuthorizationService rbac;
     private final ObjectMapper objectMapper;
+    private final CurrentUserService currentUserService;
 
     public UserCompanyService(UserCompanyRepository userCompanyRepository,
                               UserRepository userRepository,
@@ -43,7 +45,8 @@ public class UserCompanyService {
                               PositionRepository positionRepository,
                               CompanyPositionsRepository companyPositionsRepository,
                               RbacAuthorizationService rbac,
-                              ObjectMapper objectMapper) {
+                              ObjectMapper objectMapper,
+                              CurrentUserService currentUserService) {
         this.userCompanyRepository = userCompanyRepository;
         this.userRepository = userRepository;
         this.companyRepository = companyRepository;
@@ -51,6 +54,15 @@ public class UserCompanyService {
         this.companyPositionsRepository = companyPositionsRepository;
         this.rbac = rbac;
         this.objectMapper = objectMapper;
+        this.currentUserService = currentUserService;
+    }
+
+    @Transactional(readOnly = true)
+    public UserCompanyResponseDTO findMe() {
+        User user = currentUserService.getCurrentUser();
+        return userCompanyRepository.findByUserId(user.getId())
+                .map(this::toResponse)
+                .orElse(null);
     }
 
     @Transactional
