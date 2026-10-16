@@ -41,6 +41,7 @@ public class RbacAuthorizationService {
             "GET /api/users/me",
             "PATCH /api/users/me",
             "GET /api/user-companies/me",
+            "GET /api/user-companies/me/all",
             "POST /api/connections",
             "GET /api/connections",
             "GET /api/connections/{id}",
@@ -57,6 +58,7 @@ public class RbacAuthorizationService {
     );
 
     static final Set<String> PUBLIC_CATALOG_ENDPOINTS = Set.of(
+            "GET /api/catalog/teams",
             "GET /api/catalog/companies",
             "GET /api/catalog/companies/{slug}",
             "GET /api/catalog/offers",
@@ -66,8 +68,13 @@ public class RbacAuthorizationService {
     );
 
     private static final Set<String> SUPPLIER_ENDPOINTS = Set.of(
-            "/api/models", "/api/model-photos", "/api/offers", "/api/inventories", "/api/suppliers"
+            "/api/models", "/api/model-photos", "/api/offers", "/api/inventories", "/api/suppliers",
+            "/api/sales", "/api/subscription"
     );
+
+    // Compra de unidades: sem vínculo com empresa passa (a elegibilidade do profissional é checada no serviço);
+    // com vínculo, vale a permissão do cargo. Empresa fornecedora só compra como profissional aprovado (serviço).
+    private static final Set<String> PURCHASE_ENDPOINTS = Set.of("/api/cart", "/api/orders");
 
     private static final Set<String> DEMANDANT_ENDPOINTS = Set.of(
             "/api/requesters", "/api/local-units", "/api/local-unit-photos",
@@ -78,13 +85,18 @@ public class RbacAuthorizationService {
     // nenhuma empresa) é exclusiva do Admin Solaria — nenhum admin de empresa comum
     // deve poder aprovar/rejeitar outra empresa ou um modelo que não é seu.
     static final Set<String> PLATFORM_ADMIN_ONLY_ENDPOINTS = Set.of(
+            "GET /api/brand-review",
+            "POST /api/brand-review/{id}/decision",
             "PATCH /api/companies/{id}/approval",
             "PATCH /api/companies/{id}/rejection",
             "POST /api/models/{id}/approval",
             "POST /api/models/{id}/rejection",
             "GET /api/technicians",
             "POST /api/technicians/{id}/approval",
-            "POST /api/technicians/{id}/rejection"
+            "POST /api/technicians/{id}/rejection",
+            "POST /api/professions",
+            "PUT /api/professions/{id}",
+            "DELETE /api/professions/{id}"
     );
 
     private final CurrentUserService currentUserService;
@@ -105,6 +117,16 @@ public class RbacAuthorizationService {
     // Lógica de RBAC
     @Transactional(readOnly = true)
     public void requireEndpointAccess(String endpointIdentifier) {
+        if (endpointIdentifier.contains(" /api/projects") || endpointIdentifier.contains(" /api/professional-onboarding/")
+                || endpointIdentifier.equals("GET /api/users/me/mobile-eligibility")
+                || endpointIdentifier.equals("GET /api/professions/{id}/requirements")) {
+            currentUserService.getCurrentUser();
+            return;
+        }
+        if (endpointIdentifier.contains(" /api/professional-review/")) {
+            if (!isPlatformAdmin()) throw new UnauthorizedAccessException("Operação restrita ao Admin Solaria");
+            return;
+        }
         if (BOOTSTRAP_ALWAYS_OPEN.contains(endpointIdentifier) || PUBLIC_CATALOG_ENDPOINTS.contains(endpointIdentifier)) {
             return;
         }
@@ -125,12 +147,23 @@ public class RbacAuthorizationService {
         if (BOOTSTRAP_WHEN_NO_COMPANY_LINK.contains(endpointIdentifier) && currentUserHasNoCompanyLink()) {
             return;
         }
+        if (isPurchaseEndpoint(endpointIdentifier)) {
+            if (currentUserHasNoCompanyLink() || hasEndpointAccess(endpointIdentifier)) {
+                return;
+            }
+            throw new UnauthorizedAccessException("Operação não autorizado para o cargo: " + endpointIdentifier);
+        }
         if (!hasEndpointAccess(endpointIdentifier)) {
             throw new UnauthorizedAccessException("Operação não autorizado para o cargo: " + endpointIdentifier);
         }
     }
 
-    private boolean isPlatformAdmin() {
+    private boolean isPurchaseEndpoint(String endpointIdentifier) {
+        String path = endpointIdentifier.substring(endpointIdentifier.indexOf(' ') + 1);
+        return PURCHASE_ENDPOINTS.stream().anyMatch(prefix -> path.equals(prefix) || path.startsWith(prefix + "/"));
+    }
+
+    public boolean isPlatformAdmin() {
         return currentUserService.findCurrentUser()
                 .map(user -> platformAdminRepository.existsByUserId(user.getId()))
                 .orElse(false);
@@ -192,6 +225,16 @@ public class RbacAuthorizationService {
     }
 
     private Optional<UserCompany> resolveUserCompany() {
+        var attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+        String selected = attributes instanceof org.springframework.web.context.request.ServletRequestAttributes servlet
+                ? servlet.getRequest().getHeader("X-Company-Id") : null;
+        if (selected != null && !selected.isBlank()) {
+            final UUID companyId;
+            try { companyId = UUID.fromString(selected); }
+            catch (IllegalArgumentException error) { throw new UnauthorizedAccessException("Contexto de empresa inválido"); }
+            return currentUserService.findCurrentUser()
+                    .flatMap(user -> userCompanyRepository.findByUserIdAndCompanyId(user.getId(), companyId));
+        }
         return currentUserService.findCurrentUser()
                 .flatMap(user -> userCompanyRepository.findByUserId(user.getId()));
     }

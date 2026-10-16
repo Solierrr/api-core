@@ -141,4 +141,35 @@ class RbacAuthorizationServiceTest {
         assertThrows(UnauthorizedAccessException.class,
                 () -> rbac.requireEndpointAccess("POST /api/offers"));
     }
+    @Test
+    void selectedCompanyRequiresAnActualMembership() {
+        User user = new User(); user.setId(UUID.randomUUID());
+        UUID selected = UUID.randomUUID();
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        request.addHeader("X-Company-Id", selected.toString());
+        org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(
+                new org.springframework.web.context.request.ServletRequestAttributes(request));
+        try {
+            when(currentUserService.findCurrentUser()).thenReturn(Optional.of(user));
+            when(userCompanyRepository.findByUserIdAndCompanyId(user.getId(), selected)).thenReturn(Optional.empty());
+            assertThrows(UnauthorizedAccessException.class, () -> rbac.getCurrentCompanyId());
+        } finally { org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes(); }
+    }
+
+    @Test
+    void selectedCompanyUsesItsOwnMembership() {
+        User user = new User(); user.setId(UUID.randomUUID());
+        Company company = new Company(); company.setId(UUID.randomUUID());
+        UserCompany link = new UserCompany(); link.setUser(user); link.setCompany(company);
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        request.addHeader("X-Company-Id", company.getId().toString());
+        org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(
+                new org.springframework.web.context.request.ServletRequestAttributes(request));
+        try {
+            when(currentUserService.findCurrentUser()).thenReturn(Optional.of(user));
+            when(userCompanyRepository.findByUserIdAndCompanyId(user.getId(), company.getId())).thenReturn(Optional.of(link));
+            org.junit.jupiter.api.Assertions.assertEquals(company.getId(), rbac.getCurrentCompanyId());
+        } finally { org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes(); }
+    }
+
 }
