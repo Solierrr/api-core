@@ -2,7 +2,9 @@ package com.solaria.persistence.service.company;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,8 @@ import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.shared.AddressRepository;
 import com.solaria.persistence.repository.company.BusinessContactRepository;
+import com.solaria.persistence.domain.entity.company.CompanyPhoto;
+import com.solaria.persistence.domain.enums.shared.PhotoType;
 import com.solaria.persistence.repository.company.CompanyPhotoRepository;
 import com.solaria.persistence.repository.company.CompanyPositionsRepository;
 import com.solaria.persistence.repository.company.CompanyRepository;
@@ -96,8 +100,8 @@ public class CompanyService {
         String cnpj = dto.getCnpj();
 
         var creator = currentUserService.getCurrentUser();
-        if (userCompanyRepository.existsByUserId(creator.getId())) {
-            throw new BusinessRuleException("Usuário já possui vínculo com uma empresa");
+        if (creator.getManagedByCompanyId() != null) {
+            throw new BusinessRuleException("Conta administrada pela empresa não pode criar outra empresa");
         }
         Position admin = positionRepository.findByName(Position.ADMIN_NAME)
                 .orElseThrow(() -> new ResourceNotFoundException("Cargo ADMIN não configurado"));
@@ -278,7 +282,11 @@ public class CompanyService {
 
     @Transactional(readOnly = true)
     public List<CompanyResponseDTO> findAll() {
-        return companyRepository.findAll().stream().map(this::toResponse).toList();
+        List<Company> companies = companyRepository.findAll();
+        Map<UUID, List<CompanyPhoto>> photos = companyPhotoRepository
+                .findByCompanyIdIn(companies.stream().map(Company::getId).toList()).stream()
+                .collect(Collectors.groupingBy(photo -> photo.getCompany().getId()));
+        return companies.stream().map(company -> toResponse(company, photos.getOrDefault(company.getId(), List.of()))).toList();
     }
 
     @Transactional(readOnly = true)
@@ -326,7 +334,13 @@ public class CompanyService {
     }
 
     private CompanyResponseDTO toResponse(Company company) {
+        return toResponse(company, companyPhotoRepository.findByCompanyIdOrderByTypeAsc(company.getId()));
+    }
+
+    private CompanyResponseDTO toResponse(Company company, List<CompanyPhoto> photos) {
         CompanyResponseDTO dto = new CompanyResponseDTO();
+        dto.setLogoUrl(photoUrl(photos, PhotoType.PROFILE));
+        dto.setBannerUrl(photoUrl(photos, PhotoType.BANNER));
         dto.setId(company.getId());
         dto.setStatus(company.getStatus());
         dto.setType(company.getType());
@@ -337,6 +351,10 @@ public class CompanyService {
         dto.setAddress(toAddressResponse(company.getAddress()));
         dto.setBusinessContact(toBusinessContactResponse(company.getBusinessContact()));
         return dto;
+    }
+
+    private String photoUrl(List<CompanyPhoto> photos, PhotoType type) {
+        return photos.stream().filter(photo -> photo.getType() == type).map(CompanyPhoto::getUrl).findFirst().orElse(null);
     }
 
     private AddressResponseDTO toAddressResponse(Address address) {

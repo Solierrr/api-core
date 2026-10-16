@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.solaria.persistence.domain.enums.shared.PhotoType;
+import com.solaria.persistence.dto.request.shared.PhotoCropRequestDTO;
 import com.solaria.persistence.dto.response.company.CompanyPhotoResponseDTO;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,4 +40,22 @@ public interface CompanyPhotoOpenApi {
             @ApiResponse(responseCode = "200", description = "Lista de fotos retornada com sucesso")
     })
     ResponseEntity<List<CompanyPhotoResponseDTO>> findByCompany(UUID companyId);
+
+    @Operation(
+        summary = "Define o recorte (ponto focal) da foto",
+        description = "Retângulo em pixels da imagem original. Perfil deve ser quadrado e banner 3:1. A resposta traz as variantes prontas (avatarSm, avatar, card, banner)."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Recorte salvo"),
+            @ApiResponse(responseCode = "400", description = "Recorte inválido para o tipo ou fora da imagem"),
+            @ApiResponse(responseCode = "404", description = "Foto não encontrada")
+    })
+    ResponseEntity<CompanyPhotoResponseDTO> updateCrop(UUID companyId, PhotoType type, PhotoCropRequestDTO crop);
+
+    @Operation(summary = "Remove o recorte e volta ao enquadramento automático")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Recorte removido"),
+            @ApiResponse(responseCode = "404", description = "Foto não encontrada")
+    })
+    ResponseEntity<CompanyPhotoResponseDTO> clearCrop(UUID companyId, PhotoType type);
 }
