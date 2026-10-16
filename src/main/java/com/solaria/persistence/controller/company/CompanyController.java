@@ -19,6 +19,7 @@ import com.solaria.persistence.dto.patch.company.UpdateBusinessContactIdDTO;
 import com.solaria.persistence.dto.patch.company.UpdateCompanyAddressIdDTO;
 import com.solaria.persistence.dto.request.company.CompanyRequestDTO;
 import com.solaria.persistence.dto.response.company.CompanyResponseDTO;
+import com.solaria.persistence.dto.response.company.CompanyContactResponseDTO;
 import com.solaria.persistence.openapi.company.CompanyOpenApi;
 import com.solaria.persistence.service.company.CompanyService;
 
@@ -32,6 +33,11 @@ import lombok.RequiredArgsConstructor;
 public class CompanyController implements CompanyOpenApi {
 
     private final CompanyService companyService;
+
+    @GetMapping("/{id}/contact-user")
+    public ResponseEntity<CompanyContactResponseDTO> findContactUser(@PathVariable UUID id) {
+        return ResponseEntity.ok(companyService.findContactUser(id));
+    }
 
     @Override
     @PostMapping
