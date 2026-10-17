@@ -22,6 +22,7 @@ public class ModelResponseDTO {
     private UUID id;
     @Schema(accessMode = Schema.AccessMode.READ_ONLY)
     private UUID creatorCompanyId;
+    private UUID brandId;
     private String brand;
     private String model;
     private PanelType type;
