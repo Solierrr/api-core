@@ -1,5 +1,6 @@
 package com.solaria.persistence.domain.entity.professional;
 
+import com.solaria.persistence.domain.enums.professional.TechnicianStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -17,6 +18,10 @@ public class Technician {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private TechnicianStatus status = TechnicianStatus.UNDER_ANALYSIS;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fk_person", nullable = false, unique = true)
