@@ -7,8 +7,6 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.solaria.persistence.domain.entity.catalog.Model;
 import com.solaria.persistence.domain.entity.catalog.Offer;
@@ -42,27 +40,29 @@ public class OfferService {
     private final OfferRepository offerRepository;
     private final SupplierRepository supplierRepository;
     private final ModelRepository modelRepository;
+    private final BrandService brands;
     private final ProposalItemRepository proposalItemRepository;
     private final SubscriptionService subscriptionService;
     private final OfferTranslationRepository offerTranslationRepository;
-    private final OfferTranslationService offerTranslationService;
+    private final OfferTranslationQueue offerTranslationQueue;
 
     public OfferService(OfferRepository offerRepository,
                         SupplierRepository supplierRepository,
-                        ModelRepository modelRepository,
+                        ModelRepository modelRepository, BrandService brands,
                         ProposalItemRepository proposalItemRepository,
                         SubscriptionService subscriptionService,
                         OfferTranslationRepository offerTranslationRepository,
-                        OfferTranslationService offerTranslationService,
+                        OfferTranslationQueue offerTranslationQueue,
                             RbacAuthorizationService rbac) {
         this.rbac = rbac;
         this.offerRepository = offerRepository;
         this.supplierRepository = supplierRepository;
         this.modelRepository = modelRepository;
+        this.brands = brands;
         this.proposalItemRepository = proposalItemRepository;
         this.subscriptionService = subscriptionService;
         this.offerTranslationRepository = offerTranslationRepository;
-        this.offerTranslationService = offerTranslationService;
+        this.offerTranslationQueue = offerTranslationQueue;
     }
 
     @Transactional
@@ -82,6 +82,7 @@ public class OfferService {
         Model model = modelRepository.findById(dto.getModelId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Modelo não encontrado com ID: " + dto.getModelId()));
+        brands.selectable(model.getBrandId(), supplier.getCompany().getId());
 
         validateSupplierAndSubscriptionGates(supplier);
 
@@ -110,14 +111,14 @@ public class OfferService {
         pendingTranslation.setDetails(dto.getDetails());
         offerTranslationRepository.save(pendingTranslation);
 
-        triggerAsyncTranslationAfterCommit(savedOffer.getId());
+        offerTranslationQueue.enqueue(savedOffer.getId(), pendingTranslation.getId());
 
         return toResponse(savedOffer);
     }
 
     @Transactional
     public OfferResponseDTO update(UUID id, OfferRequestDTO dto) {
-        Offer offer = offerRepository.findById(id)
+        Offer offer = offerRepository.lockById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Oferta com id:" + id + " não encontrada para atualização"));
 
@@ -144,12 +145,31 @@ public class OfferService {
         offer.setDiscountPercentage(dto.getDiscountPercentage());
         offer.setServiceRegions(dto.getServiceRegions());
 
+        var originals = offerTranslationRepository.findByOfferId(offer.getId());
+        var original = originals.stream().filter(item -> java.util.Objects.equals(item.getLocale(), offer.getSourceLocale()))
+                .findFirst().or(() -> originals.stream().filter(item -> OfferTranslationService.PENDING_LOCALE.equals(item.getLocale())).findFirst());
+        if (original.isEmpty() || !java.util.Objects.equals(original.get().getTitle(), dto.getTitle())
+                || !java.util.Objects.equals(original.get().getDescription(), dto.getDescription())
+                || !java.util.Objects.equals(original.get().getDetails(), dto.getDetails())) {
+            offerTranslationRepository.deleteAll(originals);
+            offerTranslationRepository.flush();
+            OfferTranslation pending = new OfferTranslation();
+            pending.setOffer(offer);
+            pending.setLocale(OfferTranslationService.PENDING_LOCALE);
+            pending.setTitle(dto.getTitle());
+            pending.setDescription(dto.getDescription());
+            pending.setDetails(dto.getDetails());
+            offerTranslationRepository.save(pending);
+            offer.setSourceLocale(null);
+            offer.setTranslationStatus(TranslationStatus.PENDING);
+            offerTranslationQueue.enqueue(offer.getId(), pending.getId());
+        }
         return toResponse(offerRepository.save(offer));
     }
 
     @Transactional
     public void deleteById(UUID id) {
-        Offer resource = offerRepository.findById(id).orElseThrow(
+        Offer resource = offerRepository.lockById(id).orElseThrow(
                 () -> new ResourceNotFoundException(
                     "Oferta com id:" + id + " não encontrada para exclusão"));
         rbac.requireOwnCompany(resource.getSupplier().getCompany().getId());
@@ -160,6 +180,8 @@ public class OfferService {
             throw new ResourceInUseException(
                     "Oferta não pode ser excluída: possui item(ns) de proposta vinculado(s)");
         }
+        offerTranslationRepository.deleteAll(offerTranslationRepository.findByOfferId(id));
+        offerTranslationRepository.flush();
         offerRepository.deleteById(id);
     }
 
@@ -231,23 +253,6 @@ public class OfferService {
             suffix++;
         }
         return candidate;
-    }
-
-    /**
-     * Dispara a tradução em background somente após o commit da transação atual, garantindo
-     * que a oferta e a tradução "pendente" já estejam visíveis para a thread assíncrona.
-     */
-    private void triggerAsyncTranslationAfterCommit(UUID offerId) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            offerTranslationService.translateOffer(offerId);
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                offerTranslationService.translateOffer(offerId);
-            }
-        });
     }
 
     private OfferResponseDTO toResponse(Offer offer) {
