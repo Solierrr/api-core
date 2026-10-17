@@ -19,6 +19,7 @@ public final class CompanyResponseMapper {
         CompanyResponseDTO dto = new CompanyResponseDTO();
         dto.setId(company.getId());
         dto.setStatus(company.getStatus());
+        dto.setType(company.getType());
         dto.setCnpj(company.getCnpj());
         dto.setTradeName(company.getTradeName());
         dto.setCorporateName(company.getCorporateName());

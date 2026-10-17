@@ -1,8 +1,10 @@
 package com.solaria.persistence.dto.request.company;
 
+import com.solaria.persistence.domain.enums.company.CompanyType;
 import com.solaria.persistence.util.RegexValidator;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -20,6 +22,9 @@ public class CompanyCreateRequestDTO {
 
     @Valid
     private BusinessContactRequestDTO businessContact;
+
+    @NotNull(message = "Tipo da empresa é obrigatório")
+    private CompanyType type;
 
     @NotBlank(message = "CNPJ é obrigatório")
     @Size(max = 14)
