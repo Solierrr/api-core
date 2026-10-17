@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.solaria.persistence.dto.request.identity.UserRequestDTO;
 import com.solaria.persistence.dto.response.identity.UserResponseDTO;
+import com.solaria.persistence.dto.response.identity.UserSummaryResponseDTO;
 import com.solaria.persistence.openapi.identity.UserOpenApi;
 import com.solaria.persistence.service.identity.UserService;
 
@@ -38,6 +39,11 @@ public class UserController implements UserOpenApi {
     public ResponseEntity<Void> deleteById(@PathVariable UUID id) {
         userService.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/auth/{authId}/summary")
+    public ResponseEntity<UserSummaryResponseDTO> findSummaryByAuthId(@PathVariable UUID authId) {
+        return ResponseEntity.ok(userService.findSummaryByAuthId(authId));
     }
 
     @Override
