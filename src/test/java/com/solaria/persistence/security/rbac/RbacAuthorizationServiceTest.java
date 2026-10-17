@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.solaria.persistence.repository.identity.PlatformAdminRepository;
 import com.solaria.persistence.repository.identity.PositionPermissionRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.security.CurrentUserService;
@@ -28,12 +29,15 @@ class RbacAuthorizationServiceTest {
     @Mock
     private PositionPermissionRepository positionPermissionRepository;
 
+    @Mock
+    private PlatformAdminRepository platformAdminRepository;
+
     private RbacAuthorizationService rbac;
 
     @BeforeEach
     void setUp() {
         rbac = new RbacAuthorizationService(
-                currentUserService, userCompanyRepository, positionPermissionRepository);
+                currentUserService, userCompanyRepository, positionPermissionRepository, platformAdminRepository);
     }
 
     @Test
@@ -55,6 +59,24 @@ class RbacAuthorizationServiceTest {
         assertDoesNotThrow(() -> rbac.requireEndpointAccess("POST /api/orders"));
         assertDoesNotThrow(() -> rbac.requireEndpointAccess("PATCH /api/orders/{id}/cancel"));
         assertThrows(UnauthorizedAccessException.class, () -> rbac.requireEndpointAccess("GET /api/sales"));
+    }
+
+    @Test
+    void professionalOnboardingNeedsOnlyAnAuthenticatedUserAndReviewNeedsAPlatformAdmin() {
+        java.util.UUID userId = java.util.UUID.randomUUID();
+        when(currentUserService.findCurrentUserId()).thenReturn(java.util.Optional.of(userId));
+        when(platformAdminRepository.existsByUserId(userId)).thenReturn(false);
+
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/professional-onboarding/me"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("POST /api/professional-onboarding/me/documents"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/users/me/mobile-eligibility"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/platform-admins/me"));
+        assertThrows(UnauthorizedAccessException.class, () -> rbac.requireEndpointAccess("GET /api/professional-review/queue"));
+        assertThrows(UnauthorizedAccessException.class, () -> rbac.requireEndpointAccess("POST /api/platform-admins"));
+
+        when(platformAdminRepository.existsByUserId(userId)).thenReturn(true);
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("POST /api/professional-review/submissions/{id}/decision"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("POST /api/platform-admins"));
     }
 
     @Test

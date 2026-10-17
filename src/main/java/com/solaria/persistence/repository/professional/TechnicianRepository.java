@@ -17,6 +17,8 @@ public interface TechnicianRepository extends JpaRepository<Technician, UUID> {
     @EntityGraph(attributePaths = {"person", "person.user", "person.contact"})
     List<Technician> findByPersonUserId(UUID userId);
 
+    Optional<Technician> findByPersonId(UUID personId);
+
     boolean existsByPersonId(UUID personId);
 
     boolean existsBySlug(String slug);
