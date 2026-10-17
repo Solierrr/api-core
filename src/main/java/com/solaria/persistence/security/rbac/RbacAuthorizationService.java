@@ -71,6 +71,10 @@ public class RbacAuthorizationService {
             "GET /api/technician-affiliations/technician/{technicianId}"
     );
 
+    // Compra de unidades: sem vínculo com empresa passa (a elegibilidade do profissional é checada no serviço);
+    // com vínculo, vale a permissão do cargo. Empresa fornecedora só compra como profissional aprovado (serviço).
+    private static final Set<String> PURCHASE_ENDPOINTS = Set.of("/api/cart", "/api/orders");
+
     private final CurrentUserService currentUserService;
     private final UserCompanyRepository userCompanyRepository;
     private final PositionPermissionRepository positionPermissionRepository;
@@ -93,9 +97,17 @@ public class RbacAuthorizationService {
         if (AUTHENTICATED_USER_ENDPOINTS.contains(endpointIdentifier)) {
             return;
         }
+        if (isPurchaseEndpoint(endpointIdentifier) && findCurrentCompanyId().isEmpty()) {
+            return;
+        }
         if (!hasEndpointAccess(endpointIdentifier)) {
             throw new UnauthorizedAccessException("Operação não autorizado para o cargo: " + endpointIdentifier);
         }
+    }
+
+    private boolean isPurchaseEndpoint(String endpointIdentifier) {
+        String path = endpointIdentifier.substring(endpointIdentifier.indexOf(' ') + 1);
+        return PURCHASE_ENDPOINTS.stream().anyMatch(prefix -> path.equals(prefix) || path.startsWith(prefix + "/"));
     }
 
     // Checagem de permissão do usuário / ADMIN ignora isso por ter acesso a todos os Endpoints
