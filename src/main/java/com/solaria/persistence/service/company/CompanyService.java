@@ -34,6 +34,14 @@ import com.solaria.persistence.repository.company.CompanyPositionsRepository;
 import com.solaria.persistence.repository.company.CompanyRepository;
 import com.solaria.persistence.repository.execution.RequesterRepository;
 import com.solaria.persistence.repository.catalog.SupplierRepository;
+import com.solaria.persistence.repository.company.CompanyPlansRepository;
+import com.solaria.persistence.repository.company.SubscriptionRepository;
+import com.solaria.persistence.domain.entity.catalog.Supplier;
+import com.solaria.persistence.domain.entity.company.CompanyPlans;
+import com.solaria.persistence.domain.entity.company.Subscription;
+import com.solaria.persistence.domain.entity.execution.Requester;
+import com.solaria.persistence.domain.enums.company.CompanyType;
+import java.time.OffsetDateTime;
 import com.solaria.persistence.repository.professional.TechnicianAffiliationRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.util.SlugUtil;
@@ -41,6 +49,7 @@ import com.solaria.persistence.util.SlugUtil;
 @Service
 public class CompanyService {
 
+    private static final String DEFAULT_PLAN_NAME = "Gratuito";
     private static final String COMPANY_NOT_FOUND = "Empresa não encontrada com ID: ";
 
     private final CurrentUserService currentUserService;
@@ -55,6 +64,8 @@ public class CompanyService {
     private final TechnicianAffiliationRepository technicianAffiliationRepository;
     private final CompanyPositionsRepository companyPositionsRepository;
     private final CompanyPhotoRepository companyPhotoRepository;
+    private final CompanyPlansRepository companyPlansRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
     public CompanyService(CompanyRepository companyRepository,
                           AddressRepository addressRepository,
@@ -65,6 +76,8 @@ public class CompanyService {
                           TechnicianAffiliationRepository technicianAffiliationRepository,
                           CompanyPositionsRepository companyPositionsRepository,
                           CompanyPhotoRepository companyPhotoRepository,
+                          CompanyPlansRepository companyPlansRepository,
+                          SubscriptionRepository subscriptionRepository,
                           CurrentUserService currentUserService,
                           PositionRepository positionRepository,
                           RbacAuthorizationService rbac) {
@@ -80,6 +93,8 @@ public class CompanyService {
         this.technicianAffiliationRepository = technicianAffiliationRepository;
         this.companyPositionsRepository = companyPositionsRepository;
         this.companyPhotoRepository = companyPhotoRepository;
+        this.companyPlansRepository = companyPlansRepository;
+        this.subscriptionRepository = subscriptionRepository;
     }
 
     @Transactional
@@ -97,7 +112,9 @@ public class CompanyService {
         company.setTradeName(dto.getTradeName());
         company.setCorporateName(dto.getCorporateName());
         company.setSlug(generateUniqueSlug(dto.getTradeName()));
+        company.setType(dto.getType());
         companyRepository.saveAndFlush(company);
+        createCompanyProfile(company);
         if (dto.getAddress() != null) {
             company.setAddress(createAddress(company, dto.getAddress()));
         }
@@ -115,6 +132,27 @@ public class CompanyService {
         membership.setPosition(admin);
         userCompanyRepository.saveAndFlush(membership);
         return CompanyResponseMapper.toResponse(company, company.getId());
+    }
+
+    private void createCompanyProfile(Company company) {
+        if (company.getType() == CompanyType.SUPPLIER) {
+            Supplier supplier = new Supplier();
+            supplier.setCompany(company);
+            Supplier savedSupplier = supplierRepository.save(supplier);
+
+            // Assinatura no plano gratuito, pré-requisito para criar ofertas
+            CompanyPlans defaultPlan = companyPlansRepository.findByName(DEFAULT_PLAN_NAME)
+                    .orElseThrow(() -> new ResourceNotFoundException("Plano padrão não configurado"));
+            Subscription subscription = new Subscription();
+            subscription.setSupplier(savedSupplier);
+            subscription.setPlan(defaultPlan);
+            subscription.setStartDate(OffsetDateTime.now());
+            subscriptionRepository.save(subscription);
+        } else {
+            Requester requester = new Requester();
+            requester.setCompany(company);
+            requesterRepository.save(requester);
+        }
     }
 
     @Transactional
