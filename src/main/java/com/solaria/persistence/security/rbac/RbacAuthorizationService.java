@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.solaria.persistence.domain.entity.identity.Position;
 import com.solaria.persistence.exception.UnauthorizedAccessException;
 import com.solaria.persistence.repository.identity.PositionPermissionRepository;
+import com.solaria.persistence.repository.identity.PlatformAdminRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.security.CurrentUserService;
 import com.solaria.persistence.security.CurrentUserRequestContext;
@@ -59,6 +60,7 @@ public class RbacAuthorizationService {
             "GET /api/connections/{id}",
             "DELETE /api/connections/{id}",
             "GET /api/users/me",
+            "GET /api/platform-admins/me",
             "GET /api/technical-services/me",
             "POST /api/technical-services/{id}/acceptance",
             "POST /api/technical-services/{id}/completion",
@@ -78,13 +80,16 @@ public class RbacAuthorizationService {
     private final CurrentUserService currentUserService;
     private final UserCompanyRepository userCompanyRepository;
     private final PositionPermissionRepository positionPermissionRepository;
+    private final PlatformAdminRepository platformAdminRepository;
 
     public RbacAuthorizationService(CurrentUserService currentUserService,
                                      UserCompanyRepository userCompanyRepository,
-                                     PositionPermissionRepository positionPermissionRepository) {
+                                     PositionPermissionRepository positionPermissionRepository,
+                                     PlatformAdminRepository platformAdminRepository) {
         this.currentUserService = currentUserService;
         this.userCompanyRepository = userCompanyRepository;
         this.positionPermissionRepository = positionPermissionRepository;
+        this.platformAdminRepository = platformAdminRepository;
     }
 
     // Lógica de RBAC
@@ -92,6 +97,16 @@ public class RbacAuthorizationService {
     public void requireEndpointAccess(String endpointIdentifier) {
         if ("POST /api/companies".equals(endpointIdentifier)) {
             currentUserService.getProvisionedCurrentUser();
+            return;
+        }
+        if (endpointIdentifier.contains(" /api/professional-onboarding/")
+                || endpointIdentifier.equals("GET /api/users/me/mobile-eligibility")
+                || endpointIdentifier.equals("GET /api/professions/{id}/requirements")) {
+            currentUserService.getCurrentUser();
+            return;
+        }
+        if (endpointIdentifier.contains(" /api/professional-review/") || endpointIdentifier.equals("POST /api/platform-admins")) {
+            if (!isPlatformAdmin()) throw new UnauthorizedAccessException("Operação restrita ao Admin Solaria");
             return;
         }
         if (AUTHENTICATED_USER_ENDPOINTS.contains(endpointIdentifier)) {
@@ -108,6 +123,12 @@ public class RbacAuthorizationService {
     private boolean isPurchaseEndpoint(String endpointIdentifier) {
         String path = endpointIdentifier.substring(endpointIdentifier.indexOf(' ') + 1);
         return PURCHASE_ENDPOINTS.stream().anyMatch(prefix -> path.equals(prefix) || path.startsWith(prefix + "/"));
+    }
+
+    public boolean isPlatformAdmin() {
+        return currentUserService.findCurrentUserId()
+                .map(platformAdminRepository::existsByUserId)
+                .orElse(false);
     }
 
     // Checagem de permissão do usuário / ADMIN ignora isso por ter acesso a todos os Endpoints
