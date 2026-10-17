@@ -23,8 +23,12 @@ public class Model {
     @Column(name = "fk_creator_company", nullable = false, updatable = false)
     private UUID creatorCompanyId;
 
-    @Column(name = "brand", nullable = false)
-    private String brand;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "fk_brand", nullable = false)
+    private Brand brandEntry;
+
+    public String getBrand() { return brandEntry == null ? null : brandEntry.getName(); }
+    public UUID getBrandId() { return brandEntry == null ? null : brandEntry.getId(); }
 
     @Column(name = "model", nullable = false)
     private String model;

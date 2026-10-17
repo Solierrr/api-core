@@ -31,19 +31,21 @@ public class ModelService {
     private final ModelPhotoRepository modelPhotoRepository;
     private final ObjectMapper objectMapper;
     private final RbacAuthorizationService rbac;
+    private final BrandService brands;
 
     public ModelService(ModelRepository modelRepository,
                         InventoryRepository inventoryRepository,
                         OfferRepository offerRepository,
                         ModelPhotoRepository modelPhotoRepository,
                         ObjectMapper objectMapper,
-                        RbacAuthorizationService rbac) {
+                        RbacAuthorizationService rbac, BrandService brands) {
         this.modelRepository = modelRepository;
         this.inventoryRepository = inventoryRepository;
         this.offerRepository = offerRepository;
         this.modelPhotoRepository = modelPhotoRepository;
         this.objectMapper = objectMapper;
         this.rbac = rbac;
+        this.brands = brands;
     }
 
     @Transactional
@@ -53,7 +55,7 @@ public class ModelService {
         Model model = new Model();
         model.setCreatorCompanyId(rbac.getCurrentCompanyId());
         model.setStatus(ModelStatus.APPROVED);
-        model.setBrand(dto.getBrand());
+        model.setBrandEntry(brands.selectable(dto.getBrandId(), rbac.getCurrentCompanyId()));
         model.setModel(dto.getModel());
         model.setType(dto.getType());
         model.setPowerWp(dto.getPowerWp());
@@ -78,7 +80,9 @@ public class ModelService {
 
         validateNumericFields(dto.getPowerWp(), dto.getEfficiency(), dto.getWidth(), dto.getLength(), dto.getWeight());
 
-        model.setBrand(dto.getBrand());
+        if (!java.util.Objects.equals(model.getBrandId(), dto.getBrandId())) {
+            model.setBrandEntry(brands.selectable(dto.getBrandId(), rbac.getCurrentCompanyId()));
+        }
         model.setModel(dto.getModel());
         model.setType(dto.getType());
         model.setPowerWp(dto.getPowerWp());
@@ -141,6 +145,19 @@ public class ModelService {
     }
 
     private ModelResponseDTO toResponse(Model model) {
-        return objectMapper.convertValue(model, ModelResponseDTO.class);
+        return ModelResponseDTO.builder()
+                .id(model.getId())
+                .creatorCompanyId(model.getCreatorCompanyId())
+                .brandId(model.getBrandId())
+                .brand(model.getBrand())
+                .model(model.getModel())
+                .type(model.getType())
+                .powerWp(model.getPowerWp())
+                .efficiency(model.getEfficiency())
+                .width(model.getWidth())
+                .length(model.getLength())
+                .weight(model.getWeight())
+                .status(model.getStatus())
+                .build();
     }
 }

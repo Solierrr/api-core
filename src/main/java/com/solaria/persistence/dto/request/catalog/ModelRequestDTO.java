@@ -13,8 +13,8 @@ import java.math.BigDecimal;
 @Getter
 public class ModelRequestDTO {
 
-    @NotBlank(message = "Marca é obrigatória")
-    private String brand;
+    @NotNull(message = "Marca é obrigatória")
+    private java.util.UUID brandId;
 
     @NotBlank(message = "Modelo é obrigatório")
     private String model;

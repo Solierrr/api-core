@@ -73,8 +73,12 @@ class RbacAuthorizationServiceTest {
         assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/platform-admins/me"));
         assertThrows(UnauthorizedAccessException.class, () -> rbac.requireEndpointAccess("GET /api/professional-review/queue"));
         assertThrows(UnauthorizedAccessException.class, () -> rbac.requireEndpointAccess("POST /api/platform-admins"));
+        assertThrows(UnauthorizedAccessException.class, () -> rbac.requireEndpointAccess("GET /api/brand-review"));
+        assertThrows(UnauthorizedAccessException.class, () -> rbac.requireEndpointAccess("POST /api/brand-review/{id}/decision"));
 
         when(platformAdminRepository.existsByUserId(userId)).thenReturn(true);
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/brand-review"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("POST /api/brand-review/{id}/decision"));
         assertDoesNotThrow(() -> rbac.requireEndpointAccess("POST /api/professional-review/submissions/{id}/decision"));
         assertDoesNotThrow(() -> rbac.requireEndpointAccess("POST /api/platform-admins"));
     }
