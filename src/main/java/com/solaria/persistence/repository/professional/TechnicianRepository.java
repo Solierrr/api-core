@@ -19,6 +19,10 @@ public interface TechnicianRepository extends JpaRepository<Technician, UUID> {
 
     Optional<Technician> findByPersonId(UUID personId);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select t from Technician t where t.id = :id")
+    Optional<Technician> findByIdForUpdate(UUID id);
+
     boolean existsByPersonId(UUID personId);
 
     boolean existsBySlug(String slug);

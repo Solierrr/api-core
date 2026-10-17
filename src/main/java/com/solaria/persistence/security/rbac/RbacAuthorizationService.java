@@ -107,7 +107,7 @@ public class RbacAuthorizationService {
             currentUserService.getProvisionedCurrentUser();
             return;
         }
-        if (endpointIdentifier.contains(" /api/professional-onboarding/")
+        if (endpointIdentifier.contains(" /api/projects") || endpointIdentifier.contains(" /api/professional-onboarding/")
                 || endpointIdentifier.equals("GET /api/users/me/mobile-eligibility")
                 || endpointIdentifier.equals("GET /api/professions/{id}/requirements")) {
             currentUserService.getCurrentUser();
