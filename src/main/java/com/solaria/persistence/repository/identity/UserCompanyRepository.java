@@ -17,6 +17,14 @@ public interface UserCompanyRepository extends JpaRepository<UserCompany, UUID> 
 
     Optional<UserCompany> findByUserId(UUID userId);
 
+    default List<UserCompany> findAllByUserId(UUID userId) {
+        return findByUserId(userId).map(List::of).orElseGet(List::of);
+    }
+
+    default Optional<UserCompany> findByUserIdAndCompanyId(UUID userId, UUID companyId) {
+        return findByUserId(userId).filter(link -> link.getCompany().getId().equals(companyId));
+    }
+
     boolean existsByUserId(UUID userId);
 
     boolean existsByPositionId(UUID positionId);
