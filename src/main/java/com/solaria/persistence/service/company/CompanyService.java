@@ -119,9 +119,12 @@ public class CompanyService {
             company.setAddress(createAddress(company, dto.getAddress()));
         }
         updateBusinessContact(company, dto.getBusinessContact());
-        Position admin = new Position();
-        admin.setName(Position.ADMIN_NAME);
-        positionRepository.save(admin);
+        // O cargo ADMIN é compartilhado (nome único no banco, permissões em position_permission).
+        Position admin = positionRepository.findByName(Position.ADMIN_NAME).orElseGet(() -> {
+            Position created = new Position();
+            created.setName(Position.ADMIN_NAME);
+            return positionRepository.save(created);
+        });
         CompanyPositions companyPosition = new CompanyPositions();
         companyPosition.setCompany(company);
         companyPosition.setPosition(admin);
