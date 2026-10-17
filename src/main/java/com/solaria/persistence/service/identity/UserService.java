@@ -10,8 +10,10 @@ import tools.jackson.databind.ObjectMapper;
 
 import com.solaria.persistence.domain.entity.identity.User;
 import com.solaria.persistence.dto.request.identity.UserRequestDTO;
+import com.solaria.persistence.dto.request.identity.UpdateOwnUserRequestDTO;
 import com.solaria.persistence.dto.response.identity.UserResponseDTO;
 import com.solaria.persistence.dto.response.identity.UserSummaryResponseDTO;
+import com.solaria.persistence.exception.DuplicateResourceException;
 import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
@@ -48,6 +50,16 @@ public class UserService {
         this.objectMapper = objectMapper;
         this.currentUserService = currentUserService;
         this.rbac = rbac;
+    }
+
+    @Transactional
+    public UserResponseDTO updateMe(UpdateOwnUserRequestDTO dto) {
+        User user = currentUserService.getProvisionedCurrentUser();
+        if (userRepository.existsByUsernameAndIdNot(dto.username(), user.getId())) {
+            throw new DuplicateResourceException("Nome de usuário indisponível");
+        }
+        user.setUsername(dto.username());
+        return toResponse(userRepository.save(user));
     }
 
     @Transactional

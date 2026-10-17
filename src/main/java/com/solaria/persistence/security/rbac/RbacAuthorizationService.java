@@ -43,6 +43,7 @@ public class RbacAuthorizationService {
             "GET /api/certifications/{id}",
             "POST /api/access-codes/redeem",
             "GET /api/users/auth/{authId}/summary",
+            "PATCH /api/users/me",
             "POST /api/persons",
             "GET /api/persons",
             "GET /api/persons/{id}",
