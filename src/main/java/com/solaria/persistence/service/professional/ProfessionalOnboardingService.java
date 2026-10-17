@@ -255,7 +255,7 @@ public class ProfessionalOnboardingService {
         Draft draft = readDraft(submission.getSnapshotJson());
         validateDraft(draft, readPolicy(submission.getPolicyJson()), profile.getUserId());
         User user = users.findById(profile.getUserId()).orElseThrow();
-        var person = persons.findByUserId(user.getId()).orElseGet(Person::new);
+        var person = persons.findByUserId(user.getId()).stream().findFirst().orElseGet(Person::new);
         if (person.getId() == null ? persons.existsByCpf(draft.cpf()) : persons.existsByCpfAndIdNot(draft.cpf(), person.getId())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Identity already registered");
         }

@@ -9,13 +9,14 @@ import java.util.UUID;
 
 
 public interface ModelRepository extends JpaRepository<Model, UUID> {
-    @org.springframework.data.jpa.repository.Modifying
-    @org.springframework.data.jpa.repository.Query(value="update model set fk_brand = :target where fk_brand = :source", nativeQuery=true)
-    void reassignBrand(UUID source, UUID target);
-    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
-    @org.springframework.data.jpa.repository.Query("select m from Model m where m.id = :id")
-    java.util.Optional<com.solaria.persistence.domain.entity.catalog.Model> lockById(@org.springframework.data.repository.query.Param("id") java.util.UUID id);
-
 
     List<Model> findByStatus(ModelStatus status);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query(value = "update model set fk_brand = :target where fk_brand = :source", nativeQuery = true)
+    void reassignBrand(UUID source, UUID target);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select m from Model m where m.id = :id")
+    java.util.Optional<Model> lockById(@org.springframework.data.repository.query.Param("id") UUID id);
 }

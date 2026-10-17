@@ -21,6 +21,7 @@ public interface RequesterOpenApi {
         description = "Só pode ser criado para uma Company já APPROVED; mutuamente exclusivo com o papel de Supplier; no máximo um solicitante por empresa. Imutável após a criação."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "201", description = "Solicitante criado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos")
     })
@@ -31,6 +32,7 @@ public interface RequesterOpenApi {
         description = "Não é possível excluir um solicitante que possua Proposal ou TechnicalProject vinculado."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "204", description = "Solicitante removido com sucesso"),
             @ApiResponse(responseCode = "404", description = "Solicitante não encontrado")
     })
@@ -38,6 +40,7 @@ public interface RequesterOpenApi {
 
     @Operation(summary = "Busca um solicitante pelo id e pela empresa")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Solicitante encontrado"),
             @ApiResponse(responseCode = "404", description = "Solicitante não encontrado")
     })
@@ -45,6 +48,7 @@ public interface RequesterOpenApi {
 
     @Operation(summary = "Lista os solicitantes de uma empresa")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Listagem retornada com sucesso")
     })
     ResponseEntity<List<RequesterResponseDTO>> findByCompany(UUID companyId);

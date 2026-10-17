@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import com.solaria.persistence.domain.entity.execution.Requester;
+import com.solaria.persistence.domain.entity.catalog.Supplier;
 
 
 @Entity
@@ -26,11 +27,15 @@ public class Proposal {
     @JoinColumn(name = "fk_requester", nullable = false)
     private Requester requester;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fk_supplier", nullable = false, updatable = false)
+    private Supplier supplier;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private ProposalStatus status = ProposalStatus.AWAITING_SUPPLIER;
 
-    @Column(name = "notes")
+    @Column(name = "notes", length = 500)
     private String notes;
 
     @Column(name = "total_amount")

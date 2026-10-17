@@ -9,6 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.solaria.persistence.domain.entity.shared.Contact;
 import com.solaria.persistence.domain.entity.identity.Person;
 import com.solaria.persistence.domain.entity.professional.Technician;
+import com.solaria.persistence.domain.enums.professional.TechnicianStatus;
+import com.solaria.persistence.exception.BusinessRuleException;
 import com.solaria.persistence.dto.request.professional.TechnicianRequestDTO;
 import com.solaria.persistence.dto.response.shared.ContactResponseDTO;
 import com.solaria.persistence.dto.response.identity.PersonResponseDTO;
@@ -19,9 +21,8 @@ import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.identity.PersonRepository;
 import com.solaria.persistence.repository.professional.TechnicianRepository;
 import com.solaria.persistence.util.SlugUtil;
+import com.solaria.persistence.security.CurrentUserService;
 import com.solaria.persistence.security.rbac.RbacAuthorizationService;
-import com.solaria.persistence.domain.enums.professional.TechnicianStatus;
-import com.solaria.persistence.exception.BusinessRuleException;
 
 
 @Service
@@ -29,25 +30,30 @@ public class TechnicianService {
 
     private final TechnicianRepository technicianRepository;
     private final PersonRepository personRepository;
+    private final CurrentUserService currentUserService;
     private final RbacAuthorizationService rbac;
-    private final com.solaria.persistence.service.professional.ApprovedProfessionalGuard approvedGuard;
+    private final ApprovedProfessionalGuard approvedGuard;
 
     public TechnicianService(TechnicianRepository technicianRepository,
                              PersonRepository personRepository,
+                             CurrentUserService currentUserService,
                              RbacAuthorizationService rbac,
-                         com.solaria.persistence.service.professional.ApprovedProfessionalGuard approvedGuard) {
+                             ApprovedProfessionalGuard approvedGuard) {
         this.technicianRepository = technicianRepository;
         this.personRepository = personRepository;
+        this.currentUserService = currentUserService;
         this.rbac = rbac;
         this.approvedGuard = approvedGuard;
     }
 
     @Transactional
     public TechnicianResponseDTO save(TechnicianRequestDTO dto) {
+        currentUserService.getProvisionedCurrentUserId();
         Person person = personRepository.findById(dto.getPersonId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Pessoa não encontrada com ID: " + dto.getPersonId()));
-        rbac.requireOwnUser(person.getUser().getId());
+
+        rbac.requireOwnUser(person.getUser() == null ? null : person.getUser().getId());
 
         if (technicianRepository.existsByPersonId(dto.getPersonId())) {
             throw new DuplicateResourceException(
@@ -64,15 +70,15 @@ public class TechnicianService {
 
     @Transactional
     public TechnicianResponseDTO update(UUID id, TechnicianRequestDTO dto) {
+        currentUserService.getProvisionedCurrentUserId();
         Technician technician = technicianRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Técnico com id:" + id + " não encontrado para atualização"));
-        rbac.requireOwnUser(technician.getPerson().getUser().getId());
+        requireOwner(technician);
         if (!technician.getPerson().getId().equals(dto.getPersonId())) {
             throw new InvalidFieldException("Pessoa (personId) imutável: " + dto.getPersonId());
         }
 
-        approvedGuard.requireLegacyChangesAllowed(technician.getPerson().getUser().getId());
         technician.setCrea(dto.getCrea());
 
         return toResponse(technicianRepository.save(technician));
@@ -80,7 +86,7 @@ public class TechnicianService {
 
     @Transactional
     public TechnicianResponseDTO decide(UUID id, boolean approved) {
-        Technician technician = technicianRepository.findById(id).orElseThrow(
+        Technician technician = technicianRepository.findByIdForUpdate(id).orElseThrow(
                 () -> new ResourceNotFoundException("Profissional não encontrado"));
         approvedGuard.requireLegacyChangesAllowed(technician.getPerson().getUser().getId());
         if (technician.getStatus() != TechnicianStatus.UNDER_ANALYSIS) {
@@ -92,27 +98,32 @@ public class TechnicianService {
 
     @Transactional
     public void deleteById(UUID id) {
-        if (!technicianRepository.existsById(id)) {
-            throw new ResourceNotFoundException(
-                    "Técnico com id:" + id + " não encontrado para exclusão");
-        }
-
-        var technician = technicianRepository.findById(id).orElseThrow();
-        approvedGuard.requireLegacyChangesAllowed(technician.getPerson().getUser().getId());
-        technicianRepository.deleteById(id);
+        currentUserService.getProvisionedCurrentUserId();
+        Technician technician = technicianRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Técnico não encontrado com ID: " + id));
+        requireOwner(technician);
+        technicianRepository.delete(technician);
     }
 
     @Transactional(readOnly = true)
     public TechnicianResponseDTO findById(UUID id) {
+        currentUserService.getProvisionedCurrentUserId();
         Technician technician = technicianRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Técnico não encontrado com ID: " + id));
+        requireOwner(technician);
         return toResponse(technician);
     }
 
     @Transactional(readOnly = true)
     public List<TechnicianResponseDTO> findAll() {
-        return technicianRepository.findAll().stream().map(this::toResponse).toList();
+        UUID userId = currentUserService.getProvisionedCurrentUserId();
+        return technicianRepository.findByPersonUserId(userId).stream().map(this::toResponse).toList();
+    }
+
+    private void requireOwner(Technician technician) {
+        Person person = technician.getPerson();
+        rbac.requireOwnUser(person.getUser() == null ? null : person.getUser().getId());
     }
 
     private String generateUniqueSlug(String name) {

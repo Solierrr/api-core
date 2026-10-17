@@ -29,7 +29,6 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
 
     List<Subscription> findBySupplierId(UUID supplierId);
 
-    boolean existsByPlanId(UUID planId);
 
     @org.springframework.data.jpa.repository.Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END " +
             "FROM Subscription s WHERE s.supplier.id = :supplierId AND s.status = com.solaria.persistence.domain.enums.company.SubscriptionStatus.PAID " +

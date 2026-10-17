@@ -1,6 +1,7 @@
 package com.solaria.persistence.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.never;
@@ -21,12 +22,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.solaria.persistence.domain.entity.identity.User;
 import com.solaria.persistence.dto.request.ConnectionRequestDTO;
 import com.solaria.persistence.dto.response.identity.UserResponseDTO;
-import com.solaria.persistence.exception.BusinessRuleException;
 import com.solaria.persistence.exception.DuplicateResourceException;
 import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.identity.UserRepository;
 import com.solaria.persistence.security.CurrentUserService;
+import tools.jackson.databind.json.JsonMapper;
 
 @ExtendWith(MockitoExtension.class)
 class ConnectionServiceTest {
@@ -44,8 +45,8 @@ class ConnectionServiceTest {
     @BeforeEach
     void setUp() {
         connectionService = new ConnectionService(userRepository, currentUserService);
-        owner = user(UUID.randomUUID(), "owner", true);
-        connectedUser = user(UUID.randomUUID(), "connected", true);
+        owner = user(UUID.randomUUID(), "owner");
+        connectedUser = user(UUID.randomUUID(), "connected");
     }
 
     @Test
@@ -74,16 +75,22 @@ class ConnectionServiceTest {
     }
 
     @Test
-    void shouldRejectInactiveConnectedUser() {
-        connectedUser.setActive(false);
+    void shouldReturnConnectedUserWithoutAccountState() {
         when(currentUserService.getCurrentUser()).thenReturn(owner);
         when(userRepository.findByIdForUpdate(owner.getId())).thenReturn(Optional.of(owner));
         when(userRepository.findById(connectedUser.getId())).thenReturn(Optional.of(connectedUser));
 
-        assertThrows(BusinessRuleException.class,
-                () -> connectionService.save(requestFor(connectedUser.getId())));
+        UserResponseDTO response = connectionService.save(requestFor(connectedUser.getId()));
+        var json = new JsonMapper().valueToTree(response);
 
-        verify(userRepository, never()).save(owner);
+        assertFalse(json.has("active"));
+        assertEquals(connectedUser.getId().toString(), json.get("id").asString());
+        assertEquals(connectedUser.getAuth_id().toString(), json.get("authId").asString());
+        assertEquals(connectedUser.getUsername(), json.get("username").asString());
+        assertEquals(connectedUser.getAvatar(), json.get("avatar").asString());
+        assertEquals(connectedUser.getBanner(), json.get("banner").asString());
+        assertEquals(List.of(connectedUser.getId()), owner.getConnections());
+        verify(userRepository).save(owner);
     }
 
     @Test
@@ -111,7 +118,7 @@ class ConnectionServiceTest {
 
     @Test
     void shouldListConnectedUsersInArrayOrder() {
-        User secondConnectedUser = user(UUID.randomUUID(), "second", true);
+        User secondConnectedUser = user(UUID.randomUUID(), "second");
         owner.setConnections(List.of(connectedUser.getId(), secondConnectedUser.getId()));
         when(currentUserService.getCurrentUser()).thenReturn(owner);
         when(userRepository.findAllById(owner.getConnections()))
@@ -184,14 +191,13 @@ class ConnectionServiceTest {
         return request;
     }
 
-    private User user(UUID id, String username, boolean active) {
+    private User user(UUID id, String username) {
         User user = new User();
         user.setId(id);
         user.setAuth_id(UUID.randomUUID());
         user.setUsername(username);
         user.setAvatar("https://example.com/" + username + ".png");
         user.setBanner("https://example.com/" + username + "-banner.png");
-        user.setActive(active);
         user.setConnections(new ArrayList<>());
         return user;
     }

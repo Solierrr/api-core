@@ -21,6 +21,8 @@ public interface UnitSpecificationsOpenApi {
         description = "A data é sempre definida pelo servidor, nunca pelo cliente; o histórico é imutável (só criação e consulta)."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "404", description = "Recurso ou parent inexistente"),
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "201", description = "Especificação de unidade criada com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos")
     })
@@ -28,6 +30,7 @@ public interface UnitSpecificationsOpenApi {
 
     @Operation(summary = "Busca uma especificação de unidade pelo identificador e empresa")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "200", description = "Especificação de unidade encontrada"),
             @ApiResponse(responseCode = "404", description = "Especificação de unidade não encontrada")
     })
@@ -38,6 +41,8 @@ public interface UnitSpecificationsOpenApi {
         description = "A listagem mostra o registro mais recente primeiro."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "404", description = "Recurso ou parent inexistente"),
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "200", description = "Lista de especificações retornada com sucesso")
     })
     ResponseEntity<List<UnitSpecificationsResponseDTO>> findByLocalUnit(UUID localUnitId);

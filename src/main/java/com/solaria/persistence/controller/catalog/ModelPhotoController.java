@@ -31,9 +31,8 @@ public class ModelPhotoController implements ModelPhotoOpenApi {
     @Override
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ModelPhotoResponseDTO> upload(@RequestParam("modelId") UUID modelId,
-                                                           @RequestParam("file") MultipartFile file,
-                                                           @RequestParam(value = "primary", defaultValue = "false") boolean primary) {
-        ModelPhotoResponseDTO response = modelPhotoService.upload(modelId, file, primary);
+                                                           @RequestParam("file") MultipartFile file) {
+        ModelPhotoResponseDTO response = modelPhotoService.upload(modelId, file);
         return ResponseEntity.created(URI.create("/api/model-photos/" + response.getId())).body(response);
     }
 

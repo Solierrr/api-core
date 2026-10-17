@@ -67,16 +67,4 @@ public class ModelController implements ModelOpenApi {
     public ResponseEntity<List<ModelResponseDTO>> findByStatus(@PathVariable ModelStatus status) {
         return ResponseEntity.ok(modelService.findByStatus(status));
     }
-
-    @Override
-    @PostMapping("/{id}/approval")
-    public ResponseEntity<ModelResponseDTO> approve(@PathVariable UUID id) {
-        return ResponseEntity.ok(modelService.approve(id));
-    }
-
-    @Override
-    @PostMapping("/{id}/rejection")
-    public ResponseEntity<ModelResponseDTO> reject(@PathVariable UUID id) {
-        return ResponseEntity.ok(modelService.reject(id));
-    }
 }

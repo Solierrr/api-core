@@ -5,21 +5,20 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 import com.solaria.persistence.domain.entity.company.CompanyPositions;
 
 
 public interface CompanyPositionsRepository extends JpaRepository<CompanyPositions, UUID> {
 
+    @EntityGraph(attributePaths = "position")
     List<CompanyPositions> findByCompanyId(UUID companyId);
 
-    List<CompanyPositions> findByPositionId(UUID positionId);
-
-    Optional<CompanyPositions> findByIdAndCompanyId(UUID id, UUID companyId);
+    @EntityGraph(attributePaths = "position")
+    Optional<CompanyPositions> findByPositionId(UUID positionId);
 
     boolean existsByCompanyIdAndPositionId(UUID companyId, UUID positionId);
-
-    boolean existsByPositionId(UUID positionId);
 
     boolean existsByCompanyId(UUID companyId);
 }

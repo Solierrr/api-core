@@ -228,7 +228,7 @@ public class ProjectActivityService {
         var user = requireActiveUser(id);
         var technician =
                 persons.findByUserId(id)
-                        .flatMap(person -> technicians.findByPersonId(person.getId()))
+                        .stream().map(person -> technicians.findByPersonId(person.getId())).flatMap(java.util.Optional::stream).findFirst()
                         .orElseThrow(
                                 () ->
                                         new BusinessRuleException(

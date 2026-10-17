@@ -22,6 +22,8 @@ public interface ServiceExecutorOpenApi {
         description = "Serviço, afiliação e função são obrigatórios; só pode ser criado enquanto o serviço estiver aberto ou em andamento; a mesma afiliação não pode ser executora duas vezes do mesmo serviço."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "404", description = "Recurso ou parent inexistente"),
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "201", description = "Executor de serviço criado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos para criação do executor de serviço")
     })
@@ -32,6 +34,7 @@ public interface ServiceExecutorOpenApi {
         description = "Só pode ser alterado enquanto o serviço estiver aberto ou em andamento."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "200", description = "Função do executor de serviço atualizada com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos para atualização da função"),
             @ApiResponse(responseCode = "404", description = "Executor de serviço não encontrado")
@@ -43,6 +46,7 @@ public interface ServiceExecutorOpenApi {
         description = "Só pode ser removido enquanto o serviço estiver aberto ou em andamento."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "204", description = "Executor de serviço removido com sucesso"),
             @ApiResponse(responseCode = "404", description = "Executor de serviço não encontrado")
     })
@@ -50,6 +54,8 @@ public interface ServiceExecutorOpenApi {
 
     @Operation(summary = "Lista os executores de um serviço")
     @ApiResponses({
+            @ApiResponse(responseCode = "404", description = "Recurso ou parent inexistente"),
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou recurso de outra empresa"),
             @ApiResponse(responseCode = "200", description = "Lista de executores de serviço retornada com sucesso")
     })
     ResponseEntity<List<ServiceExecutorResponseDTO>> findByService(UUID serviceId);

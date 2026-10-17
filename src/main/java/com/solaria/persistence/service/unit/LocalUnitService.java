@@ -1,22 +1,19 @@
 package com.solaria.persistence.service.unit;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.solaria.persistence.domain.entity.shared.Address;
 import com.solaria.persistence.domain.entity.unit.LocalUnit;
-import com.solaria.persistence.domain.entity.unit.LocalUnitPhoto;
-import com.solaria.persistence.domain.enums.unit.LocalUnitPhotoType;
 import com.solaria.persistence.domain.entity.execution.Requester;
 import com.solaria.persistence.dto.request.unit.LocalUnitRequestDTO;
 import com.solaria.persistence.dto.response.shared.AddressResponseDTO;
 import com.solaria.persistence.dto.response.unit.LocalUnitResponseDTO;
-import com.solaria.persistence.exception.InvalidFieldException;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
+import com.solaria.persistence.dto.request.unit.LocalUnitUpdateRequestDTO;
 import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.shared.AddressRepository;
@@ -31,6 +28,9 @@ import com.solaria.persistence.repository.unit.UnitSpecificationsRepository;
 @Service
 public class LocalUnitService {
 
+    private static final String LOCAL_UNIT_NOT_FOUND = "Unidade Local não encontrada com ID: ";
+
+    private final RbacAuthorizationService rbac;
     private final LocalUnitRepository localUnitRepository;
     private final RequesterRepository requesterRepository;
     private final AddressRepository addressRepository;
@@ -45,7 +45,9 @@ public class LocalUnitService {
                             UnitSpecificationsRepository unitSpecificationsRepository,
                             EnergyBillRepository energyBillRepository,
                             ProposalUnitRepository proposalUnitRepository,
-                            LocalUnitPhotoRepository localUnitPhotoRepository) {
+                            LocalUnitPhotoRepository localUnitPhotoRepository,
+                            RbacAuthorizationService rbac) {
+        this.rbac = rbac;
         this.localUnitRepository = localUnitRepository;
         this.requesterRepository = requesterRepository;
         this.addressRepository = addressRepository;
@@ -61,6 +63,7 @@ public class LocalUnitService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Solicitante não encontrado com ID: " + dto.getRequesterId()));
 
+        rbac.requireOwnCompany(requester.getCompany().getId());
         LocalUnit localUnit = new LocalUnit();
         localUnit.setRequester(requester);
         localUnit.setAddress(resolveAddress(dto.getAddressId()));
@@ -71,14 +74,12 @@ public class LocalUnitService {
     }
 
     @Transactional
-    public LocalUnitResponseDTO update(UUID id, LocalUnitRequestDTO dto) {
+    public LocalUnitResponseDTO update(UUID id, LocalUnitUpdateRequestDTO dto) {
         LocalUnit localUnit = localUnitRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Unidade Local com id:" + id + " não encontrada para atualização"));
 
-        if (!dto.getRequesterId().equals(localUnit.getRequester().getId())) {
-            throw new InvalidFieldException("requesterId imutável: " + dto.getRequesterId());
-        }
+        rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
 
         localUnit.setAddress(resolveAddress(dto.getAddressId()));
         localUnit.setComplement(dto.getComplement());
@@ -88,24 +89,10 @@ public class LocalUnitService {
     }
 
     @Transactional
-    public LocalUnitResponseDTO attachAddress(UUID localUnitId, UUID addressId) {
-        LocalUnit localUnit = localUnitRepository.findById(localUnitId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Unidade Local não encontrada com ID: " + localUnitId));
-
-        localUnit.setAddress(addressRepository.findById(addressId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Endereço não encontrado com ID: " + addressId)));
-
-        return toResponse(localUnitRepository.save(localUnit));
-    }
-
-    @Transactional
     public void deleteById(UUID id) {
-        if (!localUnitRepository.existsById(id)) {
-            throw new ResourceNotFoundException(
-                    "Unidade Local com id:" + id + " não encontrada para exclusão");
-        }
+        LocalUnit localUnit = localUnitRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(LOCAL_UNIT_NOT_FOUND + id));
+        rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
         if (unitSpecificationsRepository.existsByLocalUnitId(id)
                 || energyBillRepository.existsByLocalUnitId(id)
                 || proposalUnitRepository.existsByLocalUnitId(id)
@@ -120,45 +107,41 @@ public class LocalUnitService {
     public LocalUnitResponseDTO findById(UUID id) {
         LocalUnit localUnit = localUnitRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Unidade Local não encontrada com ID: " + id));
+                        LOCAL_UNIT_NOT_FOUND + id));
+        rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
         return toResponse(localUnit);
     }
 
     @Transactional(readOnly = true)
     public LocalUnitResponseDTO findById(UUID id, UUID companyId) {
+        rbac.requireOwnCompany(companyId);
         LocalUnit localUnit = localUnitRepository.findByIdAndRequester_Company_Id(id, companyId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Unidade Local não encontrada com ID: " + id));
+                        LOCAL_UNIT_NOT_FOUND + id));
+        rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
         return toResponse(localUnit);
     }
 
     @Transactional(readOnly = true)
     public List<LocalUnitResponseDTO> findByRequester(UUID requesterId) {
-        return toResponses(localUnitRepository.findByRequesterId(requesterId));
+        Requester requester = requesterRepository.findById(requesterId)
+                .orElseThrow(() -> new ResourceNotFoundException("Solicitante não encontrado com ID: " + requesterId));
+        rbac.requireOwnCompany(requester.getCompany().getId());
+        return localUnitRepository.findByRequesterId(requesterId).stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public List<LocalUnitResponseDTO> findAllByCompany(UUID companyId) {
-        return toResponses(localUnitRepository.findByRequester_Company_Id(companyId));
+        rbac.requireOwnCompany(companyId);
+        return localUnitRepository.findByRequester_Company_Id(companyId).stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     private LocalUnitResponseDTO toResponse(LocalUnit entity) {
-        return toResponse(entity, localUnitPhotoRepository.findByLocalUnitIdOrderByCreatedAtDesc(entity.getId()));
-    }
-
-    private List<LocalUnitResponseDTO> toResponses(List<LocalUnit> units) {
-        if (units.isEmpty()) return List.of();
-        Map<UUID, List<LocalUnitPhoto>> photos = localUnitPhotoRepository
-                .findByLocalUnitIdInOrderByCreatedAtDesc(units.stream().map(LocalUnit::getId).toList()).stream()
-                .collect(Collectors.groupingBy(photo -> photo.getLocalUnit().getId()));
-        return units.stream().map(unit -> toResponse(unit, photos.getOrDefault(unit.getId(), List.of()))).toList();
-    }
-
-    private LocalUnitResponseDTO toResponse(LocalUnit entity, List<LocalUnitPhoto> photos) {
         LocalUnitResponseDTO response = new LocalUnitResponseDTO();
-        response.setMainImageUrl(urlOf(photos, LocalUnitPhotoType.MAIN));
-        response.setBannerUrl(urlOf(photos, LocalUnitPhotoType.BANNER));
-        response.setGalleryUrls(photos.stream().filter(photo -> photo.getType() == LocalUnitPhotoType.GALLERY).map(LocalUnitPhoto::getUrl).toList());
         response.setId(entity.getId());
         response.setRequesterId(entity.getRequester().getId());
         response.setAddress(toAddressResponse(entity.getAddress()));
@@ -167,17 +150,15 @@ public class LocalUnitService {
         return response;
     }
 
-    private String urlOf(List<LocalUnitPhoto> photos, LocalUnitPhotoType type) {
-        return photos.stream().filter(photo -> photo.getType() == type).map(LocalUnitPhoto::getUrl).findFirst().orElse(null);
-    }
-
     private Address resolveAddress(UUID addressId) {
         if (addressId == null) {
             return null;
         }
-        return addressRepository.findById(addressId)
+        Address address = addressRepository.findById(addressId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Endereço não encontrado com ID: " + addressId));
+        rbac.requireOwnCompany(address.getOwnerCompany().getId());
+        return address;
     }
 
     private AddressResponseDTO toAddressResponse(Address address) {
@@ -186,6 +167,7 @@ public class LocalUnitService {
         }
         return AddressResponseDTO.builder()
                 .id(address.getId())
+                .ownerCompanyId(address.getOwnerCompany().getId())
                 .state(address.getState())
                 .city(address.getCity())
                 .neighborhood(address.getNeighborhood())

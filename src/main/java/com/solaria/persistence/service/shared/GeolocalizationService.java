@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import tools.jackson.databind.ObjectMapper;
 
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 import com.solaria.persistence.domain.entity.shared.Address;
 import com.solaria.persistence.domain.entity.shared.Geolocalization;
 import com.solaria.persistence.dto.request.shared.GeolocalizationRequestDTO;
@@ -30,10 +31,12 @@ public class GeolocalizationService {
     private final GeolocalizationRepository geolocalizationRepository;
     private final AddressRepository addressRepository;
     private final ObjectMapper objectMapper;
+    private final RbacAuthorizationService rbac;
 
     public GeolocalizationService(GeolocalizationRepository geolocalizationRepository,
                                   AddressRepository addressRepository,
-                                  ObjectMapper objectMapper) {
+                                  ObjectMapper objectMapper, RbacAuthorizationService rbac) {
+        this.rbac = rbac;
         this.geolocalizationRepository = geolocalizationRepository;
         this.addressRepository = addressRepository;
         this.objectMapper = objectMapper;
@@ -44,13 +47,14 @@ public class GeolocalizationService {
         validateRequiredFields(dto);
         validateCoordinateRanges(dto.getLatitude(), dto.getLongitude());
 
-        if (dto.getAddressId() != null && geolocalizationRepository.existsByAddressId(dto.getAddressId())) {
+        Address address = resolveAddress(dto.getAddressId());
+        if (geolocalizationRepository.existsByAddressId(dto.getAddressId())) {
             throw new DuplicateResourceException(
                     "Geolocalização já cadastrada para o endereço: " + dto.getAddressId());
         }
 
         Geolocalization geolocalization = new Geolocalization();
-        geolocalization.setAddress(resolveAddress(dto.getAddressId()));
+        geolocalization.setAddress(address);
         geolocalization.setLatitude(dto.getLatitude());
         geolocalization.setLongitude(dto.getLongitude());
 
@@ -67,17 +71,16 @@ public class GeolocalizationService {
         validateCoordinateRanges(dto.getLatitude(), dto.getLongitude());
 
         Address currentAddress = geolocalization.getAddress();
-        boolean addressChanged = dto.getAddressId() == null
-                ? currentAddress != null
-                : !dto.getAddressId().equals(currentAddress == null ? null : currentAddress.getId());
+        rbac.requireOwnCompany(currentAddress.getOwnerCompany().getId());
+        Address address = resolveAddress(dto.getAddressId());
+        boolean addressChanged = !dto.getAddressId().equals(currentAddress.getId());
 
-        if (addressChanged && dto.getAddressId() != null
-                && geolocalizationRepository.existsByAddressId(dto.getAddressId())) {
+        if (addressChanged && geolocalizationRepository.existsByAddressId(dto.getAddressId())) {
             throw new DuplicateResourceException(
                     "Geolocalização já cadastrada para o endereço: " + dto.getAddressId());
         }
 
-        geolocalization.setAddress(resolveAddress(dto.getAddressId()));
+        geolocalization.setAddress(address);
         geolocalization.setLatitude(dto.getLatitude());
         geolocalization.setLongitude(dto.getLongitude());
 
@@ -86,19 +89,20 @@ public class GeolocalizationService {
 
     private Address resolveAddress(UUID addressId) {
         if (addressId == null) {
-            return null;
+            throw new InvalidFieldException("ID do Endereço é obrigatório");
         }
-        return addressRepository.findById(addressId)
+        Address address = addressRepository.findById(addressId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Endereço não encontrado com ID: " + addressId));
+        rbac.requireOwnCompany(address.getOwnerCompany().getId());
+        return address;
     }
 
     @Transactional
     public void deleteById(UUID id) {
-        if (!geolocalizationRepository.existsById(id)) {
-            throw new ResourceNotFoundException(
-                    "Geolocalização com id:" + id + " não encontrada para exclusão");
-        }
+        Geolocalization geolocalization = geolocalizationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Geolocalização não encontrada com ID: " + id));
+        rbac.requireOwnCompany(geolocalization.getAddress().getOwnerCompany().getId());
         geolocalizationRepository.deleteById(id);
     }
 
@@ -107,17 +111,22 @@ public class GeolocalizationService {
         Geolocalization geolocalization = geolocalizationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Geolocalização não encontrada com ID: " + id));
+        rbac.requireOwnCompany(geolocalization.getAddress().getOwnerCompany().getId());
         return toResponse(geolocalization);
     }
 
     @Transactional(readOnly = true)
     public List<GeolocalizationResponseDTO> findByAddress(UUID addressId) {
+        resolveAddress(addressId);
         return geolocalizationRepository.findByAddressId(addressId).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     private void validateRequiredFields(GeolocalizationRequestDTO dto) {
+        if (dto.getAddressId() == null) {
+            throw new InvalidFieldException("ID do Endereço é obrigatório");
+        }
         if (dto.getLatitude() == null) {
             throw new InvalidFieldException("Latitude é obrigatória");
         }

@@ -18,6 +18,7 @@ import com.solaria.persistence.dto.patch.execution.ServiceScheduleDTO;
 import com.solaria.persistence.dto.patch.execution.UpdatePurposeDTO;
 import com.solaria.persistence.dto.request.execution.TechnicalServiceRequestDTO;
 import com.solaria.persistence.dto.response.execution.TechnicalServiceResponseDTO;
+import com.solaria.persistence.dto.response.execution.PersonalTechnicalServiceResponseDTO;
 import com.solaria.persistence.openapi.execution.TechnicalServiceOpenApi;
 import com.solaria.persistence.service.execution.TechnicalServiceService;
 
@@ -54,14 +55,14 @@ public class TechnicalServiceController implements TechnicalServiceOpenApi {
 
     @Override
     @PostMapping("/{id}/acceptance")
-    public ResponseEntity<TechnicalServiceResponseDTO> accept(@PathVariable UUID id,
-                                                               @Valid @RequestBody ServiceAcceptanceDTO dto) {
-        return ResponseEntity.ok(technicalServiceService.accept(id, dto.getAcceptedBy()));
+    public ResponseEntity<PersonalTechnicalServiceResponseDTO> accept(@PathVariable UUID id,
+                                                               @Valid @RequestBody(required = false) ServiceAcceptanceDTO dto) {
+        return ResponseEntity.ok(technicalServiceService.accept(id, dto == null ? null : dto.getAcceptedBy()));
     }
 
     @Override
     @PostMapping("/{id}/completion")
-    public ResponseEntity<TechnicalServiceResponseDTO> complete(@PathVariable UUID id) {
+    public ResponseEntity<PersonalTechnicalServiceResponseDTO> complete(@PathVariable UUID id) {
         return ResponseEntity.ok(technicalServiceService.complete(id));
     }
 

@@ -13,17 +13,13 @@ import com.solaria.persistence.config.CloudinaryProperties;
 import com.solaria.persistence.domain.entity.company.Company;
 import com.solaria.persistence.domain.entity.company.CompanyPhoto;
 import com.solaria.persistence.domain.enums.shared.PhotoType;
-import com.solaria.persistence.dto.request.shared.PhotoCropRequestDTO;
 import com.solaria.persistence.dto.response.company.CompanyPhotoResponseDTO;
-import com.solaria.persistence.dto.response.shared.PhotoCropDTO;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.company.CompanyPhotoRepository;
 import com.solaria.persistence.repository.company.CompanyRepository;
 import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 import com.solaria.persistence.service.shared.CloudinaryService.UploadResult;
 import com.solaria.persistence.service.shared.CloudinaryService;
-import com.solaria.persistence.service.shared.PhotoCropValidator;
-import com.solaria.persistence.service.shared.PhotoVariants;
 
 @Service
 public class CompanyPhotoService {
@@ -66,8 +62,6 @@ public class CompanyPhotoService {
         photo.setType(type);
         photo.setUrl(result.url());
         photo.setPublicId(result.publicId());
-        // imagem nova invalida o recorte anterior (as coordenadas pertenciam a outra imagem)
-        clearCropFields(photo);
         if (photo.getCreatedAt() == null) {
             photo.setCreatedAt(OffsetDateTime.now());
         }
@@ -79,40 +73,6 @@ public class CompanyPhotoService {
             cloudinaryService.delete(result.publicId());
             throw e;
         }
-    }
-
-    @Transactional
-    public CompanyPhotoResponseDTO updateCrop(UUID companyId, PhotoType type, PhotoCropRequestDTO crop) {
-        rbac.requireOwnCompany(companyId);
-        CompanyPhoto photo = findPhoto(companyId, type);
-        PhotoCropValidator.validate(type, crop, cloudinaryService.imageInfo(photo.getPublicId()));
-        cloudinaryService.setCustomCoordinates(photo.getPublicId(), crop.x(), crop.y(), crop.width(), crop.height());
-        photo.setCropX(crop.x());
-        photo.setCropY(crop.y());
-        photo.setCropWidth(crop.width());
-        photo.setCropHeight(crop.height());
-        return toResponse(companyPhotoRepository.save(photo));
-    }
-
-    @Transactional
-    public CompanyPhotoResponseDTO clearCrop(UUID companyId, PhotoType type) {
-        rbac.requireOwnCompany(companyId);
-        CompanyPhoto photo = findPhoto(companyId, type);
-        clearCropFields(photo);
-        return toResponse(companyPhotoRepository.save(photo));
-    }
-
-    private CompanyPhoto findPhoto(UUID companyId, PhotoType type) {
-        return companyPhotoRepository.findByCompanyIdAndType(companyId, type)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Foto não encontrada para a empresa " + companyId + " e tipo " + type));
-    }
-
-    private void clearCropFields(CompanyPhoto photo) {
-        photo.setCropX(null);
-        photo.setCropY(null);
-        photo.setCropWidth(null);
-        photo.setCropHeight(null);
     }
 
     @Transactional
@@ -149,9 +109,6 @@ public class CompanyPhotoService {
         response.setType(photo.getType());
         response.setUrl(photo.getUrl());
         response.setCreatedAt(photo.getCreatedAt());
-        PhotoCropDTO crop = PhotoCropDTO.of(photo.getCropX(), photo.getCropY(), photo.getCropWidth(), photo.getCropHeight());
-        response.setCrop(crop);
-        response.setVariants(PhotoVariants.of(photo.getUrl(), photo.getType(), crop));
         return response;
     }
 }

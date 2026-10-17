@@ -1,9 +1,8 @@
 package com.solaria.persistence.dto.response.catalog;
 
-import com.solaria.persistence.domain.enums.catalog.InfrastructureType;
 import com.solaria.persistence.domain.enums.catalog.ModelStatus;
 import com.solaria.persistence.domain.enums.catalog.PanelType;
-import com.solaria.persistence.domain.enums.catalog.ProductType;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,13 +20,11 @@ import java.util.UUID;
 public class ModelResponseDTO {
 
     private UUID id;
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
     private UUID creatorCompanyId;
-    private String brand;
     private UUID brandId;
+    private String brand;
     private String model;
-    private ProductType productType;
-    private InfrastructureType infrastructureType;
-    private String material;
     private PanelType type;
     private BigDecimal powerWp;
     private BigDecimal efficiency;

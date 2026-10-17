@@ -11,17 +11,15 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.util.UUID;
+import com.solaria.persistence.dto.request.shared.ContactRequestDTO;
+import jakarta.validation.Valid;
 
 @Getter
 @Setter
 public class PersonRequestDTO {
 
-    @NotNull(message = "ID do Usuário é obrigatório")
-    private UUID userId;
-
-    @NotNull(message = "ID do Contato é obrigatório")
-    private UUID contactId;
+    @Valid
+    private ContactRequestDTO contact;
 
     @NotBlank(message = "Nome é obrigatório")
     @Size(max = 60)

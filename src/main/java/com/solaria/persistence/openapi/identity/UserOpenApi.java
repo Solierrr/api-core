@@ -17,23 +17,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public interface UserOpenApi {
 
     @Operation(
-        summary = "Cria um novo usuário",
-        description = "O authId deve ser único; o usuário nasce sempre ativo."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Usuário criado com sucesso"),
-            @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
-            @ApiResponse(responseCode = "409", description = "E-mail já cadastrado para outro usuário")
-    })
-    ResponseEntity<UserResponseDTO> save(UserRequestDTO dto);
-
-    @Operation(
         summary = "Atualiza um usuário existente",
         description = "O authId é imutável após a criação."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Usuário atualizado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
+            @ApiResponse(responseCode = "403", description = "Recurso de outro titular"),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
     })
     ResponseEntity<UserResponseDTO> update(UUID id, UserRequestDTO dto);
@@ -44,6 +34,7 @@ public interface UserOpenApi {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Usuário removido com sucesso"),
+            @ApiResponse(responseCode = "403", description = "Recurso de outro titular"),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
     })
     ResponseEntity<Void> deleteById(UUID id);
@@ -51,6 +42,7 @@ public interface UserOpenApi {
     @Operation(summary = "Busca um usuário pelo id")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Usuário encontrado"),
+            @ApiResponse(responseCode = "403", description = "Recurso de outro titular"),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
     })
     ResponseEntity<UserResponseDTO> findById(UUID id);

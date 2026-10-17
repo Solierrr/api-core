@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,7 +18,8 @@ import lombok.Setter;
 import com.solaria.persistence.domain.entity.company.Company;
 
 @Entity
-@Table(name = "user_company")
+@Table(name = "user_company", uniqueConstraints = @UniqueConstraint(
+        name = "uq_user_company_user", columnNames = "fk_users"))
 @Getter
 @Setter
 @NoArgsConstructor

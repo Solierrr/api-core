@@ -13,7 +13,6 @@ public class ModelPhotoResponseDTO {
     private UUID id;
     private UUID modelId;
     private String url;
-    private boolean primary;
     private OffsetDateTime createdAt;
 
 }
