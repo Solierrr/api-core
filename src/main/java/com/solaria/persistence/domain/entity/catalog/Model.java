@@ -1,7 +1,9 @@
 package com.solaria.persistence.domain.entity.catalog;
 
+import com.solaria.persistence.domain.enums.catalog.InfrastructureType;
 import com.solaria.persistence.domain.enums.catalog.ModelStatus;
 import com.solaria.persistence.domain.enums.catalog.PanelType;
+import com.solaria.persistence.domain.enums.catalog.ProductType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,6 +34,17 @@ public class Model {
 
     @Column(name = "model", nullable = false)
     private String model;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "product_type", nullable = false)
+    private ProductType productType = ProductType.PANEL;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "infrastructure_type")
+    private InfrastructureType infrastructureType;
+
+    @Column(name = "material")
+    private String material;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
