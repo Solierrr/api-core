@@ -24,6 +24,9 @@ public class User {
     @Column(name = "auth_id", nullable = false, unique = true)
     private UUID auth_id;
 
+    @Column(name = "active", nullable = false)
+    private Boolean active = true;
+
     @Column(name = "username", nullable = false, unique = true, length = 30)
     private String username;
 
