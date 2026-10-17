@@ -132,7 +132,9 @@ public class AccessCodeService {
         accessCode.setStatus(AccessCodeStatus.USED);
         accessCodeRepository.save(accessCode);
 
-        UserCompanyResponseDTO response = objectMapper.convertValue(userCompany, UserCompanyResponseDTO.class);
+        // Montado à mão: converter a entidade com o ObjectMapper percorre as associações e estoura a pilha.
+        UserCompanyResponseDTO response = new UserCompanyResponseDTO();
+        response.setId(userCompany.getId());
         response.setCompanyId(accessCode.getCompany().getId());
         response.setUserId(user.getId());
         response.setPosition(objectMapper.convertValue(accessCode.getPosition(), PositionResponseDTO.class));
