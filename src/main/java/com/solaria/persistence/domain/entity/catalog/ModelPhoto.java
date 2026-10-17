@@ -30,4 +30,7 @@ public class ModelPhoto {
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
+
+    @Column(name = "is_primary", nullable = false)
+    private boolean primary;
 }

@@ -77,6 +77,14 @@ public class RbacAuthorizationService {
     // com vínculo, vale a permissão do cargo. Empresa fornecedora só compra como profissional aprovado (serviço).
     private static final Set<String> PURCHASE_ENDPOINTS = Set.of("/api/cart", "/api/orders");
 
+    // Catálogo público (sem JWT): só leitura.
+    static final Set<String> PUBLIC_CATALOG_ENDPOINTS = Set.of(
+            "GET /api/catalog/companies",
+            "GET /api/catalog/companies/{slug}",
+            "GET /api/catalog/offers",
+            "GET /api/catalog/offers/{companySlug}/{offerSlug}"
+    );
+
     private final CurrentUserService currentUserService;
     private final UserCompanyRepository userCompanyRepository;
     private final PositionPermissionRepository positionPermissionRepository;
@@ -108,6 +116,9 @@ public class RbacAuthorizationService {
         if (endpointIdentifier.contains(" /api/professional-review/") || endpointIdentifier.contains(" /api/brand-review")
                 || endpointIdentifier.equals("POST /api/platform-admins")) {
             if (!isPlatformAdmin()) throw new UnauthorizedAccessException("Operação restrita ao Admin Solaria");
+            return;
+        }
+        if (PUBLIC_CATALOG_ENDPOINTS.contains(endpointIdentifier)) {
             return;
         }
         if (AUTHENTICATED_USER_ENDPOINTS.contains(endpointIdentifier)) {

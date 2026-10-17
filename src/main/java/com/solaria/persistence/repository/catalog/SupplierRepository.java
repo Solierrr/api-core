@@ -25,4 +25,8 @@ public interface SupplierRepository extends JpaRepository<Supplier, UUID>, JpaSp
     Optional<Supplier> findById(UUID id);
 
     boolean existsByCompanyId(UUID companyId);
+
+    @EntityGraph(attributePaths = {"company", "company.address"})
+    List<Supplier> findByStatusAndCompany_Status(com.solaria.persistence.domain.enums.catalog.SupplierStatus status,
+                                                 com.solaria.persistence.domain.enums.company.CompanyStatus companyStatus);
 }

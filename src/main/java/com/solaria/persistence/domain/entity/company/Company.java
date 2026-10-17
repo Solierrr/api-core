@@ -1,6 +1,7 @@
 package com.solaria.persistence.domain.entity.company;
 
 import com.solaria.persistence.domain.enums.company.CompanyStatus;
+import com.solaria.persistence.domain.enums.company.CompanyType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
@@ -19,6 +20,10 @@ public class Company {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", length = 16)
+    private CompanyType type;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)

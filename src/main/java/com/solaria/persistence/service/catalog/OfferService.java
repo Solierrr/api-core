@@ -153,6 +153,9 @@ public class OfferService {
                 () -> new ResourceNotFoundException(
                     "Oferta com id:" + id + " não encontrada para exclusão"));
         rbac.requireOwnCompany(resource.getSupplier().getCompany().getId());
+        if (offerRepository.existsStatusHistory(id)) {
+            throw new ResourceInUseException("Oferta possui histórico; encerre-a para preservar a auditoria");
+        }
         if (proposalItemRepository.existsByOfferId(id)) {
             throw new ResourceInUseException(
                     "Oferta não pode ser excluída: possui item(ns) de proposta vinculado(s)");
@@ -193,6 +196,7 @@ public class OfferService {
     @Transactional(readOnly = true)
     public List<OfferResponseDTO> findCatalog() {
         return offerRepository.findByExpirationDateIsNullOrExpirationDateAfter(OffsetDateTime.now()).stream()
+                .filter(offer -> offer.getCommercialStatus() == com.solaria.persistence.domain.enums.catalog.OfferStatus.ACTIVE)
                 .map(this::toResponse)
                 .toList();
     }
@@ -249,6 +253,7 @@ public class OfferService {
     private OfferResponseDTO toResponse(Offer offer) {
         OfferResponseDTO response = new OfferResponseDTO();
         response.setId(offer.getId());
+        response.setCommercialStatus(offer.getCommercialStatus());
         response.setSupplierId(offer.getSupplier().getId());
         response.setModel(toModelResponse(offer.getModel()));
         response.setSlug(offer.getSlug());

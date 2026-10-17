@@ -84,6 +84,17 @@ class RbacAuthorizationServiceTest {
     }
 
     @Test
+    void publicCatalogReadsNeedNoUserWhileOtherCatalogRoutesStayClosed() {
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/catalog/offers"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/catalog/offers/{companySlug}/{offerSlug}"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/catalog/companies"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/catalog/companies/{slug}"));
+        verifyNoInteractions(currentUserService, userCompanyRepository, positionPermissionRepository);
+
+        assertThrows(UnauthorizedAccessException.class, () -> rbac.requireEndpointAccess("POST /api/catalog/offers"));
+    }
+
+    @Test
     void shouldExemptOnlyExplicitSelfProfileAndPhotoMethodPatterns() {
         assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/users/me"));
         assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/user-photos/user/{userId}"));
