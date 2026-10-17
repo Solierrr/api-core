@@ -118,7 +118,8 @@ public class SecurityConfig {
                                                                 "/swagger-ui.html")
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/catalog/companies", "/api/catalog/companies/*",
-                                                                "/api/catalog/offers", "/api/catalog/offers/*/*")
+                                                                "/api/catalog/offers", "/api/catalog/offers/*/*",
+                                                                "/api/catalog/technicians", "/api/catalog/technicians/*")
                                                 .permitAll()
                                                 // Endpoint de conveniência para autenticar direto pelo Swagger
                                                 .requestMatchers(HttpMethod.POST, "/dev/login")
