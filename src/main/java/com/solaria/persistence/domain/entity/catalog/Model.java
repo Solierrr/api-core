@@ -1,7 +1,9 @@
 package com.solaria.persistence.domain.entity.catalog;
 
+import com.solaria.persistence.domain.enums.catalog.InfrastructureType;
 import com.solaria.persistence.domain.enums.catalog.ModelStatus;
 import com.solaria.persistence.domain.enums.catalog.PanelType;
+import com.solaria.persistence.domain.enums.catalog.ProductType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,29 +22,47 @@ public class Model {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "brand", nullable = false)
-    private String brand;
+    @Column(name = "fk_creator_company")
+    private UUID creatorCompanyId;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "fk_brand", nullable = false)
+    private Brand brandEntry;
+
+    public String getBrand() { return brandEntry == null ? null : brandEntry.getName(); }
+    public UUID getBrandId() { return brandEntry == null ? null : brandEntry.getId(); }
 
     @Column(name = "model", nullable = false)
     private String model;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
+    @Column(name = "product_type", nullable = false)
+    private ProductType productType = ProductType.PANEL;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "infrastructure_type")
+    private InfrastructureType infrastructureType;
+
+    @Column(name = "material")
+    private String material;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type")
     private PanelType type;
 
-    @Column(name = "power_wp", nullable = false)
+    @Column(name = "power_wp")
     private BigDecimal powerWp;
 
-    @Column(name = "efficiency", nullable = false)
+    @Column(name = "efficiency")
     private BigDecimal efficiency;
 
-    @Column(name = "width", nullable = false)
+    @Column(name = "width")
     private BigDecimal width;
 
-    @Column(name = "length", nullable = false)
+    @Column(name = "length")
     private BigDecimal length;
 
-    @Column(name = "weight", nullable = false)
+    @Column(name = "weight")
     private BigDecimal weight;
 
     @Enumerated(EnumType.STRING)

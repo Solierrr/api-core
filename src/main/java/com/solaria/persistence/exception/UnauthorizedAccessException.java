@@ -7,10 +7,10 @@ import org.springframework.http.HttpStatus;
 public class UnauthorizedAccessException extends BusinessException {
 
     public UnauthorizedAccessException(String message) {
-        super(message, HttpStatus.FORBIDDEN, "UNAUTHORIZED_ACCESS");
+        super(message, HttpStatus.FORBIDDEN, "ACCESS_DENIED");
     }
 
     public UnauthorizedAccessException(String message, Map<String, Object> properties) {
-        super(message, HttpStatus.FORBIDDEN, "UNAUTHORIZED_ACCESS", properties);
+        super(message, HttpStatus.FORBIDDEN, "ACCESS_DENIED", properties);
     }
 }

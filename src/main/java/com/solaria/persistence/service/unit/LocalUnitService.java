@@ -1,13 +1,17 @@
 package com.solaria.persistence.service.unit;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.solaria.persistence.domain.entity.shared.Address;
 import com.solaria.persistence.domain.entity.unit.LocalUnit;
+import com.solaria.persistence.domain.entity.unit.LocalUnitPhoto;
+import com.solaria.persistence.domain.enums.unit.LocalUnitPhotoType;
 import com.solaria.persistence.domain.entity.execution.Requester;
 import com.solaria.persistence.dto.request.unit.LocalUnitRequestDTO;
 import com.solaria.persistence.dto.response.shared.AddressResponseDTO;
@@ -130,26 +134,41 @@ public class LocalUnitService {
 
     @Transactional(readOnly = true)
     public List<LocalUnitResponseDTO> findByRequester(UUID requesterId) {
-        return localUnitRepository.findByRequesterId(requesterId).stream()
-                .map(this::toResponse)
-                .toList();
+        return toResponses(localUnitRepository.findByRequesterId(requesterId));
     }
 
     @Transactional(readOnly = true)
     public List<LocalUnitResponseDTO> findAllByCompany(UUID companyId) {
-        return localUnitRepository.findByRequester_Company_Id(companyId).stream()
-                .map(this::toResponse)
-                .toList();
+        return toResponses(localUnitRepository.findByRequester_Company_Id(companyId));
     }
 
     private LocalUnitResponseDTO toResponse(LocalUnit entity) {
+        return toResponse(entity, localUnitPhotoRepository.findByLocalUnitIdOrderByCreatedAtDesc(entity.getId()));
+    }
+
+    private List<LocalUnitResponseDTO> toResponses(List<LocalUnit> units) {
+        if (units.isEmpty()) return List.of();
+        Map<UUID, List<LocalUnitPhoto>> photos = localUnitPhotoRepository
+                .findByLocalUnitIdInOrderByCreatedAtDesc(units.stream().map(LocalUnit::getId).toList()).stream()
+                .collect(Collectors.groupingBy(photo -> photo.getLocalUnit().getId()));
+        return units.stream().map(unit -> toResponse(unit, photos.getOrDefault(unit.getId(), List.of()))).toList();
+    }
+
+    private LocalUnitResponseDTO toResponse(LocalUnit entity, List<LocalUnitPhoto> photos) {
         LocalUnitResponseDTO response = new LocalUnitResponseDTO();
+        response.setMainImageUrl(urlOf(photos, LocalUnitPhotoType.MAIN));
+        response.setBannerUrl(urlOf(photos, LocalUnitPhotoType.BANNER));
+        response.setGalleryUrls(photos.stream().filter(photo -> photo.getType() == LocalUnitPhotoType.GALLERY).map(LocalUnitPhoto::getUrl).toList());
         response.setId(entity.getId());
         response.setRequesterId(entity.getRequester().getId());
         response.setAddress(toAddressResponse(entity.getAddress()));
         response.setComplement(entity.getComplement());
         response.setLocationType(entity.getLocationType());
         return response;
+    }
+
+    private String urlOf(List<LocalUnitPhoto> photos, LocalUnitPhotoType type) {
+        return photos.stream().filter(photo -> photo.getType() == type).map(LocalUnitPhoto::getUrl).findFirst().orElse(null);
     }
 
     private Address resolveAddress(UUID addressId) {

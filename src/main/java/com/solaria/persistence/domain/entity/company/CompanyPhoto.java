@@ -33,6 +33,18 @@ public class CompanyPhoto {
     @Column(name = "public_id", nullable = false)
     private String publicId;
 
+    @Column(name = "crop_x")
+    private Integer cropX;
+
+    @Column(name = "crop_y")
+    private Integer cropY;
+
+    @Column(name = "crop_width")
+    private Integer cropWidth;
+
+    @Column(name = "crop_height")
+    private Integer cropHeight;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 }

@@ -24,6 +24,8 @@ import com.solaria.persistence.repository.identity.PositionRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.repository.identity.UserRepository;
 import com.solaria.persistence.security.rbac.RbacAuthorizationService;
+import com.solaria.persistence.security.CurrentUserService;
+import com.solaria.persistence.repository.identity.PositionPermissionRepository;
 
 
 @Service
@@ -36,6 +38,8 @@ public class UserCompanyService {
     private final CompanyPositionsRepository companyPositionsRepository;
     private final RbacAuthorizationService rbac;
     private final ObjectMapper objectMapper;
+    private final CurrentUserService currentUserService;
+    private final PositionPermissionRepository positionPermissionRepository;
 
     public UserCompanyService(UserCompanyRepository userCompanyRepository,
                               UserRepository userRepository,
@@ -43,7 +47,9 @@ public class UserCompanyService {
                               PositionRepository positionRepository,
                               CompanyPositionsRepository companyPositionsRepository,
                               RbacAuthorizationService rbac,
-                              ObjectMapper objectMapper) {
+                              ObjectMapper objectMapper,
+                              CurrentUserService currentUserService,
+                              PositionPermissionRepository positionPermissionRepository) {
         this.userCompanyRepository = userCompanyRepository;
         this.userRepository = userRepository;
         this.companyRepository = companyRepository;
@@ -51,6 +57,22 @@ public class UserCompanyService {
         this.companyPositionsRepository = companyPositionsRepository;
         this.rbac = rbac;
         this.objectMapper = objectMapper;
+        this.currentUserService = currentUserService;
+        this.positionPermissionRepository = positionPermissionRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public UserCompanyResponseDTO findMe() {
+        User user = currentUserService.getCurrentUser();
+        return userCompanyRepository.findByUserId(user.getId())
+                .map(this::toResponse)
+                .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserCompanyResponseDTO> findAllMe() {
+        return userCompanyRepository.findAllByUserId(currentUserService.getCurrentUser().getId())
+                .stream().map(this::toResponse).toList();
     }
 
     @Transactional
@@ -62,9 +84,12 @@ public class UserCompanyService {
         Position position = positionRepository.findById(dto.getPositionId()).orElseThrow(
                 () -> new ResourceNotFoundException("Cargo não encontrado com ID: " + dto.getPositionId()));
 
-        if (userCompanyRepository.existsByUserId(dto.getUserId())) {
+        if (user.getManagedByCompanyId() != null && !user.getManagedByCompanyId().equals(dto.getCompanyId())) {
+            throw new UnauthorizedAccessException("Conta administrada pela empresa não pode ter vínculo com outra empresa");
+        }
+        if (userCompanyRepository.existsByUserIdAndCompanyId(dto.getUserId(), dto.getCompanyId())) {
             throw new DuplicateResourceException(
-                    "Usuário já possui vínculo com uma empresa: só é permitido um vínculo por usuário");
+                    "Usuário já possui vínculo com esta empresa");
         }
 
         if (!companyPositionsRepository.existsByCompanyIdAndPositionId(dto.getCompanyId(), dto.getPositionId())) {
@@ -162,7 +187,7 @@ public class UserCompanyService {
 
     @Transactional(readOnly = true)
     public List<UserCompanyResponseDTO> findByUser(UUID userId) {
-        return userCompanyRepository.findByUserId(userId)
+        return userCompanyRepository.findAllByUserId(userId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -173,6 +198,8 @@ public class UserCompanyService {
         response.setCompanyId(entity.getCompany().getId());
         response.setUserId(entity.getUser().getId());
         response.setPosition(objectMapper.convertValue(entity.getPosition(), PositionResponseDTO.class));
+        response.setPermissions(positionPermissionRepository.findByPositionId(entity.getPosition().getId()).stream()
+                .map(link -> link.getPermission().getPermissionName()).toList());
         return response;
     }
 }

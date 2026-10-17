@@ -25,4 +25,10 @@ public class Profession {
 
     @Column(name = "requires_registration")
     private Boolean requiresRegistration;
+
+    @Column(name = "requires_nr10")
+    private Boolean requiresNr10;
+
+    @Column(name = "requires_nr35")
+    private Boolean requiresNr35;
 }

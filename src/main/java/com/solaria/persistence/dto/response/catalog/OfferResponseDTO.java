@@ -12,6 +12,7 @@ import java.util.UUID;
 @Getter
 @Setter
 public class OfferResponseDTO {
+    private com.solaria.persistence.domain.enums.catalog.OfferStatus commercialStatus;
 
     private UUID id;
     private UUID supplierId;

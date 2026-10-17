@@ -12,5 +12,7 @@ public class ProfessionRequestDTO {
     private String name;
 
     private Boolean requiresRegistration;
+    private Boolean requiresNr10;
+    private Boolean requiresNr35;
 
 }

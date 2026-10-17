@@ -42,7 +42,7 @@ public class ProblemDetailAuthenticationEntryPoint implements AuthenticationEntr
         // 401 gerado na chain fora do GlobalExceptionHandler
         // marca a observação como span ERROR + tag exception, como WARN
         HttpObservationErrors.mark(request, authException);
-        log.warn("401 em {} {}: {}", 
+        log.atWarn().addKeyValue("errorCode", "UNAUTHENTICATED").log("401 em {} {}: {}",
         request.getMethod(),
         request.getRequestURI(),
         authException.getMessage());

@@ -3,7 +3,6 @@ package com.solaria.persistence.service.identity;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,19 +31,12 @@ public class InternalUserProvisioningService {
             return toResponse(existing.get(), false);
         }
 
-        // nenhum User encontrado -> monta um novo com o authId recebido do evento
-        User user = new User();
-        user.setAuth_id(authId);
-
-        try {
-            // primeira tentativa de criação para este authId
-            User saved = userRepository.save(user);
-            return toResponse(saved, true);
-        } catch (DataIntegrityViolationException raceLoser) {
-            // Em caso de concorrência, busca o User criado pelo vencedor da corrida e o retorna.
-            User winner = userRepository.findByAuthId(authId).orElseThrow(() -> raceLoser);
-            return toResponse(winner, false);
-        }
+        // O evento de registro e GET /users/me podem chegar simultaneamente.
+        // ON CONFLICT mantém a transação utilizável para ler o registro vencedor.
+        String username = "u_" + authId.toString().replace("-", "").substring(0, 28);
+        boolean created = userRepository.insertProvisionedUser(UUID.randomUUID(), authId, username) == 1;
+        User user = userRepository.findByAuthId(authId).orElseThrow();
+        return toResponse(user, created);
     }
 
     private InternalUserProvisionResponseDTO toResponse(User user, boolean created) {

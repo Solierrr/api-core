@@ -1,25 +1,24 @@
 package com.solaria.persistence.service.catalog;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.solaria.persistence.config.GoogleTranslateProperties;
 import com.solaria.persistence.exception.BusinessRuleException;
 
-/**
- * Cliente fino da Google Cloud Translation API (v2): detecção de idioma e tradução de texto.
- * Usado pelo OfferTranslationService para preencher as traduções de uma oferta em background.
- */
 @Service
 public class GoogleTranslateService {
+    public record Field(@JsonProperty("field_name") String name, String text) {}
+    public record Request(List<Field> fields) {}
+    public record TranslatedField(@JsonProperty("field_name") String name, String language, String value) {}
+    public record Response(@JsonProperty("source_language") String sourceLanguage, List<TranslatedField> translations) {}
+    public record Result(String sourceLanguage, Map<String, Map<String, String>> translations) {}
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GoogleTranslateService.class);
-
+    private static final Set<String> LANGUAGES = Set.of("pt", "en", "es");
     private final RestClient googleTranslateRestClient;
     private final GoogleTranslateProperties properties;
 
@@ -28,73 +27,38 @@ public class GoogleTranslateService {
         this.properties = properties;
     }
 
-    /**
-     * Detecta o idioma de um texto. Retorna o código curto ISO-639-1 (ex.: "pt", "en", "es").
-     */
-    @SuppressWarnings("unchecked")
-    public String detectLanguage(String text) {
-        try {
-            Map<String, Object> response = googleTranslateRestClient.post()
-                    .uri(uriBuilder -> uriBuilder.path("/detect").queryParam("key", properties.getApiKey()).build())
-                    .body(Map.of("q", text))
-                    .retrieve()
-                    .body(Map.class);
-
-            Map<String, Object> data = response == null ? null : (Map<String, Object>) response.get("data");
-            List<List<Map<String, Object>>> detections = data == null
-                    ? null : (List<List<Map<String, Object>>>) data.get("detections");
-
-            if (detections == null || detections.isEmpty() || detections.get(0).isEmpty()) {
-                throw new BusinessRuleException("Google Translate não retornou uma detecção de idioma válida");
-            }
-
-            String language = (String) detections.get(0).get(0).get("language");
-            if (language == null || language.isBlank()) {
-                throw new BusinessRuleException("Google Translate não retornou uma detecção de idioma válida");
-            }
-            return language;
-        } catch (BusinessRuleException ex) {
-            throw ex;
-        } catch (RuntimeException ex) {
-            LOGGER.error("Falha ao detectar idioma via Google Translate", ex);
-            throw new BusinessRuleException("Não foi possível detectar o idioma do texto informado");
+    public Result translateFields(Map<String, String> fields) {
+        if (properties.getConsumerToken() == null || properties.getConsumerToken().isBlank()) {
+            throw new BusinessRuleException("Google registry consumer token is not configured");
         }
-    }
-
-    /**
-     * Traduz uma lista de textos (mantendo a ordem) de sourceShortCode para targetShortCode.
-     * Os códigos são curtos (ISO-639-1), ex.: "pt", "en", "es".
-     */
-    @SuppressWarnings("unchecked")
-    public List<String> translate(List<String> texts, String sourceShortCode, String targetShortCode) {
         try {
-            Map<String, Object> body = Map.of(
-                    "q", texts,
-                    "source", sourceShortCode,
-                    "target", targetShortCode,
-                    "format", "text");
-
-            Map<String, Object> response = googleTranslateRestClient.post()
-                    .uri(uriBuilder -> uriBuilder.queryParam("key", properties.getApiKey()).build())
-                    .body(body)
-                    .retrieve()
-                    .body(Map.class);
-
-            Map<String, Object> data = response == null ? null : (Map<String, Object>) response.get("data");
-            List<Map<String, Object>> translations = data == null
-                    ? null : (List<Map<String, Object>>) data.get("translations");
-
-            if (translations == null || translations.size() != texts.size()) {
-                throw new BusinessRuleException(
-                        "Google Translate não retornou o número esperado de traduções");
+            Response response = googleTranslateRestClient.post().uri("/v1/i18n/translate")
+                    .headers(headers -> headers.setBearerAuth(properties.getConsumerToken()))
+                    .body(new Request(fields.entrySet().stream().map(entry -> new Field(entry.getKey(), entry.getValue())).toList()))
+                    .retrieve().body(Response.class);
+            if (response == null || response.sourceLanguage() == null || response.sourceLanguage().isBlank()
+                    || response.translations() == null) throw new BusinessRuleException("Invalid registry translation response");
+            Map<String, Map<String, String>> translated = new LinkedHashMap<>();
+            if (LANGUAGES.contains(response.sourceLanguage())) {
+                translated.put(response.sourceLanguage(), new LinkedHashMap<>(fields));
             }
-
-            return translations.stream().map(t -> (String) t.get("translatedText")).toList();
-        } catch (BusinessRuleException ex) {
-            throw ex;
-        } catch (RuntimeException ex) {
-            LOGGER.error("Falha ao traduzir texto via Google Translate ({} -> {})", sourceShortCode, targetShortCode, ex);
-            throw new BusinessRuleException("Não foi possível traduzir o conteúdo informado");
+            for (TranslatedField field : response.translations()) {
+                if (!LANGUAGES.contains(field.language()) || !fields.containsKey(field.name()) || field.value() == null
+                        || field.value().isBlank()) throw new BusinessRuleException("Invalid registry translation field");
+                Map<String, String> values = translated.computeIfAbsent(field.language(), ignored -> new LinkedHashMap<>());
+                if (values.putIfAbsent(field.name(), field.value()) != null) {
+                    throw new BusinessRuleException("Duplicate registry translation field");
+                }
+            }
+            if (!translated.keySet().equals(LANGUAGES)
+                    || translated.values().stream().anyMatch(values -> !values.keySet().equals(fields.keySet()))) {
+                throw new BusinessRuleException("Incomplete registry translations");
+            }
+            return new Result(response.sourceLanguage(), translated);
+        } catch (BusinessRuleException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw new BusinessRuleException("Could not translate offer through google-registry");
         }
     }
 }

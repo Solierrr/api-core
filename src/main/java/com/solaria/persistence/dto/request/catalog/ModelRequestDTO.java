@@ -1,6 +1,8 @@
 package com.solaria.persistence.dto.request.catalog;
 
+import com.solaria.persistence.domain.enums.catalog.InfrastructureType;
 import com.solaria.persistence.domain.enums.catalog.PanelType;
+import com.solaria.persistence.domain.enums.catalog.ProductType;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -13,28 +15,32 @@ import java.math.BigDecimal;
 @Getter
 public class ModelRequestDTO {
 
-    @NotBlank(message = "Marca é obrigatória")
-    private String brand;
+    @NotNull(message = "Marca é obrigatória")
+    private java.util.UUID brandId;
 
     @NotBlank(message = "Modelo é obrigatório")
+    @jakarta.validation.constraints.Size(max=255)
     private String model;
 
-    @NotNull(message = "Tipo da placa é obrigatório")
+    // PANEL (padrao) exige os campos da placa; INFRASTRUCTURE exige infrastructureType e nao aceita campos de placa
+    private ProductType productType = ProductType.PANEL;
+
+    private InfrastructureType infrastructureType;
+
+    @jakarta.validation.constraints.Size(max=64)
+    private String material;
+
     private PanelType type;
 
-    @NotNull(message = "Potência (Wp) é obrigatória")
     private BigDecimal powerWp;
 
-    @NotNull(message = "Eficiência é obrigatória")
+    @jakarta.validation.constraints.DecimalMax("100")
     private BigDecimal efficiency;
 
-    @NotNull(message = "Largura é obrigatória")
     private BigDecimal width;
 
-    @NotNull(message = "Comprimento é obrigatório")
     private BigDecimal length;
 
-    @NotNull(message = "Peso é obrigatório")
     private BigDecimal weight;
 
 }

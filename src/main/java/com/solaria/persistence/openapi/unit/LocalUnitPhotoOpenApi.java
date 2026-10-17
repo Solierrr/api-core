@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.solaria.persistence.domain.enums.unit.LocalUnitPhotoType;
 import com.solaria.persistence.dto.response.unit.LocalUnitPhotoResponseDTO;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,13 +19,13 @@ public interface LocalUnitPhotoOpenApi {
 
     @Operation(
         summary = "Envia uma nova foto para a unidade local",
-        description = "Faz upload da imagem para o Cloudinary e associa à unidade local informada."
+        description = "Faz upload da imagem para o Cloudinary e associa à unidade local informada. Os tipos MAIN (principal) e BANNER são únicos por unidade e substituem o anterior; GALLERY acumula."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Foto criada com sucesso"),
             @ApiResponse(responseCode = "404", description = "Unidade local não encontrada")
     })
-    ResponseEntity<LocalUnitPhotoResponseDTO> upload(UUID localUnitId, MultipartFile file);
+    ResponseEntity<LocalUnitPhotoResponseDTO> upload(UUID localUnitId, MultipartFile file, LocalUnitPhotoType type);
 
     @Operation(summary = "Remove uma foto da unidade local")
     @ApiResponses({

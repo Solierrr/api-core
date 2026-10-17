@@ -30,6 +30,17 @@ public class UserCompanyController implements UserCompanyOpenApi {
 
     private final UserCompanyService userCompanyService;
 
+    @GetMapping("/me")
+    public ResponseEntity<UserCompanyResponseDTO> findMe() {
+        UserCompanyResponseDTO response = userCompanyService.findMe();
+        return response == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/me/all")
+    public ResponseEntity<List<UserCompanyResponseDTO>> findAllMe() {
+        return ResponseEntity.ok(userCompanyService.findAllMe());
+    }
+
     @Override
     @PostMapping
     public ResponseEntity<UserCompanyResponseDTO> save(@Valid @RequestBody UserCompanyRequestDTO dto) {

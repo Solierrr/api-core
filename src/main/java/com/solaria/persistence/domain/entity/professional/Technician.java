@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.util.UUID;
 import com.solaria.persistence.domain.entity.identity.Person;
+import com.solaria.persistence.domain.enums.professional.TechnicianStatus;
 
 @Entity
 @Table(name = "technician")
@@ -18,11 +19,15 @@ public class Technician {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private TechnicianStatus status = TechnicianStatus.UNDER_ANALYSIS;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fk_person", nullable = false)
     private Person person;
 
-    @Column(name = "crea", nullable = false)
+    @Column(name = "crea")
     private String crea;
 
     @Column(name = "slug", length = 160, nullable = false, unique = true)
