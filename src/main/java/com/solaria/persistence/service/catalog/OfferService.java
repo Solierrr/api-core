@@ -30,9 +30,12 @@ import com.solaria.persistence.repository.proposal.ProposalItemRepository;
 import com.solaria.persistence.repository.catalog.SupplierRepository;
 import com.solaria.persistence.util.SlugUtil;
 import com.solaria.persistence.service.company.SubscriptionService;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
 @Service
 public class OfferService {
+
+    private final RbacAuthorizationService rbac;
 
     private final OfferRepository offerRepository;
     private final SupplierRepository supplierRepository;
@@ -49,7 +52,9 @@ public class OfferService {
                         ProposalItemRepository proposalItemRepository,
                         SubscriptionService subscriptionService,
                         OfferTranslationRepository offerTranslationRepository,
-                        OfferTranslationQueue offerTranslationQueue) {
+                        OfferTranslationQueue offerTranslationQueue,
+                            RbacAuthorizationService rbac) {
+        this.rbac = rbac;
         this.offerRepository = offerRepository;
         this.supplierRepository = supplierRepository;
         this.modelRepository = modelRepository;
@@ -71,6 +76,8 @@ public class OfferService {
         Supplier supplier = supplierRepository.findById(dto.getSupplierId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Fornecedor não encontrado com ID: " + dto.getSupplierId()));
+
+        rbac.requireOwnCompany(supplier.getCompany().getId());
 
         Model model = modelRepository.findById(dto.getModelId())
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -114,6 +121,8 @@ public class OfferService {
         Offer offer = offerRepository.lockById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Oferta com id:" + id + " não encontrada para atualização"));
+
+        rbac.requireOwnCompany(offer.getSupplier().getCompany().getId());
 
         if (dto.getSupplierId() != null && !dto.getSupplierId().equals(offer.getSupplier().getId())) {
             throw new InvalidFieldException("Fornecedor (supplierId) imutável: " + dto.getSupplierId());
@@ -160,7 +169,10 @@ public class OfferService {
 
     @Transactional
     public void deleteById(UUID id) {
-        offerRepository.lockById(id).orElseThrow(() -> new ResourceNotFoundException("Oferta não encontrada para exclusão"));
+        Offer resource = offerRepository.lockById(id).orElseThrow(
+                () -> new ResourceNotFoundException(
+                    "Oferta com id:" + id + " não encontrada para exclusão"));
+        rbac.requireOwnCompany(resource.getSupplier().getCompany().getId());
         if (offerRepository.existsStatusHistory(id)) {
             throw new ResourceInUseException("Oferta possui histórico; encerre-a para preservar a auditoria");
         }
@@ -246,6 +258,7 @@ public class OfferService {
     private OfferResponseDTO toResponse(Offer offer) {
         OfferResponseDTO response = new OfferResponseDTO();
         response.setId(offer.getId());
+        response.setCommercialStatus(offer.getCommercialStatus());
         response.setSupplierId(offer.getSupplier().getId());
         response.setModel(toModelResponse(offer.getModel()));
         response.setSlug(offer.getSlug());
@@ -254,10 +267,10 @@ public class OfferService {
         response.setExpirationDate(offer.getExpirationDate());
         response.setDiscountPercentage(offer.getDiscountPercentage());
         response.setServiceRegions(offer.getServiceRegions());
-        response.setCommercialStatus(offer.getCommercialStatus());
         response.setSourceLocale(offer.getSourceLocale());
         response.setTranslationStatus(offer.getTranslationStatus());
         response.setTranslations(offerTranslationRepository.findByOfferId(offer.getId()).stream()
+                .filter(translation -> !OfferTranslationService.PENDING_LOCALE.equals(translation.getLocale()))
                 .map(this::toTranslationResponse)
                 .toList());
         return response;
@@ -278,12 +291,9 @@ public class OfferService {
         }
         return ModelResponseDTO.builder()
                 .id(model.getId())
-                .brandId(model.getBrandId())
+                .creatorCompanyId(model.getCreatorCompanyId())
                 .brand(model.getBrand())
                 .model(model.getModel())
-                .productType(model.getProductType())
-                .infrastructureType(model.getInfrastructureType())
-                .material(model.getMaterial())
                 .type(model.getType())
                 .powerWp(model.getPowerWp())
                 .efficiency(model.getEfficiency())

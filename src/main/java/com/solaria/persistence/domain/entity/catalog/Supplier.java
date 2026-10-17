@@ -21,7 +21,7 @@ public class Supplier {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_company", nullable = false)
+    @JoinColumn(name = "fk_company", nullable = false, unique = true)
     private Company company;
 
     @Enumerated(EnumType.STRING)

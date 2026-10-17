@@ -13,5 +13,7 @@ public interface CertificationRecordRepository extends JpaRepository<Certificati
 
     boolean existsByProfessionalRegistrationId(UUID professionalRegistrationId);
 
-    boolean existsByCertificationId(UUID certificationId);
+    List<CertificationRecord> findByProfessionalRegistrationIdAndProfessionalRegistrationTechnicianPersonUserId(
+            UUID professionalRegistrationId, UUID userId);
+
 }

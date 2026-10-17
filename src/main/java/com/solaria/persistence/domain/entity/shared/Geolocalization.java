@@ -30,7 +30,7 @@ public class Geolocalization {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_address")
+    @JoinColumn(name = "fk_address", nullable = false)
     private Address address;
 
     @Column(name = "latitude", precision = 10, scale = 7, nullable = false)

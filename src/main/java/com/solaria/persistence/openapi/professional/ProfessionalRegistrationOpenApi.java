@@ -16,19 +16,24 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Registros Profissionais", description = "Gerenciamento dos registros/matrículas profissionais dos técnicos (ex. CREA, CFT)")
 public interface ProfessionalRegistrationOpenApi {
 
-    @Operation(summary = "Cria um novo registro profissional")
+    @Operation(summary = "Cria um novo registro profissional", description = "Exige técnico do próprio User provisionado, sem vínculo empresarial. technicianId obrigatório; demais vínculos opcionais.")
     @ApiResponses({
+            @ApiResponse(responseCode = "404", description = "Recurso, pai ou User provisionado não encontrado (USER_NOT_PROVISIONED)"),
+            @ApiResponse(responseCode = "401", description = "JWT ausente ou inválido"),
+            @ApiResponse(responseCode = "403", description = "Recurso ou vínculo de outro titular, inclusive para ADMIN empresarial"),
             @ApiResponse(responseCode = "201", description = "Registro profissional criado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
-            @ApiResponse(responseCode = "409", description = "Número de registro profissional já cadastrado")
+            @ApiResponse(responseCode = "409", description = "Conflito de integridade")
     })
     ResponseEntity<ProfessionalRegistrationResponseDTO> save(ProfessionalRegistrationRequestDTO dto);
 
     @Operation(summary = "Atualiza um registro profissional existente")
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "JWT ausente ou inválido"),
+            @ApiResponse(responseCode = "403", description = "Recurso ou vínculo de outro titular, inclusive para ADMIN empresarial"),
             @ApiResponse(responseCode = "200", description = "Registro profissional atualizado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
-            @ApiResponse(responseCode = "404", description = "Registro profissional não encontrado")
+            @ApiResponse(responseCode = "404", description = "Recurso, técnico ou User provisionado não encontrado (USER_NOT_PROVISIONED)")
     })
     ResponseEntity<ProfessionalRegistrationResponseDTO> update(UUID id, ProfessionalRegistrationRequestDTO dto);
 
@@ -37,20 +42,28 @@ public interface ProfessionalRegistrationOpenApi {
         description = "Não é permitida a exclusão se houver CertificationRecord vinculado ao registro profissional."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "JWT ausente ou inválido"),
+            @ApiResponse(responseCode = "403", description = "Recurso ou vínculo de outro titular, inclusive para ADMIN empresarial"),
             @ApiResponse(responseCode = "204", description = "Registro profissional excluído com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Registro profissional não encontrado")
+            @ApiResponse(responseCode = "409", description = "Registro possui certificação vinculada"),
+            @ApiResponse(responseCode = "404", description = "Recurso, técnico ou User provisionado não encontrado (USER_NOT_PROVISIONED)")
     })
     ResponseEntity<Void> deleteById(UUID id);
 
     @Operation(summary = "Busca um registro profissional pelo identificador")
     @ApiResponses({
+            @ApiResponse(responseCode = "401", description = "JWT ausente ou inválido"),
+            @ApiResponse(responseCode = "403", description = "Recurso ou vínculo de outro titular, inclusive para ADMIN empresarial"),
             @ApiResponse(responseCode = "200", description = "Registro profissional encontrado"),
-            @ApiResponse(responseCode = "404", description = "Registro profissional não encontrado")
+            @ApiResponse(responseCode = "404", description = "Recurso, técnico ou User provisionado não encontrado (USER_NOT_PROVISIONED)")
     })
     ResponseEntity<ProfessionalRegistrationResponseDTO> findById(UUID id);
 
     @Operation(summary = "Lista os registros profissionais de um técnico")
     @ApiResponses({
+            @ApiResponse(responseCode = "404", description = "Recurso, pai ou User provisionado não encontrado (USER_NOT_PROVISIONED)"),
+            @ApiResponse(responseCode = "401", description = "JWT ausente ou inválido"),
+            @ApiResponse(responseCode = "403", description = "Recurso ou vínculo de outro titular, inclusive para ADMIN empresarial"),
             @ApiResponse(responseCode = "200", description = "Lista de registros profissionais retornada com sucesso")
     })
     ResponseEntity<List<ProfessionalRegistrationResponseDTO>> findByTechnician(UUID technicianId);

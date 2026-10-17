@@ -21,6 +21,7 @@ public class Offer {
     @Column(name = "commercial_status", nullable = false, length = 16)
     private com.solaria.persistence.domain.enums.catalog.OfferStatus commercialStatus = com.solaria.persistence.domain.enums.catalog.OfferStatus.ACTIVE;
 
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;

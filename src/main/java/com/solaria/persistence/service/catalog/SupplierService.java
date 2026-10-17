@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import com.solaria.persistence.mapper.company.CompanyResponseMapper;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -13,14 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.solaria.persistence.dto.request.catalog.SupplierSearchFilterDTO;
-import com.solaria.persistence.dto.response.shared.AddressResponseDTO;
-import com.solaria.persistence.dto.response.company.BusinessContactResponseDTO;
-import com.solaria.persistence.dto.response.company.CompanyResponseDTO;
 import com.solaria.persistence.dto.request.catalog.SupplierRequestDTO;
 import com.solaria.persistence.dto.response.catalog.SupplierResponseDTO;
 import com.solaria.persistence.dto.response.catalog.SupplierSearchResponseDTO;
-import com.solaria.persistence.domain.entity.shared.Address;
-import com.solaria.persistence.domain.entity.company.BusinessContact;
 import com.solaria.persistence.domain.entity.company.Company;
 import com.solaria.persistence.domain.entity.catalog.Supplier;
 import com.solaria.persistence.domain.enums.company.CompanyStatus;
@@ -68,6 +64,8 @@ public class SupplierService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Empresa não encontrada com ID: " + dto.getCompanyId()));
 
+        rbac.requireOwnCompany(company.getId());
+
         if (company.getStatus() != CompanyStatus.APPROVED) {
             throw new BusinessRuleException(
                     "Empresa " + company.getId() + " não pode se tornar fornecedora: status " + company.getStatus());
@@ -87,7 +85,7 @@ public class SupplierService {
         supplier.setCompany(company);
         supplier.setBusinessType(dto.getBusinessType());
 
-        return toResponse(supplierRepository.save(supplier));
+        return toResponse(supplierRepository.save(supplier), rbac.findCurrentCompanyId().orElse(null));
     }
 
     @Transactional
@@ -109,24 +107,28 @@ public class SupplierService {
     public SupplierResponseDTO findById(UUID id) {
         Supplier supplier = supplierRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("Fornecedor não encontrado com ID: " + id));
-        return toResponse(supplier);
+        return toResponse(supplier, rbac.findCurrentCompanyId().orElse(null));
     }
 
     @Transactional(readOnly = true)
     public SupplierResponseDTO findById(UUID id, UUID companyId) {
         Supplier supplier = supplierRepository.findByIdAndCompanyId(id, companyId).orElseThrow(
                 () -> new ResourceNotFoundException("Fornecedor não encontrado com ID: " + id));
-        return toResponse(supplier);
+        return toResponse(supplier, rbac.findCurrentCompanyId().orElse(null));
     }
 
     @Transactional(readOnly = true)
     public List<SupplierResponseDTO> findAll() {
-        return supplierRepository.findAll().stream().map(this::toResponse).toList();
+        UUID actorCompanyId = rbac.findCurrentCompanyId().orElse(null);
+        return supplierRepository.findAll().stream()
+                .map(item -> toResponse(item, actorCompanyId)).toList();
     }
 
     @Transactional(readOnly = true)
     public List<SupplierResponseDTO> findByCompany(UUID companyId) {
-        return supplierRepository.findByCompanyId(companyId).stream().map(this::toResponse).toList();
+        UUID actorCompanyId = rbac.findCurrentCompanyId().orElse(null);
+        return supplierRepository.findByCompanyId(companyId).stream()
+                .map(item -> toResponse(item, actorCompanyId)).toList();
     }
 
     @Transactional(readOnly = true)
@@ -135,6 +137,7 @@ public class SupplierService {
         SupplierSearchResponseDTO cachedResponse = supplierCacheService.find(filters).orElse(null);
 
         if (cachedResponse != null) {
+            cachedResponse.getContent().forEach(item -> item.getCompany().setBusinessContact(null));
             return cachedResponse;
         }
 
@@ -150,7 +153,7 @@ public class SupplierService {
                 pageable);
 
         SupplierSearchResponseDTO response = new SupplierSearchResponseDTO();
-        response.setContent(result.getContent().stream().map(this::toResponse).toList());
+        response.setContent(result.getContent().stream().map(item -> toResponse(item, null)).toList());
         response.setPage(result.getNumber());
         response.setSize(result.getSize());
         response.setTotalElements(result.getTotalElements());
@@ -172,7 +175,7 @@ public class SupplierService {
         validateTransition(supplier.getStatus(), target);
 
         supplier.setStatus(target);
-        return toResponse(supplierRepository.save(supplier));
+        return toResponse(supplierRepository.save(supplier), rbac.findCurrentCompanyId().orElse(null));
     }
 
     private void validateTransition(SupplierStatus current, SupplierStatus target) {
@@ -182,54 +185,13 @@ public class SupplierService {
         }
     }
 
-    private SupplierResponseDTO toResponse(Supplier supplier) {
+    private SupplierResponseDTO toResponse(Supplier supplier, UUID actorCompanyId) {
         SupplierResponseDTO dto = new SupplierResponseDTO();
         dto.setId(supplier.getId());
         dto.setStatus(supplier.getStatus());
         dto.setBusinessType(supplier.getBusinessType());
-        dto.setCompany(toCompanyResponse(supplier.getCompany()));
+        dto.setCompany(CompanyResponseMapper.toResponse(supplier.getCompany(), actorCompanyId));
         return dto;
     }
 
-    private CompanyResponseDTO toCompanyResponse(Company company) {
-        if (company == null) {
-            return null;
-        }
-        CompanyResponseDTO dto = new CompanyResponseDTO();
-        dto.setId(company.getId());
-        dto.setStatus(company.getStatus());
-        dto.setCnpj(company.getCnpj());
-        dto.setTradeName(company.getTradeName());
-        dto.setCorporateName(company.getCorporateName());
-        dto.setAddress(toAddressResponse(company.getAddress()));
-        dto.setBusinessContact(toBusinessContactResponse(company.getBusinessContact()));
-        return dto;
-    }
-
-    private AddressResponseDTO toAddressResponse(Address address) {
-        if (address == null) {
-            return null;
-        }
-        return AddressResponseDTO.builder()
-                .id(address.getId())
-                .state(address.getState())
-                .city(address.getCity())
-                .neighborhood(address.getNeighborhood())
-                .zipCode(address.getZipCode())
-                .street(address.getStreet())
-                .number(address.getNumber())
-                .build();
-    }
-
-    private BusinessContactResponseDTO toBusinessContactResponse(BusinessContact businessContact) {
-        if (businessContact == null) {
-            return null;
-        }
-        BusinessContactResponseDTO dto = new BusinessContactResponseDTO();
-        dto.setId(businessContact.getId());
-        dto.setCompanyEmail(businessContact.getCompanyEmail());
-        dto.setPhone(businessContact.getPhone());
-        dto.setWebsite(businessContact.getWebsite());
-        return dto;
-    }
 }

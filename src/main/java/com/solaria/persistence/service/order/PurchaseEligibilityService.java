@@ -6,47 +6,43 @@ import com.solaria.persistence.domain.entity.identity.UserCompany;
 import com.solaria.persistence.domain.enums.professional.TechnicianStatus;
 import com.solaria.persistence.exception.UnauthorizedAccessException;
 import com.solaria.persistence.repository.catalog.SupplierRepository;
-import com.solaria.persistence.repository.identity.PersonRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.repository.professional.TechnicianRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class PurchaseEligibilityService {
 
     private final UserCompanyRepository userCompanyRepository;
     private final SupplierRepository supplierRepository;
-    private final PersonRepository personRepository;
     private final TechnicianRepository technicianRepository;
 
     public PurchaseEligibilityService(UserCompanyRepository userCompanyRepository,
                                       SupplierRepository supplierRepository,
-                                      PersonRepository personRepository,
                                       TechnicianRepository technicianRepository) {
         this.userCompanyRepository = userCompanyRepository;
         this.supplierRepository = supplierRepository;
-        this.personRepository = personRepository;
         this.technicianRepository = technicianRepository;
     }
 
     @Transactional(readOnly = true)
     public Set<UUID> requireBuyer(User user) {
-        List<UserCompany> links = userCompanyRepository.findAllByUserId(user.getId());
-        boolean belongsToSupplier = links.stream()
-                .anyMatch(link -> supplierRepository.existsByCompanyId(link.getCompany().getId()));
+        Optional<UserCompany> link = userCompanyRepository.findByUserId(user.getId());
+        boolean belongsToSupplier = link
+                .map(item -> supplierRepository.existsByCompanyId(item.getCompany().getId()))
+                .orElse(false);
         if (belongsToSupplier && !isApprovedProfessional(user)) {
             throw new UnauthorizedAccessException("Usuário de empresa fornecedora não pode comprar");
         }
-        if (links.isEmpty() && !isApprovedProfessional(user)) {
+        if (link.isEmpty() && !isApprovedProfessional(user)) {
             throw new UnauthorizedAccessException("Compras exigem uma empresa ou um registro profissional aprovado");
         }
-        return links.stream().map(link -> link.getCompany().getId()).collect(Collectors.toSet());
+        return link.map(item -> Set.of(item.getCompany().getId())).orElse(Set.of());
     }
 
     public void requireNotOwnOffer(Set<UUID> buyerCompanyIds, Offer offer) {
@@ -56,9 +52,7 @@ public class PurchaseEligibilityService {
     }
 
     private boolean isApprovedProfessional(User user) {
-        return personRepository.findByUserId(user.getId())
-                .flatMap(person -> technicianRepository.findByPersonId(person.getId()))
-                .map(technician -> technician.getStatus() == TechnicianStatus.APPROVED)
-                .orElse(false);
+        return technicianRepository.findByPersonUserId(user.getId()).stream()
+                .anyMatch(technician -> technician.getStatus() == TechnicianStatus.APPROVED);
     }
 }

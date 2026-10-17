@@ -47,13 +47,9 @@ public class PositionPermissionService {
     public PositionPermissionResponseDTO grant(PositionPermissionRequestDTO dto) {
         Position position = positionRepository.findById(dto.getPositionId()).orElseThrow(
                 () -> new ResourceNotFoundException("Cargo não encontrado com ID: " + dto.getPositionId()));
+        requireOwnedPosition(position.getId());
         Permission permission = permissionRepository.findById(dto.getPermissionId()).orElseThrow(
                 () -> new ResourceNotFoundException("Permissão não encontrada com ID: " + dto.getPermissionId()));
-
-        requireMutablePosition(position);
-        if (!rbac.hasEndpointAccess(permission.getPermissionName())) {
-            throw new UnauthorizedAccessException("Não é permitido conceder uma permissão que o próprio acesso não possui");
-        }
 
         if (positionPermissionRepository.existsByPositionIdAndPermissionId(dto.getPositionId(), dto.getPermissionId())) {
             throw new DuplicateResourceException(
@@ -73,31 +69,24 @@ public class PositionPermissionService {
                 () -> new ResourceNotFoundException(
                         "Vínculo cargo-permissão com id:" + id + " não encontrado(a) para exclusão"));
 
-        requireMutablePosition(positionPermission.getPosition());
+        requireOwnedPosition(positionPermission.getPosition().getId());
+        if (Position.ADMIN_NAME.equals(positionPermission.getPosition().getName())) {
+            throw new UnauthorizedAccessException("Revogar permissão de ADMIN não é permitido");
+        }
 
         positionPermissionRepository.deleteById(id);
     }
 
     @Transactional(readOnly = true)
     public List<PositionPermissionResponseDTO> findByPosition(UUID positionId) {
-        var links = companyPositionsRepository.findByPositionId(positionId);
-        if (links.isEmpty()) {
-            throw new UnauthorizedAccessException("Cargo não disponível para a empresa");
-        }
-        UUID companyId = rbac.getCurrentCompanyId();
-        boolean ownCompany = links.stream().anyMatch(link -> link.getCompany().getId().equals(companyId));
-        if (!ownCompany) {
-            throw new UnauthorizedAccessException("Cargo não disponível para a empresa");
-        }
+        requireOwnedPosition(positionId);
         return positionPermissionRepository.findByPositionId(positionId).stream().map(this::toResponse).toList();
     }
 
-    private void requireMutablePosition(Position position) {
-        var links = companyPositionsRepository.findByPositionId(position.getId());
-        if (Position.ADMIN_NAME.equals(position.getName()) || links.size() != 1) {
-            throw new UnauthorizedAccessException("Permissões de cargos compartilhados não podem ser alteradas");
-        }
-        rbac.requireOwnCompany(links.getFirst().getCompany().getId());
+    private void requireOwnedPosition(UUID positionId) {
+        var association = companyPositionsRepository.findByPositionId(positionId).orElseThrow(
+                () -> new ResourceNotFoundException("Cargo não encontrado com ID: " + positionId));
+        rbac.requireOwnCompany(association.getCompany().getId());
     }
 
     private PositionPermissionResponseDTO toResponse(PositionPermission entity) {
@@ -115,8 +104,6 @@ public class PositionPermissionService {
         PermissionResponseDTO dto = new PermissionResponseDTO();
         dto.setId(permission.getId());
         dto.setPermissionName(permission.getPermissionName());
-        dto.setName(permission.getName());
-        dto.setDescription(permission.getDescription());
         return dto;
     }
 }

@@ -3,13 +3,29 @@ package com.solaria.persistence.service.proposal;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import jakarta.persistence.EntityManager;
+import com.solaria.persistence.exception.ProposalConflictException;
+import com.solaria.persistence.repository.proposal.ProposalUnitRepository;
+import com.solaria.persistence.dto.request.proposal.ProposalTermsRequestDTO;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import tools.jackson.databind.ObjectMapper;
+import com.solaria.persistence.dto.request.proposal.ProposalCommercialItemRequestDTO;
+import com.solaria.persistence.domain.entity.catalog.Supplier;
+import com.solaria.persistence.exception.InvalidFieldException;
+import com.solaria.persistence.exception.DuplicateResourceException;
+import com.solaria.persistence.exception.UnauthorizedAccessException;
+import com.solaria.persistence.repository.catalog.SupplierRepository;
 import com.solaria.persistence.dto.request.proposal.ProposalRequestDTO;
 import com.solaria.persistence.dto.response.proposal.ProposalResponseDTO;
 import com.solaria.persistence.domain.entity.catalog.Inventory;
@@ -36,7 +52,9 @@ public class ProposalService {
     private final InventoryRepository inventoryRepository;
     private final OfferRepository offerRepository;
     private final RbacAuthorizationService rbac;
-    private final ObjectMapper objectMapper;
+    private final SupplierRepository supplierRepository;
+    private final ProposalUnitRepository proposalUnitRepository;
+    private final EntityManager entityManager;
 
     public ProposalService(ProposalRepository proposalRepository,
                            RequesterRepository requesterRepository,
@@ -44,14 +62,18 @@ public class ProposalService {
                            InventoryRepository inventoryRepository,
                            OfferRepository offerRepository,
                            RbacAuthorizationService rbac,
-                           ObjectMapper objectMapper) {
+                           SupplierRepository supplierRepository,
+                           ProposalUnitRepository proposalUnitRepository,
+                           EntityManager entityManager) {
         this.proposalRepository = proposalRepository;
         this.requesterRepository = requesterRepository;
         this.proposalItemRepository = proposalItemRepository;
         this.inventoryRepository = inventoryRepository;
         this.offerRepository = offerRepository;
         this.rbac = rbac;
-        this.objectMapper = objectMapper;
+        this.supplierRepository = supplierRepository;
+        this.proposalUnitRepository = proposalUnitRepository;
+        this.entityManager = entityManager;
     }
 
     public static boolean isEditable(ProposalStatus status) {
@@ -60,197 +82,359 @@ public class ProposalService {
 
     @Transactional
     public ProposalResponseDTO save(ProposalRequestDTO dto) {
-        Requester requester = requesterRepository.findById(dto.getRequesterId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Solicitante não encontrado com ID: " + dto.getRequesterId()));
-
+        UUID companyId = rbac.getCurrentCompanyId();
+        Requester requester = requesterRepository.findOneByCompanyId(companyId)
+                .orElseThrow(() -> new UnauthorizedAccessException("Empresa sem solicitante"));
+        if (dto.getSupplierId() == null) {
+            throw new InvalidFieldException("supplierId é obrigatório");
+        }
+        Supplier supplier = supplierRepository.findById(dto.getSupplierId())
+                .orElseThrow(() -> new ResourceNotFoundException("Ofertante não encontrado"));
+        validateSnapshot(dto.getItems(), dto.getNotes(), true);
+        List<UUID> offerIds = dto.getItems().stream()
+                .map(ProposalCommercialItemRequestDTO::getOfferId).toList();
+        Map<UUID, Offer> offers = offerRepository.findByIdIn(offerIds).stream()
+                .collect(Collectors.toMap(Offer::getId, offer -> offer));
         Proposal proposal = new Proposal();
         proposal.setRequester(requester);
+        proposal.setSupplier(supplier);
         proposal.setStatus(ProposalStatus.AWAITING_SUPPLIER);
-        proposal.setNotes(dto.getNotes());
-        proposal.setTotalAmount(null);
+        proposal.setNotes(normalizeNotes(dto.getNotes()));
         proposal.setCreatedAt(OffsetDateTime.now());
-
-        return toResponse(proposalRepository.save(proposal));
-    }
-
-    @Transactional
-    public ProposalResponseDTO updateNotes(UUID id, String notes) {
-        Proposal proposal = findEntity(id, "atualização");
-
-        if (!isEditable(proposal.getStatus())) {
-            throw new BusinessRuleException(
-                    "Notas não podem ser alteradas: proposta em estado imutável (" + proposal.getStatus() + ")");
+        List<ProposalItem> items = new ArrayList<>();
+        for (ProposalCommercialItemRequestDTO requested : dto.getItems()) {
+            Offer offer = offers.get(requested.getOfferId());
+            if (offer == null) {
+                throw new ResourceNotFoundException("Oferta não encontrada: " + requested.getOfferId());
+            }
+            validateSupplier(proposal, offer);
+            validateOfferAvailability(offer, requested.getQuantity());
+            ProposalItem item = new ProposalItem();
+            item.setProposal(proposal);
+            item.setOffer(offer);
+            item.setQuantity(requested.getQuantity());
+            item.setNegotiatedPrice(requested.getNegotiatedPrice() == null
+                    ? offer.getUnitPrice() : requested.getNegotiatedPrice());
+            item.setDiscount(requested.getDiscount() == null ? BigDecimal.ZERO : requested.getDiscount());
+            items.add(item);
         }
+        computeTotal(proposal, items);
+        Proposal saved = proposalRepository.save(proposal);
+        List<ProposalItem> savedItems = proposalItemRepository.saveAll(items);
+        return toResponse(saved, savedItems);
+    }
 
-        proposal.setNotes(notes);
-        proposal.setUpdatedAt(OffsetDateTime.now());
+    private void validateSnapshot(List<ProposalCommercialItemRequestDTO> items, String notes, boolean creation) {
+        if (items == null || items.isEmpty()) throw new InvalidFieldException("items é obrigatório e não pode ser vazio");
+        if (notes != null && notes.length() > 500) throw new InvalidFieldException("notes deve ter até 500 caracteres");
+        Set<UUID> offerIds = new HashSet<>();
+        for (ProposalCommercialItemRequestDTO item : items) {
+            if (item == null || item.getOfferId() == null || creation && item.getId() != null) {
+                throw new InvalidFieldException("Item inválido para envio");
+            }
+            validateSanity(item.getQuantity(), item.getNegotiatedPrice(), item.getDiscount());
+            if (!offerIds.add(item.getOfferId())) throw new DuplicateResourceException("Oferta repetida: " + item.getOfferId());
+        }
+    }
 
-        return toResponse(proposalRepository.save(proposal));
+    private static String normalizeNotes(String notes) { return notes == null || notes.isBlank() ? null : notes; }
+
+    private static void validateSanity(Integer quantity, BigDecimal price, BigDecimal discount) {
+        if (quantity == null || quantity <= 0) throw new InvalidFieldException("Quantidade deve ser positiva");
+        if (price != null && price.signum() <= 0) throw new InvalidFieldException("Preço deve ser positivo");
+        if (discount != null && (discount.signum() < 0 || discount.compareTo(BigDecimal.valueOf(100)) > 0)) {
+            throw new InvalidFieldException("Desconto deve ser de 0 a 100");
+        }
+    }
+
+    private static void validateSupplier(Proposal proposal, Offer offer) {
+        if (!proposal.getSupplier().getId().equals(offer.getSupplier().getId())) {
+            throw new InvalidFieldException("Oferta pertence a outro ofertante");
+        }
+    }
+
+    private static void validateOfferAvailability(Offer offer, int quantity) {
+        if (offer.getExpirationDate() != null
+                && offer.getExpirationDate().isBefore(OffsetDateTime.now(ZoneId.systemDefault()))) {
+            throw new BusinessRuleException("Oferta expirada: " + offer.getId());
+        }
+        if (offer.getAvailability() < quantity) throw new BusinessRuleException("Offer sem disponibilidade suficiente");
     }
 
     @Transactional
-    public ProposalResponseDTO supplierAgree(UUID id) {
-        return applyTransition(id, ProposalStatus.AWAITING_SUPPLIER, ProposalStatus.ACCEPTED,
-                "aceite", "consentimento do ofertante");
+    public ProposalResponseDTO updateTerms(UUID id, ProposalTermsRequestDTO dto) {
+        Proposal proposal = lockParticipant(id);
+        requireAwaitedParty(proposal);
+        validateSnapshot(dto.getItems(), dto.getNotes(), false);
+        List<ProposalItem> existing = loadExistingItems(id);
+        Map<UUID, ProposalItem> byId = existing.stream().collect(Collectors.toMap(ProposalItem::getId, item -> item));
+        Map<UUID, Long> allocated = allocatedQuantities(existing);
+        Map<UUID, Offer> offers = loadRequestedOffers(dto.getItems());
+        Set<UUID> retained = validateRequestedItems(proposal, dto.getItems(), byId, allocated, offers);
+        removeUnretainedItems(existing, retained);
+        List<ProposalItem> reconciled = reconcileItems(proposal, dto.getItems(), byId, offers);
+
+        proposal.setNotes(normalizeNotes(dto.getNotes()));
+        computeTotal(proposal, reconciled);
+        proposal.setStatus(proposal.getStatus() == ProposalStatus.AWAITING_SUPPLIER
+                ? ProposalStatus.AWAITING_REQUESTER : ProposalStatus.AWAITING_SUPPLIER);
+        proposalItemRepository.saveAll(reconciled);
+        proposalRepository.save(proposal);
+        return toResponse(proposal, reconciled);
+    }
+
+    private List<ProposalItem> loadExistingItems(UUID proposalId) {
+        List<ProposalItem> existing = proposalItemRepository.findByProposalIdWithOffer(proposalId);
+        existing.forEach(entityManager::refresh);
+        return existing;
+    }
+
+    private Map<UUID, Offer> loadRequestedOffers(List<ProposalCommercialItemRequestDTO> requestedItems) {
+        List<UUID> offerIds = requestedItems.stream().map(ProposalCommercialItemRequestDTO::getOfferId).toList();
+        return offerRepository.findByIdIn(offerIds).stream()
+                .collect(Collectors.toMap(Offer::getId, offer -> offer));
+    }
+
+    private Set<UUID> validateRequestedItems(Proposal proposal,
+                                              List<ProposalCommercialItemRequestDTO> requestedItems,
+                                              Map<UUID, ProposalItem> existingById,
+                                              Map<UUID, Long> allocated,
+                                              Map<UUID, Offer> offers) {
+        Set<UUID> retained = new HashSet<>();
+        for (ProposalCommercialItemRequestDTO requested : requestedItems) {
+            Offer offer = offers.get(requested.getOfferId());
+            if (offer == null) throw new ResourceNotFoundException("Oferta não encontrada: " + requested.getOfferId());
+            validateSupplier(proposal, offer);
+            validateOfferAvailability(offer, requested.getQuantity());
+            if (requested.getId() != null) {
+                validateRetainedItem(requested, existingById, allocated, retained);
+            }
+        }
+        return retained;
+    }
+
+    private void validateRetainedItem(ProposalCommercialItemRequestDTO requested,
+                                     Map<UUID, ProposalItem> existingById,
+                                     Map<UUID, Long> allocated,
+                                     Set<UUID> retained) {
+        ProposalItem item = existingById.get(requested.getId());
+        if (item == null) throw new InvalidFieldException("Item não pertence à proposta");
+        if (!retained.add(item.getId())) throw new DuplicateResourceException("Item repetido");
+        if (!item.getOffer().getId().equals(requested.getOfferId())) {
+            throw new InvalidFieldException("Offer do item é imutável");
+        }
+        if (requested.getNegotiatedPrice() == null) {
+            throw new InvalidFieldException("Preço do item sobrevivente é obrigatório");
+        }
+        if (requested.getQuantity() < allocated.getOrDefault(item.getId(), 0L)) {
+            throw new BusinessRuleException("Quantidade menor que a soma alocada às unidades");
+        }
+    }
+
+    private void removeUnretainedItems(List<ProposalItem> existing, Set<UUID> retained) {
+        List<ProposalItem> removed = existing.stream().filter(item -> !retained.contains(item.getId())).toList();
+        if (!removed.isEmpty()) {
+            proposalUnitRepository.deleteAll(proposalUnitRepository
+                    .findByProposalItemIdIn(removed.stream().map(ProposalItem::getId).toList()));
+            proposalItemRepository.deleteAll(removed);
+            proposalItemRepository.flush();
+        }
+    }
+
+    private List<ProposalItem> reconcileItems(Proposal proposal,
+                                               List<ProposalCommercialItemRequestDTO> requestedItems,
+                                               Map<UUID, ProposalItem> existingById,
+                                               Map<UUID, Offer> offers) {
+        List<ProposalItem> reconciled = new ArrayList<>();
+        for (ProposalCommercialItemRequestDTO requested : requestedItems) {
+            ProposalItem item = requested.getId() == null
+                    ? new ProposalItem() : existingById.get(requested.getId());
+            item.setProposal(proposal);
+            item.setOffer(offers.get(requested.getOfferId()));
+            item.setQuantity(requested.getQuantity());
+            item.setNegotiatedPrice(requested.getNegotiatedPrice() == null
+                    ? item.getOffer().getUnitPrice() : requested.getNegotiatedPrice());
+            item.setDiscount(requested.getDiscount() == null ? BigDecimal.ZERO : requested.getDiscount());
+            reconciled.add(item);
+        }
+        return reconciled;
+    }
+
+    private Map<UUID, Long> allocatedQuantities(List<ProposalItem> items) {
+        if (items.isEmpty()) return Map.of();
+        return proposalUnitRepository.sumQuantitiesByItemIds(items.stream().map(ProposalItem::getId).toList())
+                .stream().collect(Collectors.toMap(row -> (UUID) row[0], row -> ((Number) row[1]).longValue()));
     }
 
     @Transactional
-    public ProposalResponseDTO supplierCounter(UUID id) {
-        return applyTransition(id, ProposalStatus.AWAITING_SUPPLIER, ProposalStatus.AWAITING_REQUESTER,
-                "contraproposta", "contraproposta do ofertante");
-    }
-
-    @Transactional
-    public ProposalResponseDTO requesterAgree(UUID id) {
-        return applyTransition(id, ProposalStatus.AWAITING_REQUESTER, ProposalStatus.ACCEPTED,
-                "aceite", "consentimento do demandante");
-    }
-
-    @Transactional
-    public ProposalResponseDTO requesterCounter(UUID id) {
-        return applyTransition(id, ProposalStatus.AWAITING_REQUESTER, ProposalStatus.AWAITING_SUPPLIER,
-                "contraproposta", "contraproposta do demandante");
-    }
-
-    @Transactional
-    public ProposalResponseDTO reject(UUID id) {
-        return applyEditableTransition(id, ProposalStatus.REJECTED, "recusa");
+    public ProposalResponseDTO accept(UUID id) {
+        Proposal proposal = lockParticipant(id);
+        requireAwaitedParty(proposal);
+        List<ProposalItem> items = proposalItemRepository.findByProposalIdWithOffer(id);
+        items.forEach(entityManager::refresh);
+        if (items.isEmpty()) throw new BusinessRuleException("Proposta não pode ser aceita sem itens");
+        reserveInventory(proposal, items);
+        computeTotal(proposal, items);
+        proposal.setStatus(ProposalStatus.ACCEPTED);
+        proposalRepository.save(proposal);
+        return toResponse(proposal, items);
     }
 
     @Transactional
     public ProposalResponseDTO cancel(UUID id) {
-        return applyEditableTransition(id, ProposalStatus.CANCELED, "cancelamento");
+        Proposal proposal = lockParticipant(id);
+        requireRequester(proposal);
+        return close(proposal, ProposalStatus.CANCELED);
     }
 
-    private ProposalResponseDTO applyTransition(UUID id, ProposalStatus expectedSource, ProposalStatus target,
-                                                 String acaoBusca, String acaoTransicao) {
-        Proposal proposal = findEntity(id, acaoBusca);
-        rbac.requireOwnCompany(proposal.getRequester().getCompany().getId());
-        requireStatus(proposal, expectedSource, acaoTransicao);
-
-        Proposal saved = target == ProposalStatus.ACCEPTED
-                ? finalizeAcceptance(proposal)
-                : applyStatus(proposal, target);
-
-        return toResponse(saved);
+    @Transactional
+    public ProposalResponseDTO reject(UUID id) {
+        Proposal proposal = lockParticipant(id);
+        if (!rbac.getCurrentCompanyId().equals(proposal.getSupplier().getCompany().getId())) {
+            throw new UnauthorizedAccessException("Somente Supplier pode recusar a proposta");
+        }
+        return close(proposal, ProposalStatus.REJECTED);
     }
 
-    private Proposal applyStatus(Proposal proposal, ProposalStatus target) {
-        proposal.setStatus(target);
+    private ProposalResponseDTO close(Proposal proposal, ProposalStatus status) {
+        requirePending(proposal);
+        proposal.setStatus(status);
         proposal.setUpdatedAt(OffsetDateTime.now());
-        return proposalRepository.save(proposal);
+        proposalRepository.save(proposal);
+        return toResponse(proposal);
     }
 
-    private ProposalResponseDTO applyEditableTransition(UUID id, ProposalStatus target, String acao) {
-        Proposal proposal = findEntity(id, acao);
-        rbac.requireOwnCompany(proposal.getRequester().getCompany().getId());
-        if (!isEditable(proposal.getStatus())) {
-            throw new BusinessRuleException(
-                    "Transição de status inválida: " + proposal.getStatus() + " → " + target);
+    Proposal lockParticipant(UUID id) {
+        Proposal proposal = proposalRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Proposta não encontrada"));
+        entityManager.refresh(proposal);
+        requireParticipant(proposal);
+        return proposal;
+    }
+
+    void requireRequester(Proposal proposal) {
+        if (!rbac.getCurrentCompanyId().equals(proposal.getRequester().getCompany().getId())) {
+            throw new UnauthorizedAccessException("Somente Requester pode alterar este recurso");
         }
-        return toResponse(applyStatus(proposal, target));
     }
 
-    private Proposal finalizeAcceptance(Proposal proposal) {
+    void requirePending(Proposal proposal) {
+        if (!isEditable(proposal.getStatus())) throw new ProposalConflictException("Proposta em estado terminal");
+    }
+
+    private void requireAwaitedParty(Proposal proposal) {
+        requirePending(proposal);
+        UUID awaitedCompany = proposal.getStatus() == ProposalStatus.AWAITING_SUPPLIER
+                ? proposal.getSupplier().getCompany().getId() : proposal.getRequester().getCompany().getId();
+        if (!rbac.getCurrentCompanyId().equals(awaitedCompany)) {
+            throw new ProposalConflictException("A proposta aguarda a outra parte");
+        }
+    }
+
+    private void reserveInventory(Proposal proposal, List<ProposalItem> items) {
+        Map<UUID, Long> required = items.stream().collect(Collectors.groupingBy(
+                item -> item.getOffer().getModel().getId(), TreeMap::new,
+                Collectors.summingLong(ProposalItem::getQuantity)));
+        Map<UUID, Inventory> inventories = new TreeMap<>();
+        for (Map.Entry<UUID, Long> entry : required.entrySet()) {
+            Inventory inventory = inventoryRepository.findBySupplierIdAndModelIdForUpdate(
+                    proposal.getSupplier().getId(), entry.getKey())
+                    .orElseThrow(() -> new ProposalConflictException("Estoque não encontrado"));
+            entityManager.refresh(inventory);
+            if (inventory.getQuantity() < entry.getValue()) throw new ProposalConflictException("Estoque insuficiente");
+            inventories.put(entry.getKey(), inventory);
+        }
+        for (Map.Entry<UUID, Inventory> entry : inventories.entrySet()) {
+            Inventory inventory = entry.getValue();
+            inventory.setQuantity(Math.toIntExact(inventory.getQuantity() - required.get(entry.getKey())));
+            inventoryRepository.save(inventory);
+        }
         OffsetDateTime now = OffsetDateTime.now();
-        List<ProposalItem> items = proposalItemRepository.findByProposalIdWithOffer(proposal.getId());
-
-        if (items.isEmpty()) {
-            throw new BusinessRuleException(
-                    "Proposta " + proposal.getId() + " não pode ser aceita sem itens");
+        for (ProposalItem item : items.stream().sorted(java.util.Comparator.comparing(i -> i.getOffer().getId())).toList()) {
+            Offer offer = item.getOffer();
+            int remaining = inventories.get(offer.getModel().getId()).getQuantity();
+            if (offerRepository.reserveAvailability(offer.getId(), item.getQuantity(), remaining, now) != 1) {
+                throw new ProposalConflictException("Offer expirada ou sem disponibilidade corrente");
+            }
+            entityManager.refresh(offer);
         }
-
-        items.forEach(item -> reserveInventoryForItem(item, now));
-
-        computeTotal(proposal);
-        proposal.setStatus(ProposalStatus.ACCEPTED);
-        proposal.setUpdatedAt(now);
-
-        return proposalRepository.save(proposal);
-    }
-
-    private void reserveInventoryForItem(ProposalItem item, OffsetDateTime now) {
-        Offer offer = item.getOffer();
-
-        boolean expired = offer.getExpirationDate() != null && offer.getExpirationDate().isBefore(now);
-        if (expired) {
-            throw new BusinessRuleException(
-                    "Proposta não pode ser aceita: oferta " + offer.getId() + " expirada");
-        }
-        if (offer.getAvailability() < item.getQuantity()) {
-            throw new BusinessRuleException(
-                    "Proposta não pode ser aceita: oferta " + offer.getId() + " sem disponibilidade suficiente");
-        }
-
-        Inventory inventory = inventoryRepository
-                .findBySupplierIdAndModelIdForUpdate(offer.getSupplier().getId(), offer.getModel().getId())
-                .orElseThrow(() -> new BusinessRuleException(
-                        "Estoque não encontrado para a oferta " + offer.getId()));
-
-        if (inventory.getQuantity() < item.getQuantity()) {
-            throw new BusinessRuleException(
-                    "Estoque insuficiente para a oferta " + offer.getId()
-                            + " (disponível: " + inventory.getQuantity() + ", solicitado: " + item.getQuantity() + ")");
-        }
-
-        inventory.setQuantity(inventory.getQuantity() - item.getQuantity());
-        inventoryRepository.save(inventory);
-
-        int resynced = Math.min(offer.getAvailability() - item.getQuantity(), inventory.getQuantity());
-        offer.setAvailability(Math.max(0, resynced));
-        offerRepository.save(offer);
     }
 
     @Transactional(readOnly = true)
     public ProposalResponseDTO findById(UUID id) {
-        return toResponse(findEntity(id, "consulta"));
+        return findParticipantResponse(id);
     }
 
     @Transactional(readOnly = true)
     public ProposalResponseDTO findById(UUID id, UUID companyId) {
-        Proposal proposal = proposalRepository.findByIdAndRequester_Company_Id(id, companyId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Proposta não encontrada com ID: " + id));
-        return toResponse(proposal);
+        requireCompanyFilter(companyId);
+        return findParticipantResponse(id);
+    }
+
+    private ProposalResponseDTO findParticipantResponse(UUID id) {
+        return toResponse(findParticipant(id));
     }
 
     @Transactional(readOnly = true)
     public List<ProposalResponseDTO> findByRequester(UUID requesterId) {
-        return proposalRepository.findByRequesterId(requesterId).stream()
-                .map(this::toResponse)
-                .toList();
+        Requester requester = requesterRepository.findById(requesterId)
+                .orElseThrow(() -> new ResourceNotFoundException("Solicitante não encontrado"));
+        UUID companyId = rbac.getCurrentCompanyId();
+        List<Proposal> proposals = proposalRepository.findByRequesterAndParticipant(requesterId, companyId);
+        if (proposals.isEmpty() && !companyId.equals(requester.getCompany().getId())) {
+            throw new ResourceNotFoundException("Solicitante não encontrado");
+        }
+        return toResponses(proposals);
     }
 
     @Transactional(readOnly = true)
     public List<ProposalResponseDTO> findAllByCompany(UUID companyId) {
-        return proposalRepository.findByRequester_Company_Id(companyId).stream()
-                .map(this::toResponse)
-                .toList();
+        requireCompanyFilter(companyId);
+        return toResponses(proposalRepository.findByParticipantCompany(companyId));
     }
 
-    @Transactional
-    public Proposal recalculateTotal(Proposal proposal) {
-        return computeTotal(proposal);
+    Proposal findParticipant(UUID id) {
+        Proposal proposal = findEntity(id, "consulta");
+        requireParticipant(proposal);
+        return proposal;
     }
 
-    private Proposal computeTotal(Proposal proposal) {
-        List<ProposalItem> items = proposalItemRepository.findByProposalId(proposal.getId());
+    void requireParticipant(Proposal proposal) {
+        UUID companyId = rbac.getCurrentCompanyId();
+        if (!companyId.equals(proposal.getRequester().getCompany().getId())
+                && !companyId.equals(proposal.getSupplier().getCompany().getId())) {
+            throw new ResourceNotFoundException("Proposta não encontrada");
+        }
+    }
+
+    void requireCompanyFilter(UUID companyId) {
+        if (!companyId.equals(rbac.getCurrentCompanyId())) {
+            throw new ResourceNotFoundException("Proposta não encontrada");
+        }
+    }
+
+    private List<ProposalResponseDTO> toResponses(List<Proposal> proposals) {
+        if (proposals.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, List<ProposalItem>> items = proposalItemRepository
+                .findByProposalIdIn(proposals.stream().map(Proposal::getId).toList()).stream()
+                .collect(Collectors.groupingBy(item -> item.getProposal().getId()));
+        return proposals.stream().map(proposal ->
+                toResponse(proposal, items.getOrDefault(proposal.getId(), List.of()))).toList();
+    }
+
+    private Proposal computeTotal(Proposal proposal, List<ProposalItem> items) {
 
         BigDecimal total = BigDecimal.ZERO;
         for (ProposalItem item : items) {
-            BigDecimal unitPrice = item.getNegotiatedPrice() != null
-                    ? item.getNegotiatedPrice()
-                    : item.getOffer().getUnitPrice();
-            BigDecimal discountPct = item.getDiscount() != null ? item.getDiscount() : BigDecimal.ZERO;
+            BigDecimal unitPrice = item.getNegotiatedPrice();
+            BigDecimal discountPct = item.getDiscount();
 
             BigDecimal gross = unitPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
 
             BigDecimal discountFactor = BigDecimal.ONE.subtract(
-                    discountPct.divide(
-                            BigDecimal.valueOf(100),
-                            6,
-                            RoundingMode.HALF_UP));
+                    discountPct.divide(BigDecimal.valueOf(100)));
 
             total = total.add(
                     gross.multiply(
@@ -269,16 +453,21 @@ public class ProposalService {
                         "Proposta não encontrada com ID: " + id + " para " + acao));
     }
 
-    private void requireStatus(Proposal proposal, ProposalStatus expected, String acao) {
-        if (proposal.getStatus() != expected) {
-            throw new BusinessRuleException(
-                    acao + " inválido(a): proposta em status " + proposal.getStatus() + " (esperado: " + expected + ")");
-        }
+    private ProposalResponseDTO toResponse(Proposal entity) {
+        return toResponse(entity, proposalItemRepository.findByProposalIdWithOffer(entity.getId()));
     }
 
-    private ProposalResponseDTO toResponse(Proposal entity) {
-        ProposalResponseDTO response = objectMapper.convertValue(entity, ProposalResponseDTO.class);
+    private ProposalResponseDTO toResponse(Proposal entity, List<ProposalItem> items) {
+        ProposalResponseDTO response = new ProposalResponseDTO();
+        response.setId(entity.getId());
         response.setRequesterId(entity.getRequester().getId());
+        response.setSupplierId(entity.getSupplier().getId());
+        response.setStatus(entity.getStatus());
+        response.setNotes(entity.getNotes());
+        response.setTotalAmount(entity.getTotalAmount());
+        response.setCreatedAt(entity.getCreatedAt());
+        response.setUpdatedAt(entity.getUpdatedAt());
+        response.setItems(items.stream().map(ProposalItemService::toResponse).toList());
         return response;
     }
 }

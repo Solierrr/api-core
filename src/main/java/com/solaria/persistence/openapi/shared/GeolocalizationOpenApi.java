@@ -18,7 +18,7 @@ public interface GeolocalizationOpenApi {
 
     @Operation(
         summary = "Cadastra uma nova geolocalização",
-        description = "Latitude deve estar entre -90 e 90 e longitude entre -180 e 180; um endereço só pode ter no máximo uma geolocalização."
+        description = "Address proprio obrigatorio; latitude entre -90 e 90 e longitude entre -180 e 180; um endereco so pode ter no maximo uma geolocalizacao."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Geolocalização criada com sucesso"),
@@ -28,7 +28,7 @@ public interface GeolocalizationOpenApi {
 
     @Operation(
         summary = "Atualiza os dados de uma geolocalização existente",
-        description = "Latitude deve estar entre -90 e 90 e longitude entre -180 e 180."
+        description = "Exige owner dos enderecos atual e novo; addressId obrigatorio. Latitude entre -90 e 90 e longitude entre -180 e 180."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Geolocalização atualizada com sucesso"),

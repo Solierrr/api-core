@@ -1,5 +1,6 @@
 package com.solaria.persistence.service.shared;
 
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,32 +17,31 @@ import com.solaria.persistence.repository.company.CompanyRepository;
 import com.solaria.persistence.repository.shared.GeolocalizationRepository;
 import com.solaria.persistence.repository.unit.LocalUnitRepository;
 
-import tools.jackson.databind.ObjectMapper;
-
 @Service
 public class AddressService {
 
+    private final RbacAuthorizationService rbac;
     private final AddressRepository addressRepository;
     private final CompanyRepository companyRepository;
     private final LocalUnitRepository localUnitRepository;
     private final GeolocalizationRepository geolocalizationRepository;
-    private final ObjectMapper objectMapper;
 
     public AddressService(AddressRepository addressRepository,
                           CompanyRepository companyRepository,
                           LocalUnitRepository localUnitRepository,
                           GeolocalizationRepository geolocalizationRepository,
-                          ObjectMapper objectMapper) {
+                          RbacAuthorizationService rbac) {
+        this.rbac = rbac;
         this.addressRepository = addressRepository;
         this.companyRepository = companyRepository;
         this.localUnitRepository = localUnitRepository;
         this.geolocalizationRepository = geolocalizationRepository;
-        this.objectMapper = objectMapper;
     }
 
     @Transactional
     public AddressResponseDTO save(AddressRequestDTO dto) {
         Address address = new Address();
+        address.setOwnerCompany(companyRepository.getReferenceById(rbac.getCurrentCompanyId()));
         address.setState(dto.getState());
         address.setCity(dto.getCity());
         address.setNeighborhood(dto.getNeighborhood());
@@ -58,6 +58,7 @@ public class AddressService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Endereço com id:" + id + " não encontrado(a) para atualização"));
 
+        rbac.requireOwnCompany(address.getOwnerCompany().getId());
         address.setState(dto.getState());
         address.setCity(dto.getCity());
         address.setNeighborhood(dto.getNeighborhood());
@@ -70,10 +71,9 @@ public class AddressService {
 
     @Transactional
     public void deleteById(UUID id) {
-        if (!addressRepository.existsById(id)) {
-            throw new ResourceNotFoundException(
-                    "Endereço com id:" + id + " não encontrado(a) para exclusão");
-        }
+        Address address = addressRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Endereço não encontrado com ID: " + id));
+        rbac.requireOwnCompany(address.getOwnerCompany().getId());
         if (companyRepository.existsByAddressId(id)
                 || localUnitRepository.existsByAddressId(id)
                 || geolocalizationRepository.existsByAddressId(id)) {
@@ -88,15 +88,19 @@ public class AddressService {
         Address address = addressRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Endereço não encontrado(a) com ID: " + id));
+        rbac.requireOwnCompany(address.getOwnerCompany().getId());
         return toResponse(address);
     }
 
     @Transactional(readOnly = true)
     public List<AddressResponseDTO> findAll() {
-        return addressRepository.findAll().stream().map(this::toResponse).toList();
+        return addressRepository.findByOwnerCompany_Id(rbac.getCurrentCompanyId()).stream().map(this::toResponse).toList();
     }
 
     private AddressResponseDTO toResponse(Address address) {
-        return objectMapper.convertValue(address, AddressResponseDTO.class);
+        return AddressResponseDTO.builder()
+                .id(address.getId()).ownerCompanyId(address.getOwnerCompany().getId())
+                .state(address.getState()).city(address.getCity()).neighborhood(address.getNeighborhood())
+                .zipCode(address.getZipCode()).street(address.getStreet()).number(address.getNumber()).build();
     }
 }

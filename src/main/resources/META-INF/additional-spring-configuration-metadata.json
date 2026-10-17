@@ -50,8 +50,8 @@
     "description": "A description for 'app.jwt.issuer'"
   },
   {
-    "name": "google-translate.api-key",
+    "name": "google-registry.consumer-token",
     "type": "java.lang.String",
-    "description": "Chave de API da Google Cloud Translation API (v2), usada para detectar o idioma e traduzir o conteudo das ofertas"
+    "description": "Token de consumidor do google-registry, usado para detectar o idioma e traduzir o conteudo das ofertas"
   }
 ]}

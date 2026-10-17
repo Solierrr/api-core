@@ -13,14 +13,16 @@ import com.solaria.persistence.dto.request.identity.UserRequestDTO;
 import com.solaria.persistence.dto.request.identity.UpdateOwnUserRequestDTO;
 import com.solaria.persistence.dto.response.identity.UserResponseDTO;
 import com.solaria.persistence.dto.response.identity.UserSummaryResponseDTO;
-import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.DuplicateResourceException;
+import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.identity.PersonRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.repository.identity.UserPhotoRepository;
 import com.solaria.persistence.repository.identity.UserRepository;
+import com.solaria.persistence.security.CurrentUserService;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
 
 @Service
@@ -31,41 +33,41 @@ public class UserService {
     private final UserCompanyRepository userCompanyRepository;
     private final UserPhotoRepository userPhotoRepository;
     private final ObjectMapper objectMapper;
-    private final InternalUserProvisioningService provisioningService;
-    private final com.solaria.persistence.security.rbac.RbacAuthorizationService rbac;
+    private final CurrentUserService currentUserService;
+    private final RbacAuthorizationService rbac;
 
     public UserService(UserRepository userRepository,
                         PersonRepository personRepository,
                         UserCompanyRepository userCompanyRepository,
                         UserPhotoRepository userPhotoRepository,
                         ObjectMapper objectMapper,
-                        InternalUserProvisioningService provisioningService,
-                        com.solaria.persistence.security.rbac.RbacAuthorizationService rbac) {
+                        CurrentUserService currentUserService,
+                        RbacAuthorizationService rbac) {
         this.userRepository = userRepository;
         this.personRepository = personRepository;
         this.userCompanyRepository = userCompanyRepository;
         this.userPhotoRepository = userPhotoRepository;
         this.objectMapper = objectMapper;
-        this.provisioningService = provisioningService;
+        this.currentUserService = currentUserService;
         this.rbac = rbac;
     }
 
     @Transactional
-    public UserResponseDTO save(UserRequestDTO dto) {
-        User user = new User();
-        user.setManagedByCompanyId(rbac.getCurrentCompanyId());
-        user.setAuth_id(dto.getAuthId());
-        user.setUsername(dto.getUsername());
-        user.setAvatar(dto.getAvatar());
-        user.setBanner(dto.getBanner());
-
+    public UserResponseDTO updateMe(UpdateOwnUserRequestDTO dto) {
+        User user = currentUserService.getProvisionedCurrentUser();
+        if (userRepository.existsByUsernameAndIdNot(dto.username(), user.getId())) {
+            throw new DuplicateResourceException("Nome de usuário indisponível");
+        }
+        user.setUsername(dto.username());
         return toResponse(userRepository.save(user));
     }
 
     @Transactional
     public UserResponseDTO update(UUID id, UserRequestDTO dto) {
+        currentUserService.getProvisionedCurrentUser();
         User user = userRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("Usuário com id:" + id + " não encontrado para atualização"));
+        rbac.requireOwnUser(user.getId());
         if (!user.getAuth_id().equals(dto.getAuthId())) {
             throw new InvalidFieldException("ID de autenticação (authId) imutável: " + dto.getAuthId());
         }
@@ -79,9 +81,11 @@ public class UserService {
 
     @Transactional
     public void deleteById(UUID id) {
+        currentUserService.getProvisionedCurrentUser();
         if (!userRepository.existsById(id)) {
             throw new ResourceNotFoundException("Usuário com id:" + id + " não encontrado para exclusão");
         }
+        rbac.requireOwnUser(id);
         if (personRepository.existsByUserId(id)) {
             throw new ResourceInUseException("Usuário não pode ser excluído: possui pessoa vinculada");
         }
@@ -96,13 +100,6 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserResponseDTO findById(UUID id) {
-        User user = userRepository.findById(id).orElseThrow(
-                () -> new ResourceNotFoundException("Usuário não encontrado com ID: " + id));
-        return toResponse(user);
-    }
-
-    @Transactional(readOnly = true)
     public UserSummaryResponseDTO findSummaryByAuthId(UUID authId) {
         User user = userRepository.findByAuthId(authId)
                 .filter(candidate -> Boolean.TRUE.equals(candidate.getActive()))
@@ -110,27 +107,11 @@ public class UserService {
         return new UserSummaryResponseDTO(user.getUsername(), user.getAvatar());
     }
 
-    @Transactional
-    public UserResponseDTO findMe(UUID authId) {
-        return toResponse(findOrProvision(authId));
-    }
-
-    @Transactional
-    public UserResponseDTO updateMe(UUID authId, UpdateOwnUserRequestDTO dto) {
-        User user = findOrProvision(authId);
-        if (userRepository.existsByUsernameAndIdNot(dto.username(), user.getId())) {
-            throw new DuplicateResourceException("Nome de usuário indisponível");
-        }
-        user.setUsername(dto.username());
-        return toResponse(userRepository.save(user));
-    }
-
-    private User findOrProvision(UUID authId) {
-        return userRepository.findByAuthId(authId).orElseGet(() -> {
-            provisioningService.provision(authId);
-            return userRepository.findByAuthId(authId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado"));
-        });
+    @Transactional(readOnly = true)
+    public UserResponseDTO findById(UUID id) {
+        User user = userRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Usuário não encontrado com ID: " + id));
+        return toResponse(user);
     }
 
     @Transactional(readOnly = true)

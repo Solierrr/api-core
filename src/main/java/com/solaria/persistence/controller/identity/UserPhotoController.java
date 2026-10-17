@@ -9,19 +9,16 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.solaria.persistence.domain.enums.shared.PhotoType;
-import com.solaria.persistence.dto.request.shared.PhotoCropRequestDTO;
 import com.solaria.persistence.dto.response.identity.UserPhotoResponseDTO;
 import com.solaria.persistence.openapi.identity.UserPhotoOpenApi;
 import com.solaria.persistence.service.identity.UserPhotoService;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -50,19 +47,5 @@ public class UserPhotoController implements UserPhotoOpenApi {
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<UserPhotoResponseDTO>> findByUser(@PathVariable UUID userId) {
         return ResponseEntity.ok(userPhotoService.findByUser(userId));
-    }
-
-    @Override
-    @PutMapping("/user/{userId}/type/{type}/crop")
-    public ResponseEntity<UserPhotoResponseDTO> updateCrop(@PathVariable UUID userId,
-                                                              @PathVariable PhotoType type,
-                                                              @Valid @RequestBody PhotoCropRequestDTO crop) {
-        return ResponseEntity.ok(userPhotoService.updateCrop(userId, type, crop));
-    }
-
-    @Override
-    @DeleteMapping("/user/{userId}/type/{type}/crop")
-    public ResponseEntity<UserPhotoResponseDTO> clearCrop(@PathVariable UUID userId, @PathVariable PhotoType type) {
-        return ResponseEntity.ok(userPhotoService.clearCrop(userId, type));
     }
 }

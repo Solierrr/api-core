@@ -19,7 +19,7 @@ public interface ModelOpenApi {
 
     @Operation(
         summary = "Cria um novo modelo",
-        description = "Marca, modelo e medidas técnicas são obrigatórios (medidas > 0); o modelo nasce com status UNDER_ANALYSIS."
+        description = "Marca, modelo e medidas técnicas são obrigatórios (medidas > 0); o modelo nasce APPROVED e pertence à empresa do ator autenticado."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Modelo criado com sucesso"),
@@ -29,22 +29,26 @@ public interface ModelOpenApi {
 
     @Operation(
         summary = "Atualiza um modelo existente",
-        description = "Só é possível editar um modelo enquanto ele estiver com status UNDER_ANALYSIS."
+        description = "A empresa criadora autorizada pode editar enquanto não houver Offer ou Inventory vinculado, inclusive estoque zero."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Modelo atualizado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
-            @ApiResponse(responseCode = "404", description = "Modelo não encontrado")
+            @ApiResponse(responseCode = "404", description = "Modelo não encontrado"),
+            @ApiResponse(responseCode = "403", description = "Empresa ou grant não autorizado"),
+            @ApiResponse(responseCode = "409", description = "Modelo possui referência comercial")
     })
     ResponseEntity<ModelResponseDTO> update(UUID id, ModelRequestDTO dto);
 
     @Operation(
         summary = "Remove um modelo",
-        description = "Não é permitida a exclusão se houver Inventory ou Offer vinculados ao modelo."
+        description = "Somente a empresa criadora autorizada pode excluir; Inventory, Offer e fotos vinculados impedem a exclusão."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Modelo removido com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Modelo não encontrado")
+            @ApiResponse(responseCode = "404", description = "Modelo não encontrado"),
+            @ApiResponse(responseCode = "403", description = "Empresa ou grant não autorizado"),
+            @ApiResponse(responseCode = "409", description = "Modelo possui estoque, oferta ou foto")
     })
     ResponseEntity<Void> deleteById(UUID id);
 
@@ -66,24 +70,4 @@ public interface ModelOpenApi {
             @ApiResponse(responseCode = "200", description = "Listagem retornada com sucesso")
     })
     ResponseEntity<List<ModelResponseDTO>> findByStatus(ModelStatus status);
-
-    @Operation(
-        summary = "Aprova um modelo",
-        description = "A aprovação é definitiva e move o modelo para fora do fluxo de análise."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Modelo aprovado com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Modelo não encontrado")
-    })
-    ResponseEntity<ModelResponseDTO> approve(UUID id);
-
-    @Operation(
-        summary = "Rejeita um modelo",
-        description = "A rejeição é definitiva e move o modelo para fora do fluxo de análise."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Modelo rejeitado com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Modelo não encontrado")
-    })
-    ResponseEntity<ModelResponseDTO> reject(UUID id);
 }

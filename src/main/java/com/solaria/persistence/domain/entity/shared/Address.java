@@ -1,5 +1,6 @@
 package com.solaria.persistence.domain.entity.shared;
 
+import com.solaria.persistence.domain.entity.company.Company;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,6 +17,10 @@ public class Address {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fk_owner_company", nullable = false, updatable = false)
+    private Company ownerCompany;
 
     @Column(name = "state", length = 2, nullable = false)
     private String state;

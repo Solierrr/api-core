@@ -26,6 +26,7 @@ class OfferServiceTranslationTest {
     private OfferService service;
     @BeforeEach void setup() {
         var supplier = new Supplier(); supplier.setId(UUID.randomUUID()); supplier.setStatus(SupplierStatus.ACTIVE);
+        var company = new com.solaria.persistence.domain.entity.company.Company(); company.setId(UUID.randomUUID()); supplier.setCompany(company);
         var model = new Model(); model.setId(UUID.randomUUID()); var brand = new com.solaria.persistence.domain.entity.catalog.Brand(); brand.setName("Brand"); model.setBrandEntry(brand); model.setModel("Code"); model.setType(PanelType.MONOCRYSTALLINE);
         offer.setId(UUID.randomUUID()); offer.setSupplier(supplier); offer.setModel(model);
         offer.setSourceLocale("pt-BR"); offer.setTranslationStatus(TranslationStatus.COMPLETED);
@@ -38,7 +39,7 @@ class OfferServiceTranslationTest {
         when(translations.findByOfferId(offer.getId())).thenReturn(List.of(original));
         when(subscriptions.isSupplierSubscriptionActive(supplier.getId())).thenReturn(true);
         service = new OfferService(offers, mock(SupplierRepository.class), mock(ModelRepository.class), mock(BrandService.class),
-                mock(ProposalItemRepository.class), subscriptions, translations, translator);
+                mock(ProposalItemRepository.class), subscriptions, translations, translator, mock(com.solaria.persistence.security.rbac.RbacAuthorizationService.class));
     }
     @Test void priceOnlyEditDoesNotSpendAnotherTranslation() {
         service.update(offer.getId(), request);

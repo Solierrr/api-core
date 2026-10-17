@@ -17,12 +17,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("select u from User u where u.auth_id = :authId")
     Optional<User> findByAuthId(@Param("authId") UUID authId);
 
-    @Modifying
-    @Query(value = "INSERT INTO users (id, auth_id, username, active, connections) "
-            + "VALUES (:id, :authId, :username, true, ARRAY[]::uuid[]) "
-            + "ON CONFLICT (auth_id) DO NOTHING", nativeQuery = true)
-    int insertProvisionedUser(@Param("id") UUID id, @Param("authId") UUID authId,
-            @Param("username") String username);
+    @Query("select u.id from User u where u.auth_id = :authId")
+    Optional<UUID> findIdByAuthId(@Param("authId") UUID authId);
+
+    boolean existsByUsername(String username);
 
     boolean existsByUsernameAndIdNot(String username, UUID id);
 
@@ -35,7 +33,4 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             + "WHERE :userId = ANY(connections)", nativeQuery = true)
     void removeConnectionReferences(@Param("userId") UUID userId);
 
-    @Modifying
-    @Query(value = "CALL sp_deactivate_inactive_users(:inactiveDays)", nativeQuery = true)
-    void callDeactivateInactiveUsers(@Param("inactiveDays") int inactiveDays);
 }

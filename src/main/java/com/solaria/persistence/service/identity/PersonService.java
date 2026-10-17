@@ -20,60 +20,51 @@ import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.shared.ContactRepository;
 import com.solaria.persistence.repository.identity.PersonRepository;
 import com.solaria.persistence.repository.professional.TechnicianRepository;
-import com.solaria.persistence.repository.identity.UserRepository;
+import com.solaria.persistence.security.CurrentUserService;
 import com.solaria.persistence.security.rbac.RbacAuthorizationService;
+import com.solaria.persistence.dto.request.shared.ContactRequestDTO;
 
 @Service
 public class PersonService {
 
+    private static final String PERSON_NOT_FOUND = "Pessoa não encontrada com ID: ";
+
     private final PersonRepository personRepository;
-    private final UserRepository userRepository;
+    private final CurrentUserService currentUserService;
+    private final RbacAuthorizationService rbac;
     private final ContactRepository contactRepository;
     private final TechnicianRepository technicianRepository;
-    private final RbacAuthorizationService rbac;
-    private final com.solaria.persistence.service.professional.ApprovedProfessionalGuard approvedGuard;
 
     public PersonService(PersonRepository personRepository,
-                         UserRepository userRepository,
-                         ContactRepository contactRepository,
-                         TechnicianRepository technicianRepository,
+                         CurrentUserService currentUserService,
                          RbacAuthorizationService rbac,
-                         com.solaria.persistence.service.professional.ApprovedProfessionalGuard approvedGuard) {
+                         ContactRepository contactRepository,
+                         TechnicianRepository technicianRepository) {
         this.personRepository = personRepository;
-        this.userRepository = userRepository;
+        this.currentUserService = currentUserService;
+        this.rbac = rbac;
         this.contactRepository = contactRepository;
         this.technicianRepository = technicianRepository;
-        this.rbac = rbac;
-        this.approvedGuard = approvedGuard;
     }
 
     @Transactional
     public PersonResponseDTO save(PersonRequestDTO dto) {
-        rbac.requireOwnUser(dto.getUserId());
-        approvedGuard.requireLegacyChangesAllowed(dto.getUserId());
+        User user = currentUserService.getProvisionedCurrentUser();
         validateBirthDate(dto.getBirthDate());
-
-        User user = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Usuário não encontrado com ID: " + dto.getUserId()));
-
-        Contact contact = contactRepository.findById(dto.getContactId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Contato não encontrado com ID: " + dto.getContactId()));
 
         if (personRepository.existsByCpf(dto.getCpf())) {
             throw new DuplicateResourceException(
                     "Pessoa já cadastrada para o CPF: " + dto.getCpf());
         }
 
-        if (personRepository.existsByUserId(dto.getUserId())) {
+        if (personRepository.existsByUserId(user.getId())) {
             throw new DuplicateResourceException(
-                    "Pessoa já cadastrada para o usuário: " + dto.getUserId());
+                    "Pessoa já cadastrada para o usuário: " + user.getId());
         }
 
         Person person = new Person();
         person.setUser(user);
-        person.setContact(contact);
+        person.setContact(saveContact(null, dto.getContact()));
         person.setName(dto.getName());
         person.setCpf(dto.getCpf());
         person.setBirthDate(dto.getBirthDate());
@@ -83,60 +74,70 @@ public class PersonService {
 
     @Transactional
     public PersonResponseDTO update(UUID id, PersonRequestDTO dto) {
+        currentUserService.getProvisionedCurrentUserId();
         Person person = personRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Pessoa com id:" + id + " não encontrada para atualização"));
-
-        if (!person.getUser().getId().equals(dto.getUserId())) {
-            throw new InvalidFieldException("Usuário (userId) imutável: " + dto.getUserId());
+                .orElseThrow(() -> new ResourceNotFoundException(PERSON_NOT_FOUND + id));
+        rbac.requireOwnUser(person.getUser() == null ? null : person.getUser().getId());
+        if (!person.getCpf().equals(dto.getCpf())) {
+            throw new InvalidFieldException("CPF imutável: " + dto.getCpf());
         }
-
-        approvedGuard.requireLegacyChangesAllowed(dto.getUserId());
         validateBirthDate(dto.getBirthDate());
-
-        if (personRepository.existsByCpfAndIdNot(dto.getCpf(), id)) {
-            throw new DuplicateResourceException(
-                    "Pessoa já cadastrada para o CPF: " + dto.getCpf());
-        }
-
-        Contact contact = contactRepository.findById(dto.getContactId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Contato não encontrado com ID: " + dto.getContactId()));
-
-        person.setContact(contact);
+        Contact previousContact = person.getContact();
+        person.setContact(saveContact(previousContact, dto.getContact()));
         person.setName(dto.getName());
-        person.setCpf(dto.getCpf());
         person.setBirthDate(dto.getBirthDate());
 
-        return toResponse(personRepository.save(person));
+        personRepository.saveAndFlush(person);
+        if (dto.getContact() == null && previousContact != null) {
+            contactRepository.delete(previousContact);
+        }
+        return toResponse(person);
     }
 
     @Transactional
     public void deleteById(UUID id) {
-        if (!personRepository.existsById(id)) {
-            throw new ResourceNotFoundException(
-                    "Pessoa com id:" + id + " não encontrada para exclusão");
-        }
+        currentUserService.getProvisionedCurrentUserId();
+        Person person = personRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(PERSON_NOT_FOUND + id));
+        rbac.requireOwnUser(person.getUser() == null ? null : person.getUser().getId());
+        Contact contact = person.getContact();
 
         if (technicianRepository.existsByPersonId(id)) {
             throw new ResourceInUseException(
                     "Pessoa não pode ser excluída: possui técnico vinculado");
         }
 
-        personRepository.deleteById(id);
+        personRepository.delete(person);
+        personRepository.flush();
+        if (contact != null) {
+            contactRepository.delete(contact);
+        }
     }
 
     @Transactional(readOnly = true)
     public PersonResponseDTO findById(UUID id) {
+        currentUserService.getProvisionedCurrentUserId();
         Person person = personRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Pessoa não encontrada com ID: " + id));
+                        PERSON_NOT_FOUND + id));
+        rbac.requireOwnUser(person.getUser() == null ? null : person.getUser().getId());
         return toResponse(person);
     }
 
     @Transactional(readOnly = true)
     public List<PersonResponseDTO> findAll() {
-        return personRepository.findAll().stream().map(this::toResponse).toList();
+        UUID userId = currentUserService.getProvisionedCurrentUserId();
+        return personRepository.findByUserId(userId).stream().map(this::toResponse).toList();
+    }
+
+    private Contact saveContact(Contact current, ContactRequestDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        Contact contact = current == null ? new Contact() : current;
+        contact.setEmail(dto.getEmail());
+        contact.setPhone(dto.getPhone());
+        return contactRepository.save(contact);
     }
 
     private void validateBirthDate(LocalDate birthDate) {

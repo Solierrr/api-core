@@ -22,13 +22,13 @@ public class Company {
     private UUID id;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "type", length = 16)
+    private CompanyType type;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     @ColumnDefault("'UNDER_ANALYSIS'")
     private CompanyStatus status = CompanyStatus.UNDER_ANALYSIS;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", length = 16, nullable = false)
-    private CompanyType type;
 
 
     @ManyToOne(fetch = FetchType.LAZY)

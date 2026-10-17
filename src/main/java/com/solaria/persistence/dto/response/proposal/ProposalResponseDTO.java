@@ -7,6 +7,7 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import java.util.List;
 
 @Setter
 @Getter
@@ -14,6 +15,8 @@ public class ProposalResponseDTO {
 
     private UUID id;
     private UUID requesterId;
+    private UUID supplierId;
+    private List<ProposalItemResponseDTO> items;
     private ProposalStatus status;
     private String notes;
     private BigDecimal totalAmount;

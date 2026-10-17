@@ -96,10 +96,7 @@ public class ProjectService {
                             .orElseGet(
                                     () ->
                                             persons.findByUserId(user.getId())
-                                                    .flatMap(
-                                                            person ->
-                                                                    technicians.findByPersonId(
-                                                                            person.getId()))
+                                                    .stream().map(person -> technicians.findByPersonId(person.getId())).flatMap(java.util.Optional::stream).findFirst()
                                                     .map(
                                                             t ->
                                                                     t.getStatus()

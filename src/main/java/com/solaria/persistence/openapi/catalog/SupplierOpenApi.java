@@ -23,6 +23,7 @@ public interface SupplierOpenApi {
         description = "Exige empresa com status APPROVED, sem o papel oposto (Requester) já atribuído e único fornecedor por empresa; nasce sempre com status ACTIVE."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "201", description = "Fornecedor criado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos")
     })
@@ -33,6 +34,7 @@ public interface SupplierOpenApi {
         description = "Pesquisa fornecedores por texto livre e filtros de localização e tipo de negócio, com resultado paginado."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Pesquisa realizada com sucesso"),
             @ApiResponse(responseCode = "400", description = "Filtros de pesquisa inválidos")
     })
@@ -40,6 +42,7 @@ public interface SupplierOpenApi {
 
     @Operation(summary = "Busca um fornecedor pelo id e pela empresa")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Fornecedor encontrado"),
             @ApiResponse(responseCode = "404", description = "Fornecedor não encontrado")
     })
@@ -47,6 +50,7 @@ public interface SupplierOpenApi {
 
     @Operation(summary = "Lista os fornecedores de uma empresa")
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Listagem retornada com sucesso")
     })
     ResponseEntity<List<SupplierResponseDTO>> findByCompany(UUID companyId);
@@ -56,6 +60,7 @@ public interface SupplierOpenApi {
         description = "Sem exclusão física do fornecedor: o ciclo de vida é controlado por transições de status (ACTIVE⇄SUSPENDED, →DEACTIVATED)."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Fornecedor ativado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Fornecedor não encontrado")
     })
@@ -66,6 +71,7 @@ public interface SupplierOpenApi {
         description = "Sem exclusão física do fornecedor: o ciclo de vida é controlado por transições de status (ACTIVE⇄SUSPENDED, →DEACTIVATED)."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Fornecedor suspenso com sucesso"),
             @ApiResponse(responseCode = "404", description = "Fornecedor não encontrado")
     })
@@ -76,6 +82,7 @@ public interface SupplierOpenApi {
         description = "Sem exclusão física do fornecedor: o ciclo de vida é controlado por transições de status (ACTIVE⇄SUSPENDED, →DEACTIVATED)."
     )
     @ApiResponses({
+            @ApiResponse(responseCode = "403", description = "Grant insuficiente ou empresa alheia em operacao privada"),
             @ApiResponse(responseCode = "200", description = "Fornecedor desativado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Fornecedor não encontrado")
     })

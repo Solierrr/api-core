@@ -2,6 +2,8 @@ package com.solaria.persistence.repository.professional;
 
 import com.solaria.persistence.domain.entity.professional.ProfessionalRegistration;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import java.util.Optional;
 
 import java.util.List;
 import java.util.UUID;
@@ -11,5 +13,9 @@ public interface ProfessionalRegistrationRepository extends JpaRepository<Profes
 
     List<ProfessionalRegistration> findByTechnicianId(UUID technicianId);
 
-    boolean existsByProfessionId(UUID professionId);
+    List<ProfessionalRegistration> findByTechnicianIdAndTechnicianPersonUserId(UUID technicianId, UUID userId);
+
+    @Query("select u.id from ProfessionalRegistration r left join r.technician t left join t.person p left join p.user u where r.id = :id")
+    Optional<UUID> findOwnerUserId(UUID id);
+
 }

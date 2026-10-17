@@ -1,1 +1,2 @@
-\echo The users.connections column is managed by database-console migration V3.
+ALTER TABLE users
+    ADD COLUMN connections UUID[] NOT NULL DEFAULT ARRAY[]::UUID[];

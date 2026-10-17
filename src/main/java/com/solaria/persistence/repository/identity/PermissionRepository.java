@@ -8,7 +8,5 @@ import java.util.UUID;
 
 public interface PermissionRepository extends JpaRepository<Permission, UUID> {
 
-    boolean existsByPermissionName(String permissionName);
 
-    boolean existsByPermissionNameAndIdNot(String permissionName, UUID id);
 }

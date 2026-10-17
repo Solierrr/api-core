@@ -1,11 +1,11 @@
 package com.solaria.persistence.domain.entity.professional;
 
+import com.solaria.persistence.domain.enums.professional.TechnicianStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.UUID;
 import com.solaria.persistence.domain.entity.identity.Person;
-import com.solaria.persistence.domain.enums.professional.TechnicianStatus;
 
 @Entity
 @Table(name = "technician")
@@ -24,10 +24,10 @@ public class Technician {
     private TechnicianStatus status = TechnicianStatus.UNDER_ANALYSIS;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_person", nullable = false)
+    @JoinColumn(name = "fk_person", nullable = false, unique = true)
     private Person person;
 
-    @Column(name = "crea")
+    @Column(name = "crea", nullable = false)
     private String crea;
 
     @Column(name = "slug", length = 160, nullable = false, unique = true)

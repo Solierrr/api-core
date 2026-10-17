@@ -14,6 +14,7 @@ import com.solaria.persistence.domain.entity.unit.UnitSpecifications;
 import com.solaria.persistence.dto.request.unit.UnitSpecificationsRequestDTO;
 import com.solaria.persistence.dto.response.unit.UnitSpecificationsResponseDTO;
 import com.solaria.persistence.exception.ResourceNotFoundException;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 import com.solaria.persistence.repository.unit.LocalUnitRepository;
 import com.solaria.persistence.repository.unit.UnitSpecificationsRepository;
 
@@ -23,20 +24,23 @@ public class UnitSpecificationsService {
     private final UnitSpecificationsRepository unitSpecificationsRepository;
     private final LocalUnitRepository localUnitRepository;
     private final ObjectMapper objectMapper;
+    private final RbacAuthorizationService rbac;
 
     public UnitSpecificationsService(UnitSpecificationsRepository unitSpecificationsRepository,
                                      LocalUnitRepository localUnitRepository,
-                                     ObjectMapper objectMapper) {
+                                     ObjectMapper objectMapper, RbacAuthorizationService rbac) {
         this.unitSpecificationsRepository = unitSpecificationsRepository;
         this.localUnitRepository = localUnitRepository;
         this.objectMapper = objectMapper;
+        this.rbac = rbac;
     }
 
     @Transactional
     public UnitSpecificationsResponseDTO save(UnitSpecificationsRequestDTO dto) {
-        LocalUnit localUnit = localUnitRepository.findById(dto.getLocalUnitId())
+        LocalUnit localUnit = localUnitRepository.findForManagementById(dto.getLocalUnitId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Unidade Local não encontrada com ID: " + dto.getLocalUnitId()));
+        rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
 
         UnitSpecifications unitSpecifications = new UnitSpecifications();
         unitSpecifications.setLocalUnit(localUnit);
@@ -49,23 +53,27 @@ public class UnitSpecificationsService {
 
     @Transactional(readOnly = true)
     public UnitSpecificationsResponseDTO findById(UUID id) {
-        UnitSpecifications unitSpecifications = unitSpecificationsRepository.findById(id)
+        UnitSpecifications unitSpecifications = unitSpecificationsRepository.findForManagementById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Especificação de Unidade não encontrada com ID: " + id));
+        rbac.requireOwnCompany(unitSpecifications.getLocalUnit().getRequester().getCompany().getId());
         return toResponse(unitSpecifications);
     }
 
     @Transactional(readOnly = true)
     public UnitSpecificationsResponseDTO findById(UUID id, UUID companyId) {
-        UnitSpecifications unitSpecifications = unitSpecificationsRepository
-                .findByIdAndLocalUnit_Requester_Company_Id(id, companyId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Especificação de Unidade não encontrada com ID: " + id));
+        UnitSpecifications unitSpecifications = unitSpecificationsRepository.findForManagementById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Recurso não encontrado com ID: " + id));
+        rbac.requireOwnCompany(unitSpecifications.getLocalUnit().getRequester().getCompany().getId());
+        rbac.requireOwnCompany(companyId);
         return toResponse(unitSpecifications);
     }
 
     @Transactional(readOnly = true)
     public List<UnitSpecificationsResponseDTO> findByLocalUnit(UUID localUnitId) {
+        LocalUnit localUnit = localUnitRepository.findForManagementById(localUnitId)
+                .orElseThrow(() -> new ResourceNotFoundException("Unidade Local não encontrada com ID: " + localUnitId));
+        rbac.requireOwnCompany(localUnit.getRequester().getCompany().getId());
         return unitSpecificationsRepository.findByLocalUnitIdOrderByDateDesc(localUnitId).stream()
                 .map(this::toResponse)
                 .toList();

@@ -12,7 +12,5 @@ public class ProfessionResponseDTO {
     private UUID id;
     private String name;
     private Boolean requiresRegistration;
-    private Boolean requiresNr10;
-    private Boolean requiresNr35;
 
 }

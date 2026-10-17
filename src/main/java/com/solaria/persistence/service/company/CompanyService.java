@@ -1,10 +1,7 @@
 package com.solaria.persistence.service.company;
 
-import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,27 +9,26 @@ import org.springframework.transaction.annotation.Transactional;
 import com.solaria.persistence.domain.entity.shared.Address;
 import com.solaria.persistence.domain.entity.company.BusinessContact;
 import com.solaria.persistence.domain.entity.company.Company;
-import com.solaria.persistence.domain.entity.company.CompanyPositions;
 import com.solaria.persistence.domain.enums.company.CompanyStatus;
-import com.solaria.persistence.domain.enums.company.CompanyType;
-import com.solaria.persistence.domain.entity.catalog.Supplier;
-import com.solaria.persistence.domain.entity.company.CompanyPlans;
-import com.solaria.persistence.domain.entity.company.Subscription;
-import com.solaria.persistence.domain.entity.execution.Requester;
-import com.solaria.persistence.dto.request.company.CompanyRequestDTO;
-import com.solaria.persistence.dto.response.shared.AddressResponseDTO;
-import com.solaria.persistence.dto.response.company.BusinessContactResponseDTO;
+import com.solaria.persistence.dto.request.company.CompanyCreateRequestDTO;
+import com.solaria.persistence.dto.request.company.CompanyUpdateRequestDTO;
+import com.solaria.persistence.dto.request.company.BusinessContactRequestDTO;
+import com.solaria.persistence.dto.request.shared.AddressRequestDTO;
+import com.solaria.persistence.domain.entity.identity.Position;
+import com.solaria.persistence.domain.entity.identity.User;
+import com.solaria.persistence.domain.entity.identity.UserCompany;
+import com.solaria.persistence.domain.entity.company.CompanyPositions;
+import com.solaria.persistence.repository.identity.PositionRepository;
+import com.solaria.persistence.security.CurrentUserService;
+import com.solaria.persistence.security.rbac.RbacAuthorizationService;
+import com.solaria.persistence.exception.UnauthorizedAccessException;
 import com.solaria.persistence.dto.response.company.CompanyResponseDTO;
-import com.solaria.persistence.dto.response.company.CompanyContactResponseDTO;
-import com.solaria.persistence.exception.BusinessRuleException;
+import com.solaria.persistence.mapper.company.CompanyResponseMapper;
 import com.solaria.persistence.exception.DuplicateResourceException;
-import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.shared.AddressRepository;
 import com.solaria.persistence.repository.company.BusinessContactRepository;
-import com.solaria.persistence.domain.entity.company.CompanyPhoto;
-import com.solaria.persistence.domain.enums.shared.PhotoType;
 import com.solaria.persistence.repository.company.CompanyPhotoRepository;
 import com.solaria.persistence.repository.company.CompanyPositionsRepository;
 import com.solaria.persistence.repository.company.CompanyRepository;
@@ -40,17 +36,25 @@ import com.solaria.persistence.repository.execution.RequesterRepository;
 import com.solaria.persistence.repository.catalog.SupplierRepository;
 import com.solaria.persistence.repository.company.CompanyPlansRepository;
 import com.solaria.persistence.repository.company.SubscriptionRepository;
+import com.solaria.persistence.domain.entity.catalog.Supplier;
+import com.solaria.persistence.domain.entity.company.CompanyPlans;
+import com.solaria.persistence.domain.entity.company.Subscription;
+import com.solaria.persistence.domain.entity.execution.Requester;
+import com.solaria.persistence.domain.enums.company.CompanyType;
+import java.time.OffsetDateTime;
 import com.solaria.persistence.repository.professional.TechnicianAffiliationRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
-import com.solaria.persistence.repository.identity.PositionRepository;
-import com.solaria.persistence.security.CurrentUserService;
-import com.solaria.persistence.domain.entity.identity.Position;
-import com.solaria.persistence.domain.entity.identity.UserCompany;
 import com.solaria.persistence.util.SlugUtil;
 
 @Service
 public class CompanyService {
 
+    private static final String DEFAULT_PLAN_NAME = "Gratuito";
+    private static final String COMPANY_NOT_FOUND = "Empresa não encontrada com ID: ";
+
+    private final CurrentUserService currentUserService;
+    private final PositionRepository positionRepository;
+    private final RbacAuthorizationService rbac;
     private final CompanyRepository companyRepository;
     private final AddressRepository addressRepository;
     private final BusinessContactRepository businessContactRepository;
@@ -60,8 +64,6 @@ public class CompanyService {
     private final TechnicianAffiliationRepository technicianAffiliationRepository;
     private final CompanyPositionsRepository companyPositionsRepository;
     private final CompanyPhotoRepository companyPhotoRepository;
-    private final PositionRepository positionRepository;
-    private final CurrentUserService currentUserService;
     private final CompanyPlansRepository companyPlansRepository;
     private final SubscriptionRepository subscriptionRepository;
 
@@ -74,10 +76,14 @@ public class CompanyService {
                           TechnicianAffiliationRepository technicianAffiliationRepository,
                           CompanyPositionsRepository companyPositionsRepository,
                           CompanyPhotoRepository companyPhotoRepository,
-                          PositionRepository positionRepository,
-                          CurrentUserService currentUserService,
                           CompanyPlansRepository companyPlansRepository,
-                          SubscriptionRepository subscriptionRepository) {
+                          SubscriptionRepository subscriptionRepository,
+                          CurrentUserService currentUserService,
+                          PositionRepository positionRepository,
+                          RbacAuthorizationService rbac) {
+        this.currentUserService = currentUserService;
+        this.positionRepository = positionRepository;
+        this.rbac = rbac;
         this.companyRepository = companyRepository;
         this.addressRepository = addressRepository;
         this.businessContactRepository = businessContactRepository;
@@ -87,50 +93,57 @@ public class CompanyService {
         this.technicianAffiliationRepository = technicianAffiliationRepository;
         this.companyPositionsRepository = companyPositionsRepository;
         this.companyPhotoRepository = companyPhotoRepository;
-        this.positionRepository = positionRepository;
-        this.currentUserService = currentUserService;
         this.companyPlansRepository = companyPlansRepository;
         this.subscriptionRepository = subscriptionRepository;
     }
 
-    private static final String DEFAULT_PLAN_NAME = "Gratuito";
-
     @Transactional
-    public CompanyResponseDTO save(CompanyRequestDTO dto) {
-        String cnpj = dto.getCnpj();
-
-        var creator = currentUserService.getCurrentUser();
-        if (creator.getManagedByCompanyId() != null) {
-            throw new BusinessRuleException("Conta administrada pela empresa não pode criar outra empresa");
+    public CompanyResponseDTO save(CompanyCreateRequestDTO dto) {
+        User actor = currentUserService.getProvisionedCurrentUser();
+        if (userCompanyRepository.existsByUserId(actor.getId())) {
+            throw new DuplicateResourceException("Usuário já possui vínculo com uma empresa");
         }
-        Position admin = positionRepository.findByName(Position.ADMIN_NAME)
-                .orElseThrow(() -> new ResourceNotFoundException("Cargo ADMIN não configurado"));
-
-        Address address = resolveAddress(dto.getAddressId());
-        BusinessContact businessContact = resolveBusinessContact(dto.getBusinessContactId());
-
-        if (companyRepository.existsByCnpj(cnpj)) {
-            throw new DuplicateResourceException(
-                    "Empresa já cadastrada para o CNPJ: " + cnpj);
+        if (companyRepository.existsByCnpj(dto.getCnpj())) {
+            throw new DuplicateResourceException("Empresa já cadastrada para o CNPJ: " + dto.getCnpj());
         }
-
         Company company = new Company();
-        company.setAddress(address);
-        company.setBusinessContact(businessContact);
-        company.setCnpj(cnpj);
+        company.setStatus(CompanyStatus.APPROVED);
+        company.setCnpj(dto.getCnpj());
         company.setTradeName(dto.getTradeName());
         company.setCorporateName(dto.getCorporateName());
         company.setSlug(generateUniqueSlug(dto.getTradeName()));
         company.setType(dto.getType());
+        companyRepository.saveAndFlush(company);
+        createCompanyProfile(company);
+        if (dto.getAddress() != null) {
+            company.setAddress(createAddress(company, dto.getAddress()));
+        }
+        updateBusinessContact(company, dto.getBusinessContact());
+        // O cargo ADMIN é compartilhado (nome único no banco, permissões em position_permission).
+        Position admin = positionRepository.findByName(Position.ADMIN_NAME).orElseGet(() -> {
+            Position created = new Position();
+            created.setName(Position.ADMIN_NAME);
+            return positionRepository.save(created);
+        });
+        CompanyPositions companyPosition = new CompanyPositions();
+        companyPosition.setCompany(company);
+        companyPosition.setPosition(admin);
+        companyPositionsRepository.save(companyPosition);
+        UserCompany membership = new UserCompany();
+        membership.setUser(actor);
+        membership.setCompany(company);
+        membership.setPosition(admin);
+        userCompanyRepository.saveAndFlush(membership);
+        return CompanyResponseMapper.toResponse(company, company.getId());
+    }
 
-        Company saved = companyRepository.save(company);
-        if (dto.getType() == CompanyType.SUPPLIER) {
+    private void createCompanyProfile(Company company) {
+        if (company.getType() == CompanyType.SUPPLIER) {
             Supplier supplier = new Supplier();
-            supplier.setCompany(saved);
+            supplier.setCompany(company);
             Supplier savedSupplier = supplierRepository.save(supplier);
 
-            // Assinatura no plano gratuito, pré-requisito técnico pra criar ofertas
-            // (ver OfferService.save / SubscriptionService.isSupplierSubscriptionActive).
+            // Assinatura no plano gratuito, pré-requisito para criar ofertas
             CompanyPlans defaultPlan = companyPlansRepository.findByName(DEFAULT_PLAN_NAME)
                     .orElseThrow(() -> new ResourceNotFoundException("Plano padrão não configurado"));
             Subscription subscription = new Subscription();
@@ -140,124 +153,69 @@ public class CompanyService {
             subscriptionRepository.save(subscription);
         } else {
             Requester requester = new Requester();
-            requester.setCompany(saved);
+            requester.setCompany(company);
             requesterRepository.save(requester);
         }
-
-        CompanyPositions companyAdmin = new CompanyPositions();
-        companyAdmin.setCompany(saved);
-        companyAdmin.setPosition(admin);
-        companyPositionsRepository.save(companyAdmin);
-
-        UserCompany owner = new UserCompany();
-        owner.setCompany(saved);
-        owner.setUser(creator);
-        owner.setPosition(admin);
-        userCompanyRepository.save(owner);
-
-        return toResponse(saved);
-    }
-
-    @Transactional(readOnly = true)
-    public CompanyContactResponseDTO findContactUser(UUID companyId) {
-        Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada"));
-        if (company.getStatus() != CompanyStatus.APPROVED || company.getType() != CompanyType.SUPPLIER) {
-            throw new ResourceNotFoundException("Empresa indisponível para contato");
-        }
-
-        UUID contactUserId = userCompanyRepository.findByCompanyId(companyId).stream()
-                .filter(link -> Boolean.TRUE.equals(link.getUser().getActive()) && link.getUser().getAuth_id() != null)
-                .sorted((left, right) -> {
-                    boolean leftAdmin = Position.ADMIN_NAME.equals(left.getPosition().getName());
-                    boolean rightAdmin = Position.ADMIN_NAME.equals(right.getPosition().getName());
-                    if (leftAdmin != rightAdmin) return leftAdmin ? -1 : 1;
-                    return left.getUser().getId().compareTo(right.getUser().getId());
-                })
-                .map(UserCompany::getUser)
-                .map(user -> user.getAuth_id())
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Empresa sem responsável para contato"));
-        return new CompanyContactResponseDTO(contactUserId);
     }
 
     @Transactional
-    public CompanyResponseDTO update(UUID id, CompanyRequestDTO dto) {
+    public CompanyResponseDTO update(UUID id, CompanyUpdateRequestDTO dto) {
+        rbac.requireOwnCompany(id);
         Company company = companyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Empresa com id:" + id + " não encontrada para atualização"));
-
-        if (!company.getCnpj().equals(dto.getCnpj())) {
-            throw new InvalidFieldException("CNPJ imutável: " + dto.getCnpj());
-        }
-        if (company.getType() != dto.getType()) {
-            throw new InvalidFieldException("Tipo da empresa é imutável");
-        }
-
-        company.setAddress(resolveAddress(dto.getAddressId()));
-        company.setBusinessContact(resolveBusinessContact(dto.getBusinessContactId()));
+                .orElseThrow(() -> new ResourceNotFoundException(COMPANY_NOT_FOUND + id));
+        company.setAddress(resolveAddress(dto.getAddressId(), id));
+        updateBusinessContact(company, dto.getBusinessContact());
         company.setTradeName(dto.getTradeName());
         company.setCorporateName(dto.getCorporateName());
-
-        return toResponse(companyRepository.save(company));
+        return CompanyResponseMapper.toResponse(companyRepository.save(company), id);
     }
 
-    @Transactional
-    public CompanyResponseDTO approve(UUID id) {
-        return applyStatus(id, CompanyStatus.APPROVED);
+    private Address createAddress(Company company, AddressRequestDTO dto) {
+        Address address = new Address();
+        address.setOwnerCompany(company);
+        address.setState(dto.getState());
+        address.setCity(dto.getCity());
+        address.setNeighborhood(dto.getNeighborhood());
+        address.setZipCode(dto.getZipCode());
+        address.setStreet(dto.getStreet());
+        address.setNumber(dto.getNumber());
+        return addressRepository.saveAndFlush(address);
     }
 
-    @Transactional
-    public CompanyResponseDTO reject(UUID id) {
-        return applyStatus(id, CompanyStatus.REJECTED);
-    }
-
-
-    private CompanyResponseDTO applyStatus(UUID id, CompanyStatus target) {
-        Company company = companyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Empresa não encontrada com ID: " + id));
-        if (company.getStatus() != CompanyStatus.UNDER_ANALYSIS) {
-            throw new BusinessRuleException(
-                    "Transição de status inválida: " + company.getStatus() + " → " + target);
+    private void updateBusinessContact(Company company, BusinessContactRequestDTO dto) {
+        BusinessContact contact = company.getBusinessContact();
+        if (dto == null) {
+            company.setBusinessContact(null);
+            if (contact != null) {
+                companyRepository.saveAndFlush(company);
+                businessContactRepository.delete(contact);
+            }
+            return;
         }
-        company.setStatus(target);
-        return toResponse(companyRepository.save(company));
+        if (contact == null) {
+            contact = new BusinessContact();
+        }
+        contact.setCompanyEmail(dto.getCompanyEmail());
+        contact.setPhone(dto.getPhone());
+        contact.setWebsite(dto.getWebsite());
+        company.setBusinessContact(businessContactRepository.saveAndFlush(contact));
     }
 
     @Transactional
     public CompanyResponseDTO attachAddress(UUID companyId, UUID addressId) {
+        rbac.requireOwnCompany(companyId);
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Empresa não encontrada com ID: " + companyId));
-
-        company.setAddress(addressRepository.findById(addressId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Endereço não encontrado com ID: " + addressId)));
-
-        return toResponse(companyRepository.save(company));
+                .orElseThrow(() -> new ResourceNotFoundException(COMPANY_NOT_FOUND + companyId));
+        company.setAddress(resolveAddress(addressId, companyId));
+        return CompanyResponseMapper.toResponse(companyRepository.save(company), companyId);
     }
-
-    @Transactional
-    public CompanyResponseDTO attachBusinessContact(UUID companyId, UUID businessContactId) {
-        Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Empresa não encontrada com ID: " + companyId));
-
-        company.setBusinessContact(businessContactRepository.findById(businessContactId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Contato Empresarial não encontrado com ID: " + businessContactId)));
-
-        return toResponse(companyRepository.save(company));
-    }
-
 
     @Transactional
     public void deleteById(UUID id) {
-        if (!companyRepository.existsById(id)) {
-            throw new ResourceNotFoundException(
-                    "Empresa com id:" + id + " não encontrada para exclusão");
-        }
+        Company resource = companyRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException(
+                    "Empresa com id:" + id + " não encontrada para exclusão"));
+        rbac.requireOwnCompany(resource.getId());
 
         if (userCompanyRepository.existsByCompanyId(id)
                 || supplierRepository.existsByCompanyId(id)
@@ -276,17 +234,14 @@ public class CompanyService {
     public CompanyResponseDTO findById(UUID id) {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Empresa não encontrada com ID: " + id));
-        return toResponse(company);
+                        COMPANY_NOT_FOUND + id));
+        return CompanyResponseMapper.toResponse(company, rbac.findCurrentCompanyId().orElse(null));
     }
 
     @Transactional(readOnly = true)
     public List<CompanyResponseDTO> findAll() {
-        List<Company> companies = companyRepository.findAll();
-        Map<UUID, List<CompanyPhoto>> photos = companyPhotoRepository
-                .findByCompanyIdIn(companies.stream().map(Company::getId).toList()).stream()
-                .collect(Collectors.groupingBy(photo -> photo.getCompany().getId()));
-        return companies.stream().map(company -> toResponse(company, photos.getOrDefault(company.getId(), List.of()))).toList();
+        UUID actorCompanyId = rbac.findCurrentCompanyId().orElse(null);
+        return companyRepository.findAll().stream().map(company -> CompanyResponseMapper.toResponse(company, actorCompanyId)).toList();
     }
 
     @Transactional(readOnly = true)
@@ -295,35 +250,27 @@ public class CompanyService {
         Company company = companyRepository.findByCnpj(normalized)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Empresa não encontrada com CNPJ: " + normalized));
-        return toResponse(company);
+        return CompanyResponseMapper.toResponse(company, rbac.findCurrentCompanyId().orElse(null));
     }
-
 
     private String normalizeCnpj(String cnpj) {
         return cnpj == null ? null : cnpj.replaceAll("\\D", "");
     }
 
-    private Address resolveAddress(UUID addressId) {
+    private Address resolveAddress(UUID addressId, UUID companyId) {
         if (addressId == null) {
             return null;
         }
-        return addressRepository.findById(addressId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Endereço não encontrado com ID: " + addressId));
-    }
-
-    private BusinessContact resolveBusinessContact(UUID businessContactId) {
-        if (businessContactId == null) {
-            return null;
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new ResourceNotFoundException("Endereço não encontrado com ID: " + addressId));
+        if (!companyId.equals(address.getOwnerCompany().getId())) {
+            throw new UnauthorizedAccessException("O objeto da operação não foi encontrado.");
         }
-        return businessContactRepository.findById(businessContactId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Contato Empresarial não encontrado com ID: " + businessContactId));
+        return address;
     }
 
     private String generateUniqueSlug(String tradeName) {
         String base = SlugUtil.slugify(tradeName);
-        if (base == null || base.isBlank()) base = "empresa";
         String candidate = base;
         int suffix = 2;
         while (companyRepository.existsBySlug(candidate)) {
@@ -333,54 +280,4 @@ public class CompanyService {
         return candidate;
     }
 
-    private CompanyResponseDTO toResponse(Company company) {
-        return toResponse(company, companyPhotoRepository.findByCompanyIdOrderByTypeAsc(company.getId()));
-    }
-
-    private CompanyResponseDTO toResponse(Company company, List<CompanyPhoto> photos) {
-        CompanyResponseDTO dto = new CompanyResponseDTO();
-        dto.setLogoUrl(photoUrl(photos, PhotoType.PROFILE));
-        dto.setBannerUrl(photoUrl(photos, PhotoType.BANNER));
-        dto.setId(company.getId());
-        dto.setStatus(company.getStatus());
-        dto.setType(company.getType());
-        dto.setCnpj(company.getCnpj());
-        dto.setTradeName(company.getTradeName());
-        dto.setCorporateName(company.getCorporateName());
-        dto.setSlug(company.getSlug());
-        dto.setAddress(toAddressResponse(company.getAddress()));
-        dto.setBusinessContact(toBusinessContactResponse(company.getBusinessContact()));
-        return dto;
-    }
-
-    private String photoUrl(List<CompanyPhoto> photos, PhotoType type) {
-        return photos.stream().filter(photo -> photo.getType() == type).map(CompanyPhoto::getUrl).findFirst().orElse(null);
-    }
-
-    private AddressResponseDTO toAddressResponse(Address address) {
-        if (address == null) {
-            return null;
-        }
-        return AddressResponseDTO.builder()
-                .id(address.getId())
-                .state(address.getState())
-                .city(address.getCity())
-                .neighborhood(address.getNeighborhood())
-                .zipCode(address.getZipCode())
-                .street(address.getStreet())
-                .number(address.getNumber())
-                .build();
-    }
-
-    private BusinessContactResponseDTO toBusinessContactResponse(BusinessContact businessContact) {
-        if (businessContact == null) {
-            return null;
-        }
-        BusinessContactResponseDTO dto = new BusinessContactResponseDTO();
-        dto.setId(businessContact.getId());
-        dto.setCompanyEmail(businessContact.getCompanyEmail());
-        dto.setPhone(businessContact.getPhone());
-        dto.setWebsite(businessContact.getWebsite());
-        return dto;
-    }
 }

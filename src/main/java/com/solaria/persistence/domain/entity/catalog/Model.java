@@ -22,7 +22,7 @@ public class Model {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "fk_creator_company")
+    @Column(name = "fk_creator_company", nullable = false, updatable = false)
     private UUID creatorCompanyId;
 
     @ManyToOne(optional = false)
@@ -47,25 +47,25 @@ public class Model {
     private String material;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type")
+    @Column(name = "type", nullable = false)
     private PanelType type;
 
-    @Column(name = "power_wp")
+    @Column(name = "power_wp", nullable = false)
     private BigDecimal powerWp;
 
-    @Column(name = "efficiency")
+    @Column(name = "efficiency", nullable = false)
     private BigDecimal efficiency;
 
-    @Column(name = "width")
+    @Column(name = "width", nullable = false)
     private BigDecimal width;
 
-    @Column(name = "length")
+    @Column(name = "length", nullable = false)
     private BigDecimal length;
 
-    @Column(name = "weight")
+    @Column(name = "weight", nullable = false)
     private BigDecimal weight;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private ModelStatus status = ModelStatus.UNDER_ANALYSIS;
+    private ModelStatus status = ModelStatus.APPROVED;
 }

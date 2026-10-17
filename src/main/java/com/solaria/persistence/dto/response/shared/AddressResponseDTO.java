@@ -16,6 +16,7 @@ import java.util.UUID;
 public class AddressResponseDTO {
 
     private UUID id;
+    private UUID ownerCompanyId;
     private String state;
     private String city;
     private String neighborhood;

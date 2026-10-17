@@ -15,17 +15,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.solaria.persistence.dto.patch.company.UpdateBusinessContactIdDTO;
 import com.solaria.persistence.dto.patch.company.UpdateCompanyAddressIdDTO;
-import com.solaria.persistence.dto.request.company.CompanyRequestDTO;
+import com.solaria.persistence.dto.request.company.CompanyCreateRequestDTO;
+import com.solaria.persistence.dto.request.company.CompanyUpdateRequestDTO;
 import com.solaria.persistence.dto.response.company.CompanyResponseDTO;
-import com.solaria.persistence.dto.response.company.CompanyContactResponseDTO;
 import com.solaria.persistence.openapi.company.CompanyOpenApi;
 import com.solaria.persistence.service.company.CompanyService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
 
 @RestController
 @RequestMapping("/api/companies")
@@ -34,21 +32,16 @@ public class CompanyController implements CompanyOpenApi {
 
     private final CompanyService companyService;
 
-    @GetMapping("/{id}/contact-user")
-    public ResponseEntity<CompanyContactResponseDTO> findContactUser(@PathVariable UUID id) {
-        return ResponseEntity.ok(companyService.findContactUser(id));
-    }
-
     @Override
     @PostMapping
-    public ResponseEntity<CompanyResponseDTO> save(@Valid @RequestBody CompanyRequestDTO dto) {
+    public ResponseEntity<CompanyResponseDTO> save(@Valid @RequestBody CompanyCreateRequestDTO dto) {
         CompanyResponseDTO response = companyService.save(dto);
         return ResponseEntity.created(URI.create("/api/companies/" + response.getId())).body(response);
     }
 
     @Override
     @PutMapping("/{id}")
-    public ResponseEntity<CompanyResponseDTO> update(@PathVariable UUID id, @Valid @RequestBody CompanyRequestDTO dto) {
+    public ResponseEntity<CompanyResponseDTO> update(@PathVariable UUID id, @Valid @RequestBody CompanyUpdateRequestDTO dto) {
         return ResponseEntity.ok(companyService.update(id, dto));
     }
 
@@ -57,25 +50,6 @@ public class CompanyController implements CompanyOpenApi {
     public ResponseEntity<CompanyResponseDTO> attachAddress(@PathVariable UUID id,
                                                                @Valid @RequestBody UpdateCompanyAddressIdDTO dto) {
         return ResponseEntity.ok(companyService.attachAddress(id, dto.getAddressId()));
-    }
-
-    @Override
-    @PatchMapping("/{id}/business-contact")
-    public ResponseEntity<CompanyResponseDTO> attachBusinessContact(@PathVariable UUID id,
-                                                                       @Valid @RequestBody UpdateBusinessContactIdDTO dto) {
-        return ResponseEntity.ok(companyService.attachBusinessContact(id, dto.getBusinessContactId()));
-    }
-
-    @Override
-    @PatchMapping("/{id}/approval")
-    public ResponseEntity<CompanyResponseDTO> approve(@PathVariable UUID id) {
-        return ResponseEntity.ok(companyService.approve(id));
-    }
-
-    @Override
-    @PatchMapping("/{id}/rejection")
-    public ResponseEntity<CompanyResponseDTO> reject(@PathVariable UUID id) {
-        return ResponseEntity.ok(companyService.reject(id));
     }
 
     @Override

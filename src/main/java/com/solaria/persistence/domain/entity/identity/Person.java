@@ -20,7 +20,7 @@ public class Person {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_users")
+    @JoinColumn(name = "fk_users", unique = true)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -30,7 +30,7 @@ public class Person {
     @Column(name = "name", length = 60, nullable = false)
     private String name;
 
-    @Column(name = "cpf", length = 11, nullable = false)
+    @Column(name = "cpf", length = 11, nullable = false, unique = true)
     private String cpf;
 
     @Column(name = "birth_date", nullable = false)
