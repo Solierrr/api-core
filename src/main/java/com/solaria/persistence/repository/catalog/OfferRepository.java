@@ -15,6 +15,11 @@ import java.util.UUID;
 
 public interface OfferRepository extends JpaRepository<Offer, UUID> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select o from Offer o where o.id = :id")
+    Optional<Offer> lockById(@org.springframework.data.repository.query.Param("id") UUID id);
+
+
     @Override
     @EntityGraph(attributePaths = {"supplier.company", "model"})
     Optional<Offer> findById(UUID id);

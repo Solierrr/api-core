@@ -17,6 +17,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Offer {
+    @Enumerated(EnumType.STRING)
+    @Column(name = "commercial_status", nullable = false, length = 16)
+    private com.solaria.persistence.domain.enums.catalog.OfferStatus commercialStatus = com.solaria.persistence.domain.enums.catalog.OfferStatus.ACTIVE;
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
