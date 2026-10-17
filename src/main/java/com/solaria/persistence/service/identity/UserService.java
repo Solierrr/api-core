@@ -11,6 +11,7 @@ import tools.jackson.databind.ObjectMapper;
 import com.solaria.persistence.domain.entity.identity.User;
 import com.solaria.persistence.dto.request.identity.UserRequestDTO;
 import com.solaria.persistence.dto.response.identity.UserResponseDTO;
+import com.solaria.persistence.dto.response.identity.UserSummaryResponseDTO;
 import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
@@ -84,6 +85,14 @@ public class UserService {
         }
         userRepository.removeConnectionReferences(id);
         userRepository.deleteById(id);
+    }
+
+    @Transactional(readOnly = true)
+    public UserSummaryResponseDTO findSummaryByAuthId(UUID authId) {
+        User user = userRepository.findByAuthId(authId)
+                .filter(candidate -> Boolean.TRUE.equals(candidate.getActive()))
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+        return new UserSummaryResponseDTO(user.getUsername(), user.getAvatar());
     }
 
     @Transactional(readOnly = true)
