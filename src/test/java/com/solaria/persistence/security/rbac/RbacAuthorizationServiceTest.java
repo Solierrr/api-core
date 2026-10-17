@@ -3,6 +3,7 @@ package com.solaria.persistence.security.rbac;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,17 @@ class RbacAuthorizationServiceTest {
         assertDoesNotThrow(() -> rbac.requireEndpointAccess("DELETE /api/connections/{id}"));
 
         verifyNoInteractions(currentUserService, userCompanyRepository, positionPermissionRepository);
+    }
+
+    @Test
+    void purchaseEndpointsPassForUsersWithoutCompanyAndKeepOtherRoutesClosed() {
+        when(currentUserService.findCurrentUserId()).thenReturn(java.util.Optional.empty());
+
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/cart"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("PUT /api/cart/items/{offerId}"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("POST /api/orders"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("PATCH /api/orders/{id}/cancel"));
+        assertThrows(UnauthorizedAccessException.class, () -> rbac.requireEndpointAccess("GET /api/sales"));
     }
 
     @Test
