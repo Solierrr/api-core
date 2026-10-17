@@ -9,6 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.solaria.persistence.domain.entity.shared.Contact;
 import com.solaria.persistence.domain.entity.identity.Person;
 import com.solaria.persistence.domain.entity.professional.Technician;
+import com.solaria.persistence.domain.enums.professional.TechnicianStatus;
+import com.solaria.persistence.exception.BusinessRuleException;
 import com.solaria.persistence.dto.request.professional.TechnicianRequestDTO;
 import com.solaria.persistence.dto.response.shared.ContactResponseDTO;
 import com.solaria.persistence.dto.response.identity.PersonResponseDTO;
@@ -30,15 +32,18 @@ public class TechnicianService {
     private final PersonRepository personRepository;
     private final CurrentUserService currentUserService;
     private final RbacAuthorizationService rbac;
+    private final ApprovedProfessionalGuard approvedGuard;
 
     public TechnicianService(TechnicianRepository technicianRepository,
                              PersonRepository personRepository,
                              CurrentUserService currentUserService,
-                             RbacAuthorizationService rbac) {
+                             RbacAuthorizationService rbac,
+                             ApprovedProfessionalGuard approvedGuard) {
         this.technicianRepository = technicianRepository;
         this.personRepository = personRepository;
         this.currentUserService = currentUserService;
         this.rbac = rbac;
+        this.approvedGuard = approvedGuard;
     }
 
     @Transactional
@@ -76,6 +81,18 @@ public class TechnicianService {
 
         technician.setCrea(dto.getCrea());
 
+        return toResponse(technicianRepository.save(technician));
+    }
+
+    @Transactional
+    public TechnicianResponseDTO decide(UUID id, boolean approved) {
+        Technician technician = technicianRepository.findByIdForUpdate(id).orElseThrow(
+                () -> new ResourceNotFoundException("Profissional não encontrado"));
+        approvedGuard.requireLegacyChangesAllowed(technician.getPerson().getUser().getId());
+        if (technician.getStatus() != TechnicianStatus.UNDER_ANALYSIS) {
+            throw new BusinessRuleException("Somente profissionais em análise podem receber uma decisão");
+        }
+        technician.setStatus(approved ? TechnicianStatus.APPROVED : TechnicianStatus.REJECTED);
         return toResponse(technicianRepository.save(technician));
     }
 
@@ -123,6 +140,7 @@ public class TechnicianService {
     private TechnicianResponseDTO toResponse(Technician technician) {
         TechnicianResponseDTO response = new TechnicianResponseDTO();
         response.setId(technician.getId());
+        response.setStatus(technician.getStatus());
         response.setCrea(technician.getCrea());
         response.setSlug(technician.getSlug());
         response.setPerson(toPersonResponse(technician.getPerson()));

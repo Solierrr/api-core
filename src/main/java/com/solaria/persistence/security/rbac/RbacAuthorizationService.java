@@ -79,6 +79,9 @@ public class RbacAuthorizationService {
 
     // Catálogo público (sem JWT): só leitura.
     static final Set<String> PUBLIC_CATALOG_ENDPOINTS = Set.of(
+            "GET /api/catalog/teams",
+            "GET /api/catalog/technicians",
+            "GET /api/catalog/technicians/{slug}",
             "GET /api/catalog/companies",
             "GET /api/catalog/companies/{slug}",
             "GET /api/catalog/offers",
@@ -114,7 +117,9 @@ public class RbacAuthorizationService {
             return;
         }
         if (endpointIdentifier.contains(" /api/professional-review/") || endpointIdentifier.contains(" /api/brand-review")
-                || endpointIdentifier.equals("POST /api/platform-admins")) {
+                || endpointIdentifier.equals("POST /api/platform-admins")
+                || endpointIdentifier.equals("POST /api/technicians/{id}/approval")
+                || endpointIdentifier.equals("POST /api/technicians/{id}/rejection")) {
             if (!isPlatformAdmin()) throw new UnauthorizedAccessException("Operação restrita ao Admin Solaria");
             return;
         }

@@ -60,4 +60,10 @@ public interface TechnicianOpenApi {
             @ApiResponse(responseCode = "200", description = "Listagem realizada com sucesso")
     })
     ResponseEntity<List<TechnicianResponseDTO>> findAll();
+
+    @Operation(summary = "Aprova o cadastro de um profissional em análise")
+    ResponseEntity<TechnicianResponseDTO> approve(UUID id);
+
+    @Operation(summary = "Reprova o cadastro de um profissional em análise")
+    ResponseEntity<TechnicianResponseDTO> reject(UUID id);
 }
