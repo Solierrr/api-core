@@ -105,7 +105,8 @@ public class RbacAuthorizationService {
             currentUserService.getCurrentUser();
             return;
         }
-        if (endpointIdentifier.contains(" /api/professional-review/") || endpointIdentifier.equals("POST /api/platform-admins")) {
+        if (endpointIdentifier.contains(" /api/professional-review/") || endpointIdentifier.contains(" /api/brand-review")
+                || endpointIdentifier.equals("POST /api/platform-admins")) {
             if (!isPlatformAdmin()) throw new UnauthorizedAccessException("Operação restrita ao Admin Solaria");
             return;
         }
