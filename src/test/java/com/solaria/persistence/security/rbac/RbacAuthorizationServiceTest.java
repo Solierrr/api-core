@@ -84,6 +84,30 @@ class RbacAuthorizationServiceTest {
     }
 
     @Test
+    void ownMembershipReadsNeedOnlyAnAuthenticatedUser() {
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/user-companies/me"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/user-companies/me/all"));
+
+        verifyNoInteractions(currentUserService, userCompanyRepository, positionPermissionRepository);
+    }
+
+    @Test
+    void companyApprovalAndRejectionAreRestrictedToThePlatformAdmin() {
+        java.util.UUID userId = java.util.UUID.randomUUID();
+        when(currentUserService.findCurrentUserId()).thenReturn(java.util.Optional.of(userId));
+        when(platformAdminRepository.existsByUserId(userId)).thenReturn(false);
+
+        assertThrows(UnauthorizedAccessException.class,
+                () -> rbac.requireEndpointAccess("PATCH /api/companies/{id}/approval"));
+        assertThrows(UnauthorizedAccessException.class,
+                () -> rbac.requireEndpointAccess("PATCH /api/companies/{id}/rejection"));
+
+        when(platformAdminRepository.existsByUserId(userId)).thenReturn(true);
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("PATCH /api/companies/{id}/approval"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("PATCH /api/companies/{id}/rejection"));
+    }
+
+    @Test
     void publicCatalogReadsNeedNoUserWhileOtherCatalogRoutesStayClosed() {
         assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/catalog/offers"));
         assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/catalog/offers/{companySlug}/{offerSlug}"));

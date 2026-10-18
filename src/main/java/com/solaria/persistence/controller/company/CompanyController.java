@@ -53,6 +53,18 @@ public class CompanyController implements CompanyOpenApi {
     }
 
     @Override
+    @PatchMapping("/{id}/approval")
+    public ResponseEntity<CompanyResponseDTO> approve(@PathVariable UUID id) {
+        return ResponseEntity.ok(companyService.approve(id));
+    }
+
+    @Override
+    @PatchMapping("/{id}/rejection")
+    public ResponseEntity<CompanyResponseDTO> reject(@PathVariable UUID id) {
+        return ResponseEntity.ok(companyService.reject(id));
+    }
+
+    @Override
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteById(@PathVariable UUID id) {
         companyService.deleteById(id);

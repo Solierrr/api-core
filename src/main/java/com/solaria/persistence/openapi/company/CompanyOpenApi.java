@@ -46,6 +46,30 @@ public interface CompanyOpenApi {
     ResponseEntity<CompanyResponseDTO> attachAddress(UUID id, UpdateCompanyAddressIdDTO dto);
 
     @Operation(
+        summary = "Aprova uma empresa em análise",
+        description = "Restrito ao Admin Solaria. Só empresa em análise (UNDER_ANALYSIS) pode ser decidida."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Empresa aprovada"),
+            @ApiResponse(responseCode = "403", description = "Operação restrita ao Admin Solaria"),
+            @ApiResponse(responseCode = "404", description = "Empresa não encontrada"),
+            @ApiResponse(responseCode = "422", description = "Empresa não está em análise")
+    })
+    ResponseEntity<CompanyResponseDTO> approve(UUID id);
+
+    @Operation(
+        summary = "Rejeita uma empresa em análise",
+        description = "Restrito ao Admin Solaria. Só empresa em análise (UNDER_ANALYSIS) pode ser decidida."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Empresa rejeitada"),
+            @ApiResponse(responseCode = "403", description = "Operação restrita ao Admin Solaria"),
+            @ApiResponse(responseCode = "404", description = "Empresa não encontrada"),
+            @ApiResponse(responseCode = "422", description = "Empresa não está em análise")
+    })
+    ResponseEntity<CompanyResponseDTO> reject(UUID id);
+
+    @Operation(
         summary = "Remove uma empresa",
         description = "A exclusão é bloqueada se houver qualquer vínculo (usuário, fornecedor, solicitante, técnico afiliado, cargo)."
     )
