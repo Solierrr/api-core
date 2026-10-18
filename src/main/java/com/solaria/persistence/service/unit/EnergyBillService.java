@@ -21,7 +21,6 @@ import com.solaria.persistence.repository.unit.LocalUnitRepository;
 import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 import com.solaria.persistence.service.shared.CloudinaryService.UploadResult;
 
-import tools.jackson.databind.ObjectMapper;
 import com.solaria.persistence.service.shared.CloudinaryService;
 
 @Service
@@ -35,20 +34,17 @@ public class EnergyBillService {
 
     private final EnergyBillRepository energyBillRepository;
     private final LocalUnitRepository localUnitRepository;
-    private final ObjectMapper objectMapper;
     private final CloudinaryService cloudinaryService;
     private final CloudinaryProperties cloudinaryProperties;
     private final RbacAuthorizationService rbac;
 
     public EnergyBillService(EnergyBillRepository energyBillRepository,
             LocalUnitRepository localUnitRepository,
-            ObjectMapper objectMapper,
             CloudinaryService cloudinaryService,
             CloudinaryProperties cloudinaryProperties,
             RbacAuthorizationService rbac) {
         this.energyBillRepository = energyBillRepository;
         this.localUnitRepository = localUnitRepository;
-        this.objectMapper = objectMapper;
         this.cloudinaryService = cloudinaryService;
         this.cloudinaryProperties = cloudinaryProperties;
         this.rbac = rbac;
@@ -181,9 +177,15 @@ public class EnergyBillService {
         rbac.requireOwnCompany(energyBill.getLocalUnit().getRequester().getCompany().getId());
     }
 
+    // Monta o DTO à mão: converter a entidade com o ObjectMapper segue as relações bidirecionais
+    // e estoura a pilha com "Infinite recursion" (GET respondia 500).
     private EnergyBillResponseDTO toResponse(EnergyBill energyBill) {
-        EnergyBillResponseDTO response = objectMapper.convertValue(energyBill, EnergyBillResponseDTO.class);
+        EnergyBillResponseDTO response = new EnergyBillResponseDTO();
+        response.setId(energyBill.getId());
         response.setLocalUnitId(energyBill.getLocalUnit().getId());
+        response.setConsumption(energyBill.getConsumption());
+        response.setPrice(energyBill.getPrice());
+        response.setPhotoUrl(energyBill.getPhotoUrl());
         return response;
     }
 }
