@@ -9,7 +9,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import tools.jackson.databind.ObjectMapper;
 import com.solaria.persistence.dto.request.company.ChargeRequestDTO;
 import com.solaria.persistence.dto.response.company.ChargeResponseDTO;
 import com.solaria.persistence.domain.entity.company.Charge;
@@ -31,16 +30,13 @@ public class ChargeService {
     private final ChargeRepository chargeRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final RbacAuthorizationService rbac;
-    private final ObjectMapper objectMapper;
 
     public ChargeService(ChargeRepository chargeRepository,
                          SubscriptionRepository subscriptionRepository,
-                         RbacAuthorizationService rbac,
-                         ObjectMapper objectMapper) {
+                         RbacAuthorizationService rbac) {
         this.chargeRepository = chargeRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.rbac = rbac;
-        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -160,9 +156,17 @@ public class ChargeService {
                 .toList();
     }
 
+    // Monta o DTO à mão: converter a entidade com o ObjectMapper segue as relações bidirecionais
+    // e estoura a pilha com "Infinite recursion" (GET respondia 500).
     private ChargeResponseDTO toResponse(Charge charge) {
-        ChargeResponseDTO response = objectMapper.convertValue(charge, ChargeResponseDTO.class);
+        ChargeResponseDTO response = new ChargeResponseDTO();
+        response.setId(charge.getId());
         response.setSubscriptionId(charge.getSubscription().getId());
+        response.setAmount(charge.getAmount());
+        response.setPaymentMethod(charge.getPaymentMethod());
+        response.setStatus(charge.getStatus());
+        response.setDueDate(charge.getDueDate());
+        response.setPaymentDate(charge.getPaymentDate());
         return response;
     }
 }

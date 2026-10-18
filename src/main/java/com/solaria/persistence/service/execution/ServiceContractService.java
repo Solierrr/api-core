@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import tools.jackson.databind.ObjectMapper;
 import com.solaria.persistence.dto.request.execution.ServiceContractRequestDTO;
 import com.solaria.persistence.dto.response.execution.ServiceContractResponseDTO;
 import com.solaria.persistence.domain.entity.execution.ServiceContract;
@@ -27,16 +26,13 @@ public class ServiceContractService {
     private final ServiceContractRepository serviceContractRepository;
     private final TechnicalServiceRepository technicalServiceRepository;
     private final RbacAuthorizationService rbac;
-    private final ObjectMapper objectMapper;
 
     public ServiceContractService(ServiceContractRepository serviceContractRepository,
                                   TechnicalServiceRepository technicalServiceRepository,
-                                  RbacAuthorizationService rbac,
-                                  ObjectMapper objectMapper) {
+                                  RbacAuthorizationService rbac) {
         this.serviceContractRepository = serviceContractRepository;
         this.technicalServiceRepository = technicalServiceRepository;
         this.rbac = rbac;
-        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -130,9 +126,16 @@ public class ServiceContractService {
         }
     }
 
+    // Monta o DTO à mão: converter a entidade com o ObjectMapper segue as relações bidirecionais
+    // e estoura a pilha com "Infinite recursion" (GET respondia 500).
     private ServiceContractResponseDTO toResponse(ServiceContract entity) {
-        ServiceContractResponseDTO response = objectMapper.convertValue(entity, ServiceContractResponseDTO.class);
+        ServiceContractResponseDTO response = new ServiceContractResponseDTO();
+        response.setId(entity.getId());
         response.setServiceId(entity.getService().getId());
+        response.setWarranty(entity.getWarranty());
+        response.setDeliveryDeadline(entity.getDeliveryDeadline());
+        response.setInsurance(entity.getInsurance());
+        response.setUtilityApproval(entity.getUtilityApproval());
         return response;
     }
 }

@@ -7,7 +7,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import tools.jackson.databind.ObjectMapper;
 
 import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 import com.solaria.persistence.domain.entity.shared.Address;
@@ -30,16 +29,14 @@ public class GeolocalizationService {
 
     private final GeolocalizationRepository geolocalizationRepository;
     private final AddressRepository addressRepository;
-    private final ObjectMapper objectMapper;
     private final RbacAuthorizationService rbac;
 
     public GeolocalizationService(GeolocalizationRepository geolocalizationRepository,
                                   AddressRepository addressRepository,
-                                  ObjectMapper objectMapper, RbacAuthorizationService rbac) {
+                                  RbacAuthorizationService rbac) {
         this.rbac = rbac;
         this.geolocalizationRepository = geolocalizationRepository;
         this.addressRepository = addressRepository;
-        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -144,9 +141,14 @@ public class GeolocalizationService {
         }
     }
 
+    // Monta o DTO à mão: converter a entidade com o ObjectMapper segue as relações bidirecionais
+    // e estoura a pilha com "Infinite recursion" (GET respondia 500).
     private GeolocalizationResponseDTO toResponse(Geolocalization geolocalization) {
-        GeolocalizationResponseDTO response = objectMapper.convertValue(geolocalization, GeolocalizationResponseDTO.class);
+        GeolocalizationResponseDTO response = new GeolocalizationResponseDTO();
+        response.setId(geolocalization.getId());
         response.setAddressId(geolocalization.getAddress() == null ? null : geolocalization.getAddress().getId());
+        response.setLatitude(geolocalization.getLatitude());
+        response.setLongitude(geolocalization.getLongitude());
         return response;
     }
 }
