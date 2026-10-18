@@ -63,6 +63,8 @@ public class RbacAuthorizationService {
             "GET /api/connections/{id}",
             "DELETE /api/connections/{id}",
             "GET /api/users/me",
+            "GET /api/user-companies/me",
+            "GET /api/user-companies/me/all",
             "GET /api/platform-admins/me",
             "GET /api/technical-services/me",
             "POST /api/technical-services/{id}/acceptance",
@@ -121,6 +123,8 @@ public class RbacAuthorizationService {
         }
         if (endpointIdentifier.contains(" /api/professional-review/") || endpointIdentifier.contains(" /api/brand-review")
                 || endpointIdentifier.equals("POST /api/platform-admins")
+                || endpointIdentifier.equals("PATCH /api/companies/{id}/approval")
+                || endpointIdentifier.equals("PATCH /api/companies/{id}/rejection")
                 || endpointIdentifier.equals("POST /api/technicians/{id}/approval")
                 || endpointIdentifier.equals("POST /api/technicians/{id}/rejection")) {
             if (!isPlatformAdmin()) throw new UnauthorizedAccessException("Operação restrita ao Admin Solaria");

@@ -24,6 +24,7 @@ import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 import com.solaria.persistence.exception.UnauthorizedAccessException;
 import com.solaria.persistence.dto.response.company.CompanyResponseDTO;
 import com.solaria.persistence.mapper.company.CompanyResponseMapper;
+import com.solaria.persistence.exception.BusinessRuleException;
 import com.solaria.persistence.exception.DuplicateResourceException;
 import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
@@ -208,6 +209,29 @@ public class CompanyService {
                 .orElseThrow(() -> new ResourceNotFoundException(COMPANY_NOT_FOUND + companyId));
         company.setAddress(resolveAddress(addressId, companyId));
         return CompanyResponseMapper.toResponse(companyRepository.save(company), companyId);
+    }
+
+    /** Admin Solaria: aprova uma empresa que está em análise. */
+    @Transactional
+    public CompanyResponseDTO approve(UUID id) {
+        return decide(id, CompanyStatus.APPROVED);
+    }
+
+    /** Admin Solaria: rejeita uma empresa que está em análise. */
+    @Transactional
+    public CompanyResponseDTO reject(UUID id) {
+        return decide(id, CompanyStatus.REJECTED);
+    }
+
+    private CompanyResponseDTO decide(UUID id, CompanyStatus decision) {
+        Company company = companyRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException(COMPANY_NOT_FOUND + id));
+        if (company.getStatus() != CompanyStatus.UNDER_ANALYSIS) {
+            throw new BusinessRuleException("Somente empresa em análise pode ser aprovada ou rejeitada; situação atual: "
+                    + company.getStatus());
+        }
+        company.setStatus(decision);
+        return CompanyResponseMapper.toResponse(companyRepository.save(company), id);
     }
 
     @Transactional

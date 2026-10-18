@@ -6,7 +6,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import tools.jackson.databind.ObjectMapper;
+import com.solaria.persistence.dto.response.identity.MyMembershipResponseDTO;
+import com.solaria.persistence.dto.response.identity.OperationalContextResponseDTO;
 import com.solaria.persistence.dto.response.identity.PositionResponseDTO;
 import com.solaria.persistence.dto.request.identity.UserCompanyRequestDTO;
 import com.solaria.persistence.dto.response.identity.UserCompanyResponseDTO;
@@ -19,6 +20,7 @@ import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.exception.UnauthorizedAccessException;
 import com.solaria.persistence.repository.company.CompanyPositionsRepository;
 import com.solaria.persistence.repository.company.CompanyRepository;
+import com.solaria.persistence.repository.identity.PositionPermissionRepository;
 import com.solaria.persistence.repository.identity.PositionRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.repository.identity.UserRepository;
@@ -40,7 +42,7 @@ public class UserCompanyService {
     private final PositionRepository positionRepository;
     private final CompanyPositionsRepository companyPositionsRepository;
     private final RbacAuthorizationService rbac;
-    private final ObjectMapper objectMapper;
+    private final PositionPermissionRepository positionPermissionRepository;
     private final CurrentUserService currentUserService;
     @PersistenceContext
     private EntityManager entityManager;
@@ -51,7 +53,7 @@ public class UserCompanyService {
                               PositionRepository positionRepository,
                               CompanyPositionsRepository companyPositionsRepository,
                               RbacAuthorizationService rbac,
-                              ObjectMapper objectMapper,
+                              PositionPermissionRepository positionPermissionRepository,
                               CurrentUserService currentUserService) {
         this.userCompanyRepository = userCompanyRepository;
         this.userRepository = userRepository;
@@ -59,7 +61,7 @@ public class UserCompanyService {
         this.positionRepository = positionRepository;
         this.companyPositionsRepository = companyPositionsRepository;
         this.rbac = rbac;
-        this.objectMapper = objectMapper;
+        this.positionPermissionRepository = positionPermissionRepository;
         this.currentUserService = currentUserService;
     }
 
@@ -205,11 +207,67 @@ public class UserCompanyService {
                 .toList();
     }
 
+    /**
+     * Vínculos do usuário autenticado. Hoje cada usuário tem no máximo um vínculo, mas o contrato
+     * é uma lista para o web-app não depender dessa regra.
+     */
+    @Transactional(readOnly = true)
+    public List<MyMembershipResponseDTO> findMyMemberships() {
+        return findMyMembership().map(this::toMembership).stream().toList();
+    }
+
+    /** Contexto operacional do usuário autenticado, ou {@code null} quando ele não tem empresa. */
+    @Transactional(readOnly = true)
+    public OperationalContextResponseDTO findMyContext() {
+        return findMyMembership().map(this::toContext).orElse(null);
+    }
+
+    private java.util.Optional<UserCompany> findMyMembership() {
+        return currentUserService.findCurrentUserId().flatMap(userCompanyRepository::findByUserId);
+    }
+
+    private MyMembershipResponseDTO toMembership(UserCompany membership) {
+        Position position = membership.getPosition();
+        return new MyMembershipResponseDTO(
+                membership.getCompany().getId(),
+                new MyMembershipResponseDTO.PositionSummary(position.getId(), position.getName()),
+                permissionsOf(position));
+    }
+
+    private OperationalContextResponseDTO toContext(UserCompany membership) {
+        Company company = membership.getCompany();
+        Position position = membership.getPosition();
+        return new OperationalContextResponseDTO(
+                company.getId(),
+                company.getType(),
+                company.getStatus(),
+                position.getName(),
+                Position.ADMIN_NAME.equals(position.getName()),
+                permissionsOf(position));
+    }
+
+    // ADMIN passa em todo endpoint sem depender de grants (ver RbacAuthorizationService), então
+    // a lista dele vai vazia: o web-app trata o ADMIN pelo nome do cargo.
+    private List<String> permissionsOf(Position position) {
+        if (Position.ADMIN_NAME.equals(position.getName())) {
+            return List.of();
+        }
+        return positionPermissionRepository.findByPositionId(position.getId()).stream()
+                .map(grant -> grant.getPermission().getPermissionName())
+                .sorted()
+                .toList();
+    }
+
+    // Monta o DTO à mão: converter a entidade com o ObjectMapper segue as relações bidirecionais
+    // (UserCompany -> Company -> ...) e estoura a pilha com "Infinite recursion".
     private UserCompanyResponseDTO toResponse(UserCompany entity) {
-        UserCompanyResponseDTO response = objectMapper.convertValue(entity, UserCompanyResponseDTO.class);
+        UserCompanyResponseDTO response = new UserCompanyResponseDTO();
+        response.setId(entity.getId());
         response.setCompanyId(entity.getCompany().getId());
         response.setUserId(entity.getUser().getId());
-        PositionResponseDTO position = objectMapper.convertValue(entity.getPosition(), PositionResponseDTO.class);
+        PositionResponseDTO position = new PositionResponseDTO();
+        position.setId(entity.getPosition().getId());
+        position.setName(entity.getPosition().getName());
         position.setCompanyId(entity.getCompany().getId());
         response.setPosition(position);
         return response;

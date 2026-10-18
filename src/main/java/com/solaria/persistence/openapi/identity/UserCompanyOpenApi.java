@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 
 import com.solaria.persistence.dto.patch.identity.UpdatePositionDTO;
 import com.solaria.persistence.dto.request.identity.UserCompanyRequestDTO;
+import com.solaria.persistence.dto.response.identity.MyMembershipResponseDTO;
+import com.solaria.persistence.dto.response.identity.OperationalContextResponseDTO;
 import com.solaria.persistence.dto.response.identity.UserCompanyResponseDTO;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -64,4 +66,23 @@ public interface UserCompanyOpenApi {
             @ApiResponse(responseCode = "200", description = "Listagem realizada com sucesso")
     })
     ResponseEntity<List<UserCompanyResponseDTO>> findByUser(UUID userId);
+
+    @Operation(
+        summary = "Lista os vínculos do usuário autenticado",
+        description = "Devolve a empresa, o cargo e as permissões do cargo de cada vínculo. Hoje há no máximo um vínculo por usuário; sem vínculo, a lista vem vazia. O ADMIN vem com a lista de permissões vazia, porque passa em todo endpoint."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Listagem realizada com sucesso")
+    })
+    ResponseEntity<List<MyMembershipResponseDTO>> findMyMemberships();
+
+    @Operation(
+        summary = "Contexto operacional do usuário autenticado",
+        description = "Empresa, tipo e situação dela, cargo, indicador de ADMIN e permissões do cargo."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Contexto encontrado"),
+            @ApiResponse(responseCode = "204", description = "O usuário não tem vínculo com empresa")
+    })
+    ResponseEntity<OperationalContextResponseDTO> findMyContext();
 }
