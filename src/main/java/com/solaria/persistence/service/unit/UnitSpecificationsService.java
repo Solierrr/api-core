@@ -7,7 +7,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import tools.jackson.databind.ObjectMapper;
 
 import com.solaria.persistence.domain.entity.unit.LocalUnit;
 import com.solaria.persistence.domain.entity.unit.UnitSpecifications;
@@ -23,15 +22,13 @@ public class UnitSpecificationsService {
 
     private final UnitSpecificationsRepository unitSpecificationsRepository;
     private final LocalUnitRepository localUnitRepository;
-    private final ObjectMapper objectMapper;
     private final RbacAuthorizationService rbac;
 
     public UnitSpecificationsService(UnitSpecificationsRepository unitSpecificationsRepository,
                                      LocalUnitRepository localUnitRepository,
-                                     ObjectMapper objectMapper, RbacAuthorizationService rbac) {
+                                     RbacAuthorizationService rbac) {
         this.unitSpecificationsRepository = unitSpecificationsRepository;
         this.localUnitRepository = localUnitRepository;
-        this.objectMapper = objectMapper;
         this.rbac = rbac;
     }
 
@@ -79,9 +76,15 @@ public class UnitSpecificationsService {
                 .toList();
     }
 
+    // Monta o DTO à mão: converter a entidade com o ObjectMapper segue as relações bidirecionais
+    // e estoura a pilha com "Infinite recursion" (GET respondia 500).
     private UnitSpecificationsResponseDTO toResponse(UnitSpecifications unitSpecifications) {
-        UnitSpecificationsResponseDTO response = objectMapper.convertValue(unitSpecifications, UnitSpecificationsResponseDTO.class);
+        UnitSpecificationsResponseDTO response = new UnitSpecificationsResponseDTO();
+        response.setId(unitSpecifications.getId());
         response.setLocalUnitId(unitSpecifications.getLocalUnit().getId());
+        response.setSpecifications(unitSpecifications.getSpecifications());
+        response.setLocationPhotos(unitSpecifications.getLocationPhotos());
+        response.setDate(unitSpecifications.getDate());
         return response;
     }
 }
