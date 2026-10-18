@@ -31,22 +31,26 @@ public class PersonService {
     private final ContactRepository contactRepository;
     private final TechnicianRepository technicianRepository;
     private final RbacAuthorizationService rbac;
+    private final com.solaria.persistence.service.professional.ApprovedProfessionalGuard approvedGuard;
 
     public PersonService(PersonRepository personRepository,
                          UserRepository userRepository,
                          ContactRepository contactRepository,
                          TechnicianRepository technicianRepository,
-                         RbacAuthorizationService rbac) {
+                         RbacAuthorizationService rbac,
+                         com.solaria.persistence.service.professional.ApprovedProfessionalGuard approvedGuard) {
         this.personRepository = personRepository;
         this.userRepository = userRepository;
         this.contactRepository = contactRepository;
         this.technicianRepository = technicianRepository;
         this.rbac = rbac;
+        this.approvedGuard = approvedGuard;
     }
 
     @Transactional
     public PersonResponseDTO save(PersonRequestDTO dto) {
         rbac.requireOwnUser(dto.getUserId());
+        approvedGuard.requireLegacyChangesAllowed(dto.getUserId());
         validateBirthDate(dto.getBirthDate());
 
         User user = userRepository.findById(dto.getUserId())
@@ -87,6 +91,7 @@ public class PersonService {
             throw new InvalidFieldException("Usuário (userId) imutável: " + dto.getUserId());
         }
 
+        approvedGuard.requireLegacyChangesAllowed(dto.getUserId());
         validateBirthDate(dto.getBirthDate());
 
         if (personRepository.existsByCpfAndIdNot(dto.getCpf(), id)) {

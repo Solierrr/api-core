@@ -15,5 +15,6 @@ public class UserResponseDTO {
     private String avatar;
     private String banner;
     private Boolean active;
+    private UUID managedByCompanyId;
 
 }

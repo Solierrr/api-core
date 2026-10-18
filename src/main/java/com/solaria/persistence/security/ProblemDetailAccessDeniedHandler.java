@@ -42,7 +42,7 @@ public class ProblemDetailAccessDeniedHandler implements AccessDeniedHandler {
         // 403 (RBAC) gerado na chain fora do GlobalExceptionHandler
         // marca a observação como span ERROR + tag exception, como WARN
         HttpObservationErrors.mark(request, accessDeniedException);
-        log.warn("403 em {} {}: {}",
+        log.atWarn().addKeyValue("errorCode", "ACCESS_DENIED").log("403 em {} {}: {}",
         request.getMethod(),
         request.getRequestURI(),
         accessDeniedException.getMessage());

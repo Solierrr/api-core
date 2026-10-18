@@ -27,7 +27,7 @@ public class Technician {
     @JoinColumn(name = "fk_person", nullable = false)
     private Person person;
 
-    @Column(name = "crea", nullable = false)
+    @Column(name = "crea")
     private String crea;
 
     @Column(name = "slug", length = 160, nullable = false, unique = true)

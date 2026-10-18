@@ -1,17 +1,10 @@
 package com.solaria.persistence.service.execution;
 
-import java.time.LocalDate;
-import java.util.UUID;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import tools.jackson.databind.ObjectMapper;
-import com.solaria.persistence.dto.request.execution.ServiceContractRequestDTO;
-import com.solaria.persistence.dto.response.execution.ServiceContractResponseDTO;
 import com.solaria.persistence.domain.entity.execution.ServiceContract;
 import com.solaria.persistence.domain.entity.execution.TechnicalService;
 import com.solaria.persistence.domain.enums.execution.ServiceStatus;
+import com.solaria.persistence.dto.request.execution.ServiceContractRequestDTO;
+import com.solaria.persistence.dto.response.execution.ServiceContractResponseDTO;
 import com.solaria.persistence.exception.BusinessRuleException;
 import com.solaria.persistence.exception.DuplicateResourceException;
 import com.solaria.persistence.exception.InvalidFieldException;
@@ -20,6 +13,13 @@ import com.solaria.persistence.repository.execution.ServiceContractRepository;
 import com.solaria.persistence.repository.execution.TechnicalServiceRepository;
 import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import tools.jackson.databind.ObjectMapper;
+
+import java.time.LocalDate;
+import java.util.UUID;
 
 @Service
 public class ServiceContractService {
@@ -28,24 +28,33 @@ public class ServiceContractService {
     private final TechnicalServiceRepository technicalServiceRepository;
     private final RbacAuthorizationService rbac;
     private final ObjectMapper objectMapper;
+    private final ProjectAccess projectAccess;
 
-    public ServiceContractService(ServiceContractRepository serviceContractRepository,
-                                  TechnicalServiceRepository technicalServiceRepository,
-                                  RbacAuthorizationService rbac,
-                                  ObjectMapper objectMapper) {
+    public ServiceContractService(
+            ServiceContractRepository serviceContractRepository,
+            TechnicalServiceRepository technicalServiceRepository,
+            RbacAuthorizationService rbac,
+            ObjectMapper objectMapper,
+            ProjectAccess projectAccess) {
         this.serviceContractRepository = serviceContractRepository;
         this.technicalServiceRepository = technicalServiceRepository;
         this.rbac = rbac;
         this.objectMapper = objectMapper;
+        this.projectAccess = projectAccess;
     }
 
     @Transactional
     public ServiceContractResponseDTO save(ServiceContractRequestDTO dto) {
         validateDeliveryDeadline(dto.getDeliveryDeadline());
 
-        TechnicalService service = technicalServiceRepository.findById(dto.getServiceId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Serviço Técnico não encontrado com ID: " + dto.getServiceId()));
+        TechnicalService service =
+                technicalServiceRepository
+                        .findById(dto.getServiceId())
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Serviço Técnico não encontrado com ID: "
+                                                        + dto.getServiceId()));
 
         if (serviceContractRepository.existsByServiceId(dto.getServiceId())) {
             throw new DuplicateResourceException(
@@ -57,8 +66,12 @@ public class ServiceContractService {
                     "Contrato de Serviço não pode ser criado no status: " + service.getStatus());
         }
 
+        projectAccess.manage(service.getTechnicalProject());
+        projectAccess.mutable(service.getTechnicalProject());
         ServiceContract serviceContract = new ServiceContract();
         serviceContract.setService(service);
+        projectAccess.manage(serviceContract.getService().getTechnicalProject());
+        projectAccess.mutable(serviceContract.getService().getTechnicalProject());
         serviceContract.setWarranty(dto.getWarranty());
         serviceContract.setDeliveryDeadline(dto.getDeliveryDeadline());
         serviceContract.setInsurance(dto.getInsurance());
@@ -69,9 +82,15 @@ public class ServiceContractService {
 
     @Transactional
     public ServiceContractResponseDTO update(UUID id, ServiceContractRequestDTO dto) {
-        ServiceContract serviceContract = serviceContractRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Contrato de Serviço com id:" + id + " não encontrado para atualização"));
+        ServiceContract serviceContract =
+                serviceContractRepository
+                        .findById(id)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Contrato de Serviço com id:"
+                                                        + id
+                                                        + " não encontrado para atualização"));
 
         if (!dto.getServiceId().equals(serviceContract.getService().getId())) {
             throw new InvalidFieldException("serviceId imutável: " + dto.getServiceId());
@@ -79,6 +98,8 @@ public class ServiceContractService {
 
         validateDeliveryDeadline(dto.getDeliveryDeadline());
 
+        projectAccess.manage(serviceContract.getService().getTechnicalProject());
+        projectAccess.mutable(serviceContract.getService().getTechnicalProject());
         serviceContract.setWarranty(dto.getWarranty());
         serviceContract.setDeliveryDeadline(dto.getDeliveryDeadline());
         serviceContract.setInsurance(dto.getInsurance());
@@ -88,11 +109,18 @@ public class ServiceContractService {
 
     @Transactional
     public ServiceContractResponseDTO markUtilityApproved(UUID id) {
-        ServiceContract serviceContract = serviceContractRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Contrato de Serviço com id:" + id + " não encontrado para atualização"));
+        ServiceContract serviceContract =
+                serviceContractRepository
+                        .findById(id)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Contrato de Serviço com id:"
+                                                        + id
+                                                        + " não encontrado para atualização"));
 
-        rbac.requireOwnCompany(serviceContract.getService().getTechnicalProject().getRequester().getCompany().getId());
+        projectAccess.manage(serviceContract.getService().getTechnicalProject());
+        projectAccess.mutable(serviceContract.getService().getTechnicalProject());
 
         serviceContract.setUtilityApproval(true);
 
@@ -101,26 +129,44 @@ public class ServiceContractService {
 
     @Transactional(readOnly = true)
     public ServiceContractResponseDTO findById(UUID id) {
-        ServiceContract serviceContract = serviceContractRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Contrato de Serviço não encontrado com ID: " + id));
+        ServiceContract serviceContract =
+                serviceContractRepository
+                        .findById(id)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Contrato de Serviço não encontrado com ID: "
+                                                        + id));
+        projectAccess.read(serviceContract.getService().getTechnicalProject());
         return toResponse(serviceContract);
     }
 
     @Transactional(readOnly = true)
     public ServiceContractResponseDTO findById(UUID id, UUID companyId) {
-        ServiceContract serviceContract = serviceContractRepository
-                .findByIdAndService_TechnicalProject_Requester_Company_Id(id, companyId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Contrato de Serviço não encontrado com ID: " + id));
+        ServiceContract serviceContract =
+                serviceContractRepository
+                        .findByIdAndService_TechnicalProject_Requester_Company_Id(id, companyId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Contrato de Serviço não encontrado com ID: "
+                                                        + id));
+        projectAccess.read(serviceContract.getService().getTechnicalProject());
         return toResponse(serviceContract);
     }
 
     @Transactional(readOnly = true)
     public ServiceContractResponseDTO findByService(UUID serviceId) {
-        ServiceContract serviceContract = serviceContractRepository.findByServiceId(serviceId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Contrato de Serviço não encontrado para o serviço: " + serviceId));
+        ServiceContract serviceContract =
+                serviceContractRepository
+                        .findByServiceId(serviceId)
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Contrato de Serviço não encontrado para o serviço:"
+                                                    + " "
+                                                        + serviceId));
+        projectAccess.read(serviceContract.getService().getTechnicalProject());
         return toResponse(serviceContract);
     }
 
@@ -131,7 +177,8 @@ public class ServiceContractService {
     }
 
     private ServiceContractResponseDTO toResponse(ServiceContract entity) {
-        ServiceContractResponseDTO response = objectMapper.convertValue(entity, ServiceContractResponseDTO.class);
+        ServiceContractResponseDTO response =
+                objectMapper.convertValue(entity, ServiceContractResponseDTO.class);
         response.setServiceId(entity.getService().getId());
         return response;
     }

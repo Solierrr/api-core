@@ -39,4 +39,14 @@ public class TechnicalProject {
 
     @Column(name = "end_date")
     private LocalDateTime endDate;
+
+    @Column(name="name",nullable=false,length=160) private String name="Projeto técnico";
+    @Column(columnDefinition="text") private String description;
+    private UUID ownerCompanyId;
+    private UUID ownerUserId;
+    private UUID createdBy;
+    @Column(nullable=false) private boolean archived;
+    @Column(nullable=false) private OffsetDateTime createdAt=OffsetDateTime.now();
+    @Embedded private ProjectLocation location;
+    @Version private long version;
 }

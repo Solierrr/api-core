@@ -15,7 +15,17 @@ public interface UserCompanyRepository extends JpaRepository<UserCompany, UUID> 
 
     boolean existsByCompanyIdAndPositionId(UUID companyId, UUID positionId);
 
-    Optional<UserCompany> findByUserId(UUID userId);
+    Optional<UserCompany> findFirstByUserIdOrderByIdAsc(UUID userId);
+
+    default Optional<UserCompany> findByUserId(UUID userId) {
+        return findFirstByUserIdOrderByIdAsc(userId);
+    }
+
+    List<UserCompany> findAllByUserId(UUID userId);
+
+    Optional<UserCompany> findByUserIdAndCompanyId(UUID userId, UUID companyId);
+
+    boolean existsByUserIdAndCompanyId(UUID userId, UUID companyId);
 
     boolean existsByUserId(UUID userId);
 

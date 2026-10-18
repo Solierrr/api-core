@@ -13,4 +13,8 @@ public class BusinessRuleException extends BusinessException {
     public BusinessRuleException(String message, Map<String, Object> properties) {
         super(message, HttpStatus.UNPROCESSABLE_CONTENT, "BUSINESS_RULE_VIOLATION", properties);
     }
+
+    public BusinessRuleException(String message, String errorCode) {
+        super(message, HttpStatus.UNPROCESSABLE_CONTENT, errorCode);
+    }
 }

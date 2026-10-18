@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.solaria.persistence.domain.entity.catalog.Offer;
 import com.solaria.persistence.domain.entity.catalog.OfferTranslation;
 import com.solaria.persistence.domain.enums.catalog.ModelStatus;
+import com.solaria.persistence.domain.enums.catalog.ProductType;
 import com.solaria.persistence.domain.enums.catalog.SupplierStatus;
 import com.solaria.persistence.domain.enums.company.CompanyStatus;
 import com.solaria.persistence.domain.enums.company.CompanyType;
@@ -35,9 +36,15 @@ public class OfferCatalogService {
 
     @Transactional(readOnly = true)
     public List<CatalogOfferResponseDTO> findAll(String locale) {
+        return findAll(locale, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CatalogOfferResponseDTO> findAll(String locale, ProductType productType) {
         return offerRepository.findByExpirationDateIsNullOrExpirationDateAfter(OffsetDateTime.now())
                 .stream()
                 .filter(this::visible)
+                .filter(offer -> productType == null || offer.getModel().getProductType() == productType)
                 .map(offer -> toResponse(offer, locale))
                 .toList();
     }
@@ -51,7 +58,8 @@ public class OfferCatalogService {
     }
 
     private boolean visible(Offer offer) {
-        return offer.getSupplier().getStatus() == SupplierStatus.ACTIVE
+        return offer.getCommercialStatus() == com.solaria.persistence.domain.enums.catalog.OfferStatus.ACTIVE
+                && offer.getSupplier().getStatus() == SupplierStatus.ACTIVE
                 && offer.getSupplier().getCompany().getStatus() == CompanyStatus.APPROVED
                 && offer.getSupplier().getCompany().getType() == CompanyType.SUPPLIER
                 && offer.getModel().getStatus() == ModelStatus.APPROVED
@@ -65,8 +73,10 @@ public class OfferCatalogService {
                 .filter(item -> Objects.equals(item.getLocale(), locale))
                 .findFirst()
                 .or(() -> translations.stream()
-                        .filter(item -> !Objects.equals(item.getLocale(), OfferTranslationService.PENDING_LOCALE))
+                        .filter(item -> Objects.equals(item.getLocale(), offer.getSourceLocale()))
                         .findFirst())
+                .or(() -> translations.stream().filter(item -> Objects.equals(item.getLocale(), OfferTranslationService.PENDING_LOCALE)).findFirst())
+                .or(() -> translations.stream().findFirst())
                 .orElse(null);
         String title = translation == null
                 ? offer.getModel().getBrand() + " " + offer.getModel().getModel()
@@ -74,13 +84,17 @@ public class OfferCatalogService {
         var company = offer.getSupplier().getCompany();
         var model = offer.getModel();
         List<String> photos = modelPhotoRepository.findByModelIdOrderByCreatedAtDesc(model.getId())
-                .stream().map(photo -> photo.getUrl()).toList();
+                .stream().sorted(java.util.Comparator.comparing(
+                        com.solaria.persistence.domain.entity.catalog.ModelPhoto::isPrimary).reversed())
+                .map(photo -> photo.getUrl()).toList();
         return new CatalogOfferResponseDTO(
                 offer.getId(), offer.getSlug(), company.getId(), company.getSlug(), company.getTradeName(),
                 title,
                 translation == null ? "" : translation.getDescription(),
                 translation == null ? "" : translation.getDetails(),
-                model.getId(), model.getBrand(), model.getModel(), model.getType().name(), model.getPowerWp(),
+                model.getId(), model.getBrand(), model.getModel(), model.getProductType().name(),
+                model.getInfrastructureType() == null ? null : model.getInfrastructureType().name(), model.getMaterial(),
+                model.getType() == null ? null : model.getType().name(), model.getPowerWp(),
                 model.getEfficiency(), model.getWidth(), model.getLength(), model.getWeight(),
                 offer.getUnitPrice(), offer.getDiscountPercentage(), offer.getAvailability(),
                 offer.getServiceRegions(), photos);
