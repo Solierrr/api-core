@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.solaria.persistence.dto.patch.identity.UpdatePositionDTO;
 import com.solaria.persistence.dto.request.identity.UserCompanyRequestDTO;
+import com.solaria.persistence.dto.response.identity.MyMembershipResponseDTO;
+import com.solaria.persistence.dto.response.identity.OperationalContextResponseDTO;
 import com.solaria.persistence.dto.response.identity.UserCompanyResponseDTO;
 import com.solaria.persistence.openapi.identity.UserCompanyOpenApi;
 import com.solaria.persistence.service.identity.UserCompanyService;
@@ -61,6 +63,19 @@ public class UserCompanyController implements UserCompanyOpenApi {
     @GetMapping("/company/{companyId}")
     public ResponseEntity<List<UserCompanyResponseDTO>> findAllByCompany(@PathVariable UUID companyId) {
         return ResponseEntity.ok(userCompanyService.findAllByCompany(companyId));
+    }
+
+    @Override
+    @GetMapping("/me/all")
+    public ResponseEntity<List<MyMembershipResponseDTO>> findMyMemberships() {
+        return ResponseEntity.ok(userCompanyService.findMyMemberships());
+    }
+
+    @Override
+    @GetMapping("/me")
+    public ResponseEntity<OperationalContextResponseDTO> findMyContext() {
+        OperationalContextResponseDTO context = userCompanyService.findMyContext();
+        return context == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(context);
     }
 
     @Override
