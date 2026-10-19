@@ -35,6 +35,7 @@ public class ProjectService {
     private final UserRepository users;
     private final ProfessionalTeamRepository teams;
     private final com.solaria.persistence.repository.company.CompanyRepository companies;
+    private final com.solaria.persistence.repository.company.CompanyPhotoRepository companyPhotos;
 
     public TechnicalProject entity(UUID id, boolean write) {
         return (write ? projects.lockById(id) : projects.findById(id))
@@ -338,6 +339,17 @@ public class ProjectService {
                         && p.getStatus() != ServiceStatus.COMPLETED
                         && p.getStatus() != ServiceStatus.CANCELED
                         && role != ProjectRole.VIEWER,
-                p.getCreatedAt());
+                p.getCreatedAt(),
+                ownerCompanyLogoUrl(p));
+    }
+
+    private String ownerCompanyLogoUrl(TechnicalProject p) {
+        if (p.getOwnerCompanyId() == null) return null;
+        return companyPhotos
+                .findByCompanyIdAndType(
+                        p.getOwnerCompanyId(),
+                        com.solaria.persistence.domain.enums.shared.PhotoType.PROFILE)
+                .map(photo -> photo.getUrl())
+                .orElse(null);
     }
 }
