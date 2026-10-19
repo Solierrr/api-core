@@ -52,8 +52,8 @@ class ProjectPostgresIntegrationTest {
     @DynamicPropertySource
     static void db(DynamicPropertyRegistry p) {
         p.add("spring.datasource.url", () -> System.getProperty("solaria.postgres.url"));
-        p.add("spring.datasource.username", () -> "postgres");
-        p.add("spring.datasource.password", () -> "local-project-test");
+        p.add("spring.datasource.username", () -> System.getProperty("solaria.postgres.user", "postgres"));
+        p.add("spring.datasource.password", () -> System.getProperty("solaria.postgres.password", "local-project-test"));
     }
 
     @AfterEach

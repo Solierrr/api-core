@@ -22,4 +22,5 @@ public record ProjectResponse(
         ProjectRole role,
         boolean canManage,
         boolean canContribute,
-        OffsetDateTime createdAt) {}
+        OffsetDateTime createdAt,
+        String ownerCompanyLogoUrl) {}
