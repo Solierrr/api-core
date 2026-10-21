@@ -30,6 +30,18 @@ public class TechnicianController implements TechnicianOpenApi {
     private final TechnicianService technicianService;
 
     @Override
+    @PostMapping("/{id}/approval")
+    public ResponseEntity<TechnicianResponseDTO> approve(@PathVariable UUID id) {
+        return ResponseEntity.ok(technicianService.decide(id, true));
+    }
+
+    @Override
+    @PostMapping("/{id}/rejection")
+    public ResponseEntity<TechnicianResponseDTO> reject(@PathVariable UUID id) {
+        return ResponseEntity.ok(technicianService.decide(id, false));
+    }
+
+    @Override
     @PostMapping
     public ResponseEntity<TechnicianResponseDTO> save(@Valid @RequestBody TechnicianRequestDTO dto) {
         TechnicianResponseDTO response = technicianService.save(dto);

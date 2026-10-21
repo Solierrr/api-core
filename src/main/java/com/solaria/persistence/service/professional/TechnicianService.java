@@ -21,6 +21,8 @@ import com.solaria.persistence.repository.professional.TechnicianRepository;
 import com.solaria.persistence.util.SlugUtil;
 import com.solaria.persistence.security.CurrentUserService;
 import com.solaria.persistence.security.rbac.RbacAuthorizationService;
+import com.solaria.persistence.domain.enums.professional.TechnicianStatus;
+import com.solaria.persistence.exception.BusinessRuleException;
 
 
 @Service
@@ -30,15 +32,18 @@ public class TechnicianService {
     private final PersonRepository personRepository;
     private final CurrentUserService currentUserService;
     private final RbacAuthorizationService rbac;
+    private final ApprovedProfessionalGuard approvedGuard;
 
     public TechnicianService(TechnicianRepository technicianRepository,
                              PersonRepository personRepository,
                              CurrentUserService currentUserService,
-                             RbacAuthorizationService rbac) {
+                             RbacAuthorizationService rbac,
+                             ApprovedProfessionalGuard approvedGuard) {
         this.technicianRepository = technicianRepository;
         this.personRepository = personRepository;
         this.currentUserService = currentUserService;
         this.rbac = rbac;
+        this.approvedGuard = approvedGuard;
     }
 
     @Transactional
@@ -47,8 +52,7 @@ public class TechnicianService {
         Person person = personRepository.findById(dto.getPersonId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Pessoa não encontrada com ID: " + dto.getPersonId()));
-
-        rbac.requireOwnUser(person.getUser() == null ? null : person.getUser().getId());
+        rbac.requireOwnUser(person.getUser().getId());
 
         if (technicianRepository.existsByPersonId(dto.getPersonId())) {
             throw new DuplicateResourceException(
@@ -74,8 +78,21 @@ public class TechnicianService {
             throw new InvalidFieldException("Pessoa (personId) imutável: " + dto.getPersonId());
         }
 
+        approvedGuard.requireLegacyChangesAllowed(technician.getPerson().getUser().getId());
         technician.setCrea(dto.getCrea());
 
+        return toResponse(technicianRepository.save(technician));
+    }
+
+    @Transactional
+    public TechnicianResponseDTO decide(UUID id, boolean approved) {
+        Technician technician = technicianRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Profissional não encontrado"));
+        approvedGuard.requireLegacyChangesAllowed(technician.getPerson().getUser().getId());
+        if (technician.getStatus() != TechnicianStatus.UNDER_ANALYSIS) {
+            throw new BusinessRuleException("Somente profissionais em análise podem receber uma decisão");
+        }
+        technician.setStatus(approved ? TechnicianStatus.APPROVED : TechnicianStatus.REJECTED);
         return toResponse(technicianRepository.save(technician));
     }
 
@@ -85,6 +102,7 @@ public class TechnicianService {
         Technician technician = technicianRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Técnico não encontrado com ID: " + id));
         requireOwner(technician);
+        approvedGuard.requireLegacyChangesAllowed(technician.getPerson().getUser().getId());
         technicianRepository.delete(technician);
     }
 
@@ -101,6 +119,9 @@ public class TechnicianService {
     @Transactional(readOnly = true)
     public List<TechnicianResponseDTO> findAll() {
         UUID userId = currentUserService.getProvisionedCurrentUserId();
+        if (rbac.isPlatformAdmin()) {
+            return technicianRepository.findAll().stream().map(this::toResponse).toList();
+        }
         return technicianRepository.findByPersonUserId(userId).stream().map(this::toResponse).toList();
     }
 
@@ -123,6 +144,7 @@ public class TechnicianService {
     private TechnicianResponseDTO toResponse(Technician technician) {
         TechnicianResponseDTO response = new TechnicianResponseDTO();
         response.setId(technician.getId());
+        response.setStatus(technician.getStatus());
         response.setCrea(technician.getCrea());
         response.setSlug(technician.getSlug());
         response.setPerson(toPersonResponse(technician.getPerson()));

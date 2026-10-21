@@ -3,6 +3,7 @@ package com.solaria.persistence.dto.request.company;
 import com.solaria.persistence.util.RegexValidator;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -10,6 +11,7 @@ import lombok.Setter;
 
 import jakarta.validation.Valid;
 import com.solaria.persistence.dto.request.shared.AddressRequestDTO;
+import com.solaria.persistence.domain.enums.company.CompanyType;
 
 @Setter
 @Getter
@@ -17,6 +19,8 @@ public class CompanyCreateRequestDTO {
 
     @Valid
     private AddressRequestDTO address;
+    @NotNull(message = "Tipo da empresa é obrigatório")
+    private CompanyType type;
 
     @Valid
     private BusinessContactRequestDTO businessContact;

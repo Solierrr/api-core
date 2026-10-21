@@ -47,26 +47,42 @@ public class ModelPhotoService {
 
     @Transactional
     public ModelPhotoResponseDTO upload(UUID modelId, MultipartFile file) {
-        Model model = modelRepository.findById(modelId)
+        return upload(modelId, file, false);
+    }
+
+    @Transactional
+    public ModelPhotoResponseDTO upload(UUID modelId, MultipartFile file, boolean primary) {
+        Model model = modelRepository.lockById(modelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Modelo não encontrado(a) com ID: " + modelId));
 
-        rbac.requireOwnCompany(model.getCreatorCompanyId());
+        requireMutable(model);
 
         UploadResult result = cloudinaryService.upload(file, folder(modelId), null, false,
                 ALLOWED_CONTENT_TYPES, MAX_BYTES);
 
+        cloudinaryService.cleanupOnRollback(result.publicId(), false);
         ModelPhoto photo = new ModelPhoto();
         photo.setModel(model);
         photo.setUrl(result.url());
         photo.setPublicId(result.publicId());
         photo.setCreatedAt(OffsetDateTime.now());
+        photo.setPrimary(primary);
 
         // em caso de falha do BD, remove o asset do cloudnary
         try {
-            return toResponse(modelPhotoRepository.save(photo));
+            if (primary) {
+                var previous = modelPhotoRepository.findByModelIdAndPrimaryTrue(modelId);
+                previous.forEach(existing -> existing.setPrimary(false));
+                modelPhotoRepository.saveAllAndFlush(previous);
+            }
+            return toResponse(modelPhotoRepository.saveAndFlush(photo));
         } catch (RuntimeException e) {
 
-            cloudinaryService.delete(result.publicId());
+            try {
+                cloudinaryService.delete(result.publicId());
+            } catch (RuntimeException cleanupError) {
+                e.addSuppressed(cleanupError);
+            }
             throw e;
         }
     }
@@ -76,9 +92,10 @@ public class ModelPhotoService {
         ModelPhoto photo = modelPhotoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Foto não encontrada com ID: " + id));
 
-        rbac.requireOwnCompany(photo.getModel().getCreatorCompanyId());
-        cloudinaryService.delete(photo.getPublicId());
+        requireMutable(modelRepository.lockById(photo.getModel().getId()).orElseThrow(
+                () -> new ResourceNotFoundException("Model not found")));
         modelPhotoRepository.delete(photo);
+        cloudinaryService.deleteAfterCommit(photo.getPublicId());
     }
 
     @Transactional(readOnly = true)
@@ -86,6 +103,16 @@ public class ModelPhotoService {
         return modelPhotoRepository.findByModelIdOrderByCreatedAtDesc(modelId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    private void requireMutable(Model model) {
+        if (model.getCreatorCompanyId() == null) {
+            throw new com.solaria.persistence.exception.UnauthorizedAccessException("Model has no registered owner");
+        }
+        rbac.requireOwnCompany(model.getCreatorCompanyId());
+        if (model.getStatus() != com.solaria.persistence.domain.enums.catalog.ModelStatus.UNDER_ANALYSIS) {
+            throw new com.solaria.persistence.exception.BusinessRuleException("Only models under analysis allow photo changes");
+        }
     }
 
     private String folder(UUID modelId) {
@@ -97,6 +124,7 @@ public class ModelPhotoService {
         response.setId(photo.getId());
         response.setModelId(photo.getModel().getId());
         response.setUrl(photo.getUrl());
+        response.setPrimary(photo.isPrimary());
         response.setCreatedAt(photo.getCreatedAt());
         return response;
     }

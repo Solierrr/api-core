@@ -21,6 +21,14 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<UUID> findIdByAuthId(@Param("authId") UUID authId);
 
     boolean existsByUsername(String username);
+    @Modifying
+    @Query(value = "INSERT INTO users (id, auth_id, username, active, connections) "
+            + "VALUES (:id, :authId, :username, true, ARRAY[]::uuid[]) "
+            + "ON CONFLICT (auth_id) DO NOTHING", nativeQuery = true)
+    int insertProvisionedUser(@Param("id") UUID id, @Param("authId") UUID authId,
+            @Param("username") String username);
+
+    boolean existsByUsernameAndIdNot(String username, UUID id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.id = :id")

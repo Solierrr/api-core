@@ -18,14 +18,14 @@ public interface ModelPhotoOpenApi {
 
     @Operation(
         summary = "Envia uma nova foto para o modelo",
-        description = "A empresa criadora autorizada faz upload da imagem para o Cloudinary e associa ao modelo informado."
+        description = "Faz upload da imagem para o Cloudinary e associa ao modelo informado. primary=true define a foto principal e move a principal anterior para a galeria."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Foto criada com sucesso"),
             @ApiResponse(responseCode = "404", description = "Modelo não encontrado"),
             @ApiResponse(responseCode = "403", description = "Empresa ou grant não autorizado")
     })
-    ResponseEntity<ModelPhotoResponseDTO> upload(UUID modelId, MultipartFile file);
+    ResponseEntity<ModelPhotoResponseDTO> upload(UUID modelId, MultipartFile file, boolean primary);
 
     @Operation(summary = "Remove uma foto do modelo",
         description = "Somente a empresa criadora autorizada pode remover a foto.")

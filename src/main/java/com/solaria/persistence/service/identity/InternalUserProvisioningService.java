@@ -27,10 +27,11 @@ public class InternalUserProvisioningService {
       return toResponse(existing.get(), false);
     }
 
-    User user = new User();
-    user.setAuth_id(authId);
-    user.setUsername(availableUsername(authId));
-    return toResponse(userRepository.saveAndFlush(user), true);
+    // O evento de registro e GET /users/me podem chegar simultaneamente.
+    // ON CONFLICT mantém a transação utilizável para ler o registro vencedor.
+    boolean created = userRepository.insertProvisionedUser(UUID.randomUUID(), authId, availableUsername(authId)) == 1;
+    User user = userRepository.findByAuthId(authId).orElseThrow();
+    return toResponse(user, created);
   }
 
   private String availableUsername(UUID authId) {

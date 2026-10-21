@@ -3,6 +3,8 @@ package com.solaria.persistence.service.identity;
 import java.util.List;
 import java.util.UUID;
 
+import tools.jackson.databind.ObjectMapper;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class PositionService {
     private final UserCompanyRepository userCompanyRepository;
     private final CompanyPositionsRepository companyPositionsRepository;
     private final CompanyRepository companyRepository;
+    private final ObjectMapper objectMapper;
     private final RbacAuthorizationService rbac;
 
     public PositionService(PositionRepository positionRepository,
@@ -37,17 +40,22 @@ public class PositionService {
                            UserCompanyRepository userCompanyRepository,
                            CompanyPositionsRepository companyPositionsRepository,
                            CompanyRepository companyRepository,
+                           ObjectMapper objectMapper,
                            RbacAuthorizationService rbac) {
         this.positionRepository = positionRepository;
         this.positionPermissionRepository = positionPermissionRepository;
         this.userCompanyRepository = userCompanyRepository;
         this.companyPositionsRepository = companyPositionsRepository;
         this.companyRepository = companyRepository;
+        this.objectMapper = objectMapper;
         this.rbac = rbac;
     }
 
     @Transactional
     public PositionResponseDTO save(PositionRequestDTO dto) {
+        if (Position.ADMIN_NAME.equalsIgnoreCase(dto.getName().trim())) {
+            throw new UnauthorizedAccessException("Cargo ADMIN é reservado");
+        }
         Position position = new Position();
         position.setName(commonName(dto.getName()));
         UUID companyId = rbac.getCurrentCompanyId();

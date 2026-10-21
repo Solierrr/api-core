@@ -33,11 +33,12 @@ public class InventoryService {
     private final InventoryRepository inventoryRepository;
     private final SupplierRepository supplierRepository;
     private final ModelRepository modelRepository;
+    private final BrandService brands;
     private final SubscriptionService subscriptionService;
 
     public InventoryService(InventoryRepository inventoryRepository,
                             SupplierRepository supplierRepository,
-                            ModelRepository modelRepository,
+                            ModelRepository modelRepository, BrandService brands,
                             SubscriptionService subscriptionService,
                             RbacAuthorizationService rbac,
                             CompanyRepository companyRepository) {
@@ -46,6 +47,7 @@ public class InventoryService {
         this.inventoryRepository = inventoryRepository;
         this.supplierRepository = supplierRepository;
         this.modelRepository = modelRepository;
+        this.brands = brands;
         this.subscriptionService = subscriptionService;
     }
 
@@ -62,6 +64,7 @@ public class InventoryService {
         Model model = modelRepository.findById(dto.getModelId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Modelo não encontrado com ID: " + dto.getModelId()));
+        brands.selectable(model.getBrandId(), supplier.getCompany().getId());
 
         if (inventoryRepository.existsBySupplierIdAndModelId(dto.getSupplierId(), dto.getModelId())) {
             throw new DuplicateResourceException(
@@ -75,7 +78,19 @@ public class InventoryService {
         inventory.setModel(model);
         inventory.setQuantity(dto.getQuantity());
 
-        return toResponse(inventoryRepository.save(inventory));
+        try {
+            return toResponse(inventoryRepository.saveAndFlush(inventory));
+        } catch (org.springframework.dao.DataIntegrityViolationException exception) {
+            Throwable cause = exception;
+            while (cause != null) {
+                if (cause instanceof org.hibernate.exception.ConstraintViolationException violation
+                        && "uq_inventory_supplier_model".equals(violation.getConstraintName())) {
+                    throw new DuplicateResourceException("Estoque já cadastrado para esse fornecedor e modelo");
+                }
+                cause = cause.getCause();
+            }
+            throw exception;
+        }
     }
 
     @Transactional
@@ -177,8 +192,12 @@ public class InventoryService {
         return ModelResponseDTO.builder()
                 .id(model.getId())
                 .creatorCompanyId(model.getCreatorCompanyId())
+                .brandId(model.getBrandId())
                 .brand(model.getBrand())
                 .model(model.getModel())
+                .productType(model.getProductType())
+                .infrastructureType(model.getInfrastructureType())
+                .material(model.getMaterial())
                 .type(model.getType())
                 .powerWp(model.getPowerWp())
                 .efficiency(model.getEfficiency())

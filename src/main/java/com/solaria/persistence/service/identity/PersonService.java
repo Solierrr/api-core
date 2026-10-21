@@ -34,22 +34,26 @@ public class PersonService {
     private final RbacAuthorizationService rbac;
     private final ContactRepository contactRepository;
     private final TechnicianRepository technicianRepository;
+    private final com.solaria.persistence.service.professional.ApprovedProfessionalGuard approvedGuard;
 
     public PersonService(PersonRepository personRepository,
                          CurrentUserService currentUserService,
                          RbacAuthorizationService rbac,
                          ContactRepository contactRepository,
-                         TechnicianRepository technicianRepository) {
+                         TechnicianRepository technicianRepository,
+                         com.solaria.persistence.service.professional.ApprovedProfessionalGuard approvedGuard) {
         this.personRepository = personRepository;
         this.currentUserService = currentUserService;
         this.rbac = rbac;
         this.contactRepository = contactRepository;
         this.technicianRepository = technicianRepository;
+        this.approvedGuard = approvedGuard;
     }
 
     @Transactional
     public PersonResponseDTO save(PersonRequestDTO dto) {
         User user = currentUserService.getProvisionedCurrentUser();
+        approvedGuard.requireLegacyChangesAllowed(user.getId());
         validateBirthDate(dto.getBirthDate());
 
         if (personRepository.existsByCpf(dto.getCpf())) {
@@ -81,6 +85,7 @@ public class PersonService {
         if (!person.getCpf().equals(dto.getCpf())) {
             throw new InvalidFieldException("CPF imutável: " + dto.getCpf());
         }
+        approvedGuard.requireLegacyChangesAllowed(person.getUser().getId());
         validateBirthDate(dto.getBirthDate());
         Contact previousContact = person.getContact();
         person.setContact(saveContact(previousContact, dto.getContact()));

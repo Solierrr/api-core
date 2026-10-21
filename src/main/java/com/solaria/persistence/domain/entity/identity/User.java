@@ -33,6 +33,9 @@ public class User {
     @Column(name = "banner")
     private String banner;
 
+    @Column(name = "active", nullable = false)
+    private Boolean active = true;
+
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "connections", nullable = false)
     private List<UUID> connections = new ArrayList<>();

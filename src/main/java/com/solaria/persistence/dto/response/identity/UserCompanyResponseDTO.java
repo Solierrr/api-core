@@ -1,6 +1,7 @@
 package com.solaria.persistence.dto.response.identity;
 
 import java.util.UUID;
+import java.util.List;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -13,5 +14,6 @@ public class UserCompanyResponseDTO {
     private UUID companyId;
     private UUID userId;
     private PositionResponseDTO position;
+    private List<String> permissions;
 
 }

@@ -27,6 +27,9 @@ import io.micrometer.observation.ObservationRegistry;
 @Service
 public class CloudinaryService {
 
+    // assets do seed (mocks-warehouse) sao compartilhados entre varias linhas; apagar uma foto nunca deve destruir o asset
+    static final String SHARED_MOCK_PREFIX = "mocks/";
+
     private final Cloudinary cloudinary;
     // registry usado para criar o span das chamadas ao Cloudinary
     private final ObservationRegistry observationRegistry;
@@ -100,8 +103,88 @@ public class CloudinaryService {
         }
     }
 
+    public record AuthenticatedUpload(String publicId, String format) {}
+
+    public AuthenticatedUpload uploadAuthenticated(MultipartFile file, String folder,
+            Set<String> allowedContentTypes, long maxBytes) {
+        validate(file, allowedContentTypes, maxBytes);
+        try {
+            Map<?, ?> result = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                    "folder", folder, "resource_type", "image", "type", "authenticated", "overwrite", false));
+            String publicId = (String) result.get("public_id");
+            String format = (String) result.get("format");
+            if (publicId == null || publicId.isBlank() || format == null || format.isBlank()) {
+                throw new StorageException("Invalid Cloudinary upload response");
+            }
+            return new AuthenticatedUpload(publicId, format);
+        } catch (IOException exception) {
+            throw new StorageException("Could not upload authenticated document");
+        }
+    }
+
+    public byte[] readAuthenticated(String publicId, String format, int maxBytes) {
+        try {
+            String signedUrl = cloudinary.privateDownload(publicId, format, ObjectUtils.asMap(
+                    "type", "authenticated", "resource_type", "image",
+                    "expires_at", java.time.Instant.now().plusSeconds(60).getEpochSecond()));
+            var connection = (java.net.HttpURLConnection) java.net.URI.create(signedUrl).toURL().openConnection();
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(15000);
+            connection.setInstanceFollowRedirects(false);
+            try {
+                if (connection.getResponseCode() != 200) throw new StorageException("Could not read authenticated document");
+                try (var stream = connection.getInputStream()) {
+                    byte[] bytes = stream.readNBytes(maxBytes + 1);
+                    if (bytes.length > maxBytes) throw new StorageException("Document exceeds allowed size");
+                    return bytes;
+                }
+            } finally {
+                connection.disconnect();
+            }
+        } catch (StorageException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            throw new StorageException("Could not read authenticated document");
+        }
+    }
+
+    public void cleanupOnRollback(String publicId, boolean authenticated) {
+        if (!org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) return;
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override
+                    public void afterCompletion(int status) {
+                        if (status != STATUS_COMMITTED) cleanup(publicId, authenticated);
+                    }
+                });
+    }
+
+    public void deleteAfterCommit(String publicId) {
+        if (!org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            delete(publicId);
+            return;
+        }
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() { cleanup(publicId, false); }
+                });
+    }
+
+    private void cleanup(String publicId, boolean authenticated) {
+        try {
+            if (authenticated) {
+                cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("invalidate", true, "type", "authenticated", "resource_type", "image"));
+            } else {
+                delete(publicId);
+            }
+        } catch (Exception exception) {
+            org.slf4j.LoggerFactory.getLogger(CloudinaryService.class).error("Cloudinary asset cleanup failed");
+        }
+    }
+
     public void delete(String publicId) {
-        if (publicId == null || publicId.isBlank()) {
+        if (publicId == null || publicId.isBlank() || isSharedMockAsset(publicId)) {
             return;
         }
 
@@ -120,6 +203,57 @@ public class CloudinaryService {
         } finally {
             observation.stop();
         }
+    }
+
+    public record ImageInfo(int width, int height) {
+    }
+
+    /** Dimensoes do asset original, usadas para validar que o recorte cabe na imagem. */
+    public ImageInfo imageInfo(String publicId) {
+        Observation observation = Observation.createNotStarted("cloudinary.resource", observationRegistry).start();
+        try (Observation.Scope ignored = observation.openScope()) {
+            Map<?, ?> resource = cloudinary.api().resource(publicId, ObjectUtils.emptyMap());
+            Object width = resource.get("width");
+            Object height = resource.get("height");
+            if (!(width instanceof Number) || !(height instanceof Number)) {
+                throw new StorageException("Resposta inválida do Cloudinary ao ler a imagem");
+            }
+            return new ImageInfo(((Number) width).intValue(), ((Number) height).intValue());
+        } catch (StorageException e) {
+            observation.error(e);
+            throw e;
+        } catch (Exception e) {
+            observation.error(e);
+            throw new StorageException("Falha ao consultar a imagem no Cloudinary");
+        } finally {
+            observation.stop();
+        }
+    }
+
+    /**
+     * Grava o recorte como custom_coordinates do asset. Assets compartilhados do seed (mocks/) nao sao alterados,
+     * porque varias linhas podem apontar para o mesmo asset; o recorte deles vive so no banco e nas URLs.
+     */
+    public void setCustomCoordinates(String publicId, int x, int y, int width, int height) {
+        if (publicId == null || publicId.isBlank() || isSharedMockAsset(publicId)) {
+            return;
+        }
+        Observation observation = Observation.createNotStarted("cloudinary.explicit", observationRegistry).start();
+        try (Observation.Scope ignored = observation.openScope()) {
+            cloudinary.uploader().explicit(publicId, ObjectUtils.asMap(
+                    "type", "upload",
+                    "custom_coordinates", x + "," + y + "," + width + "," + height,
+                    "invalidate", true));
+        } catch (IOException e) {
+            observation.error(e);
+            throw new StorageException("Falha ao salvar o recorte no Cloudinary");
+        } finally {
+            observation.stop();
+        }
+    }
+
+    static boolean isSharedMockAsset(String publicId) {
+        return publicId.startsWith(SHARED_MOCK_PREFIX);
     }
 
     // método auxiliar de validação

@@ -10,8 +10,11 @@ import tools.jackson.databind.ObjectMapper;
 
 import com.solaria.persistence.domain.entity.identity.User;
 import com.solaria.persistence.dto.request.identity.UserRequestDTO;
+import com.solaria.persistence.dto.request.identity.UpdateOwnUserRequestDTO;
 import com.solaria.persistence.dto.response.identity.UserResponseDTO;
+import com.solaria.persistence.dto.response.identity.UserSummaryResponseDTO;
 import com.solaria.persistence.exception.InvalidFieldException;
+import com.solaria.persistence.exception.DuplicateResourceException;
 import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.identity.PersonRepository;
@@ -32,6 +35,7 @@ public class UserService {
     private final ObjectMapper objectMapper;
     private final CurrentUserService currentUserService;
     private final RbacAuthorizationService rbac;
+    private final InternalUserProvisioningService provisioningService;
 
     public UserService(UserRepository userRepository,
                         PersonRepository personRepository,
@@ -39,7 +43,8 @@ public class UserService {
                         UserPhotoRepository userPhotoRepository,
                         ObjectMapper objectMapper,
                         CurrentUserService currentUserService,
-                        RbacAuthorizationService rbac) {
+                        RbacAuthorizationService rbac,
+                        InternalUserProvisioningService provisioningService) {
         this.userRepository = userRepository;
         this.personRepository = personRepository;
         this.userCompanyRepository = userCompanyRepository;
@@ -47,6 +52,7 @@ public class UserService {
         this.objectMapper = objectMapper;
         this.currentUserService = currentUserService;
         this.rbac = rbac;
+        this.provisioningService = provisioningService;
     }
 
     @Transactional
@@ -91,6 +97,37 @@ public class UserService {
         User user = userRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("Usuário não encontrado com ID: " + id));
         return toResponse(user);
+    }
+
+    @Transactional(readOnly = true)
+    public UserSummaryResponseDTO findSummaryByAuthId(UUID authId) {
+        User user = userRepository.findByAuthId(authId)
+                .filter(candidate -> Boolean.TRUE.equals(candidate.getActive()))
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+        return new UserSummaryResponseDTO(user.getUsername(), user.getAvatar());
+    }
+
+    @Transactional
+    public UserResponseDTO findMe(UUID authId) {
+        return toResponse(findOrProvision(authId));
+    }
+
+    @Transactional
+    public UserResponseDTO updateMe(UUID authId, UpdateOwnUserRequestDTO dto) {
+        User user = findOrProvision(authId);
+        if (userRepository.existsByUsernameAndIdNot(dto.username(), user.getId())) {
+            throw new DuplicateResourceException("Nome de usuário indisponível");
+        }
+        user.setUsername(dto.username());
+        return toResponse(userRepository.save(user));
+    }
+
+    private User findOrProvision(UUID authId) {
+        return userRepository.findByAuthId(authId).orElseGet(() -> {
+            provisioningService.provision(authId);
+            return userRepository.findByAuthId(authId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado"));
+        });
     }
 
     @Transactional(readOnly = true)

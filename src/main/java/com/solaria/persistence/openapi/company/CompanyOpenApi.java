@@ -76,4 +76,25 @@ public interface CompanyOpenApi {
             @ApiResponse(responseCode = "200", description = "Listagem retornada com sucesso")
     })
     ResponseEntity<List<CompanyResponseDTO>> findAll();
+
+    @Operation(
+        summary = "Aprova o cadastro de uma empresa",
+        description = "Só é permitido a partir do status UNDER_ANALYSIS; a aprovação é definitiva."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Empresa aprovada com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Empresa não encontrada")
+    })
+    ResponseEntity<CompanyResponseDTO> approve(UUID id);
+
+    @Operation(
+        summary = "Rejeita o cadastro de uma empresa",
+        description = "Só é permitido a partir do status UNDER_ANALYSIS; a rejeição é definitiva."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Empresa rejeitada com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Empresa não encontrada")
+    })
+    ResponseEntity<CompanyResponseDTO> reject(UUID id);
+
 }

@@ -10,6 +10,7 @@ import java.util.UUID;
 
 
 public interface PersonRepository extends JpaRepository<Person, UUID> {
+    java.util.Optional<Person> findFirstByUserId(UUID userId);
 
     @Override
     @EntityGraph(attributePaths = {"user", "contact"})

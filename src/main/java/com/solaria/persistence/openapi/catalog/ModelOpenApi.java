@@ -70,4 +70,24 @@ public interface ModelOpenApi {
             @ApiResponse(responseCode = "200", description = "Listagem retornada com sucesso")
     })
     ResponseEntity<List<ModelResponseDTO>> findByStatus(ModelStatus status);
+
+    @Operation(
+        summary = "Aprova um modelo",
+        description = "A aprovação é definitiva e move o modelo para fora do fluxo de análise."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Modelo aprovado com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Modelo não encontrado")
+    })
+    ResponseEntity<ModelResponseDTO> approve(UUID id);
+
+    @Operation(
+        summary = "Rejeita um modelo",
+        description = "A rejeição é definitiva e move o modelo para fora do fluxo de análise."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Modelo rejeitado com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Modelo não encontrado")
+    })
+    ResponseEntity<ModelResponseDTO> reject(UUID id);
 }

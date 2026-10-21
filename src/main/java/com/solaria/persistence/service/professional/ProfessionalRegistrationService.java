@@ -30,7 +30,7 @@ public class ProfessionalRegistrationService {
     private final TechnicianRepository technicianRepository;
     private final ProfessionRepository professionRepository;
     private final CertificationRecordRepository certificationRecordRepository;
-
+    private final com.solaria.persistence.service.professional.ApprovedProfessionalGuard approvedGuard;
     private final CurrentUserService currentUserService;
     private final RbacAuthorizationService rbac;
 
@@ -39,19 +39,23 @@ public class ProfessionalRegistrationService {
                                            ProfessionRepository professionRepository,
                                            CertificationRecordRepository certificationRecordRepository,
                                            CurrentUserService currentUserService,
-                                           RbacAuthorizationService rbac) {
+                                           RbacAuthorizationService rbac,
+                                           com.solaria.persistence.service.professional.ApprovedProfessionalGuard approvedGuard) {
         this.professionalRegistrationRepository = professionalRegistrationRepository;
         this.technicianRepository = technicianRepository;
         this.professionRepository = professionRepository;
         this.certificationRecordRepository = certificationRecordRepository;
         this.currentUserService = currentUserService;
         this.rbac = rbac;
+        this.approvedGuard = approvedGuard;
     }
 
     @Transactional
     public ProfessionalRegistrationResponseDTO save(ProfessionalRegistrationRequestDTO dto) {
         currentUserService.getProvisionedCurrentUserId();
+        rbac.requireOwnUser(resolveTechnician(dto.getTechnicianId()).getPerson().getUser().getId());
         ProfessionalRegistration professionalRegistration = new ProfessionalRegistration();
+        approvedGuard.requireLegacyChangesAllowed(resolveTechnician(dto.getTechnicianId()).getPerson().getUser().getId());
         professionalRegistration.setTechnician(resolveTechnician(dto.getTechnicianId()));
         professionalRegistration.setProfession(resolveProfession(dto.getProfessionId()));
         professionalRegistration.setCouncil(dto.getCouncil());
@@ -69,6 +73,14 @@ public class ProfessionalRegistrationService {
                         "Registro Profissional com id:" + id + " não encontrado para atualização"));
         requireOwner(professionalRegistration);
 
+        approvedGuard.requireLegacyChangesAllowed(resolveTechnician(dto.getTechnicianId()).getPerson().getUser().getId());
+        if (professionalRegistration.getTechnician() != null) {
+            approvedGuard.requireLegacyChangesAllowed(professionalRegistration.getTechnician().getPerson().getUser().getId());
+            rbac.requireOwnUser(professionalRegistration.getTechnician().getPerson().getUser().getId());
+            if (!professionalRegistration.getTechnician().getId().equals(dto.getTechnicianId())) {
+                throw new com.solaria.persistence.exception.InvalidFieldException("Technician cannot be changed");
+            }
+        }
         professionalRegistration.setTechnician(resolveTechnician(dto.getTechnicianId()));
         professionalRegistration.setProfession(resolveProfession(dto.getProfessionId()));
         professionalRegistration.setCouncil(dto.getCouncil());
@@ -90,6 +102,8 @@ public class ProfessionalRegistrationService {
                     "Registro Profissional não pode ser excluído: possui registro de certificação vinculado");
         }
 
+        var registration = professionalRegistrationRepository.findById(id).orElseThrow();
+        if (registration.getTechnician() != null) approvedGuard.requireLegacyChangesAllowed(registration.getTechnician().getPerson().getUser().getId());
         professionalRegistrationRepository.deleteById(id);
     }
 

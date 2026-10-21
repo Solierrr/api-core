@@ -51,6 +51,10 @@ public class PositionPermissionService {
         Permission permission = permissionRepository.findById(dto.getPermissionId()).orElseThrow(
                 () -> new ResourceNotFoundException("Permissão não encontrada com ID: " + dto.getPermissionId()));
 
+        if (!rbac.hasEndpointAccess(permission.getPermissionName())) {
+            throw new UnauthorizedAccessException("Não é permitido conceder uma permissão que o próprio acesso não possui");
+        }
+
         if (positionPermissionRepository.existsByPositionIdAndPermissionId(dto.getPositionId(), dto.getPermissionId())) {
             throw new DuplicateResourceException(
                     "Permissão já concedida ao cargo: " + dto.getPositionId());
@@ -104,6 +108,8 @@ public class PositionPermissionService {
         PermissionResponseDTO dto = new PermissionResponseDTO();
         dto.setId(permission.getId());
         dto.setPermissionName(permission.getPermissionName());
+        dto.setName(permission.getName());
+        dto.setDescription(permission.getDescription());
         return dto;
     }
 }

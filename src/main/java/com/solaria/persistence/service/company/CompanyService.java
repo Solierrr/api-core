@@ -1,7 +1,10 @@
 package com.solaria.persistence.service.company;
 
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.solaria.persistence.domain.entity.shared.Address;
 import com.solaria.persistence.domain.entity.company.BusinessContact;
 import com.solaria.persistence.domain.entity.company.Company;
+import com.solaria.persistence.domain.entity.company.CompanyPositions;
 import com.solaria.persistence.domain.enums.company.CompanyStatus;
 import com.solaria.persistence.dto.request.company.CompanyCreateRequestDTO;
 import com.solaria.persistence.dto.request.company.CompanyUpdateRequestDTO;
@@ -17,23 +21,33 @@ import com.solaria.persistence.dto.request.shared.AddressRequestDTO;
 import com.solaria.persistence.domain.entity.identity.Position;
 import com.solaria.persistence.domain.entity.identity.User;
 import com.solaria.persistence.domain.entity.identity.UserCompany;
-import com.solaria.persistence.domain.entity.company.CompanyPositions;
 import com.solaria.persistence.repository.identity.PositionRepository;
 import com.solaria.persistence.security.CurrentUserService;
 import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 import com.solaria.persistence.exception.UnauthorizedAccessException;
 import com.solaria.persistence.dto.response.company.CompanyResponseDTO;
 import com.solaria.persistence.mapper.company.CompanyResponseMapper;
+import com.solaria.persistence.domain.enums.company.CompanyType;
+import com.solaria.persistence.domain.entity.catalog.Supplier;
+import com.solaria.persistence.domain.entity.company.CompanyPlans;
+import com.solaria.persistence.domain.entity.company.Subscription;
+import com.solaria.persistence.domain.entity.execution.Requester;
+import com.solaria.persistence.dto.response.company.CompanyContactResponseDTO;
+import com.solaria.persistence.exception.BusinessRuleException;
 import com.solaria.persistence.exception.DuplicateResourceException;
 import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.shared.AddressRepository;
 import com.solaria.persistence.repository.company.BusinessContactRepository;
+import com.solaria.persistence.domain.entity.company.CompanyPhoto;
+import com.solaria.persistence.domain.enums.shared.PhotoType;
 import com.solaria.persistence.repository.company.CompanyPhotoRepository;
 import com.solaria.persistence.repository.company.CompanyPositionsRepository;
 import com.solaria.persistence.repository.company.CompanyRepository;
 import com.solaria.persistence.repository.execution.RequesterRepository;
 import com.solaria.persistence.repository.catalog.SupplierRepository;
+import com.solaria.persistence.repository.company.CompanyPlansRepository;
+import com.solaria.persistence.repository.company.SubscriptionRepository;
 import com.solaria.persistence.repository.professional.TechnicianAffiliationRepository;
 import com.solaria.persistence.repository.identity.UserCompanyRepository;
 import com.solaria.persistence.util.SlugUtil;
@@ -55,6 +69,8 @@ public class CompanyService {
     private final TechnicianAffiliationRepository technicianAffiliationRepository;
     private final CompanyPositionsRepository companyPositionsRepository;
     private final CompanyPhotoRepository companyPhotoRepository;
+    private final CompanyPlansRepository companyPlansRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
     public CompanyService(CompanyRepository companyRepository,
                           AddressRepository addressRepository,
@@ -67,10 +83,14 @@ public class CompanyService {
                           CompanyPhotoRepository companyPhotoRepository,
                           CurrentUserService currentUserService,
                           PositionRepository positionRepository,
-                          RbacAuthorizationService rbac) {
+                          RbacAuthorizationService rbac,
+                          CompanyPlansRepository companyPlansRepository,
+                          SubscriptionRepository subscriptionRepository) {
         this.currentUserService = currentUserService;
         this.positionRepository = positionRepository;
         this.rbac = rbac;
+        this.companyPlansRepository = companyPlansRepository;
+        this.subscriptionRepository = subscriptionRepository;
         this.companyRepository = companyRepository;
         this.addressRepository = addressRepository;
         this.businessContactRepository = businessContactRepository;
@@ -82,6 +102,8 @@ public class CompanyService {
         this.companyPhotoRepository = companyPhotoRepository;
     }
 
+    private static final String DEFAULT_PLAN_NAME = "Gratuito";
+
     @Transactional
     public CompanyResponseDTO save(CompanyCreateRequestDTO dto) {
         User actor = currentUserService.getProvisionedCurrentUser();
@@ -92,11 +114,11 @@ public class CompanyService {
             throw new DuplicateResourceException("Empresa já cadastrada para o CNPJ: " + dto.getCnpj());
         }
         Company company = new Company();
-        company.setStatus(CompanyStatus.APPROVED);
         company.setCnpj(dto.getCnpj());
         company.setTradeName(dto.getTradeName());
         company.setCorporateName(dto.getCorporateName());
         company.setSlug(generateUniqueSlug(dto.getTradeName()));
+        company.setType(dto.getType());
         companyRepository.saveAndFlush(company);
         if (dto.getAddress() != null) {
             company.setAddress(createAddress(company, dto.getAddress()));
@@ -114,7 +136,51 @@ public class CompanyService {
         membership.setCompany(company);
         membership.setPosition(admin);
         userCompanyRepository.saveAndFlush(membership);
-        return CompanyResponseMapper.toResponse(company, company.getId());
+
+        if (dto.getType() == CompanyType.SUPPLIER) {
+            Supplier supplier = new Supplier();
+            supplier.setCompany(company);
+            Supplier savedSupplier = supplierRepository.save(supplier);
+
+            // Assinatura no plano gratuito, pré-requisito técnico pra criar ofertas
+            // (ver OfferService.save / SubscriptionService.isSupplierSubscriptionActive).
+            CompanyPlans defaultPlan = companyPlansRepository.findByName(DEFAULT_PLAN_NAME)
+                    .orElseThrow(() -> new ResourceNotFoundException("Plano padrão não configurado"));
+            Subscription subscription = new Subscription();
+            subscription.setSupplier(savedSupplier);
+            subscription.setPlan(defaultPlan);
+            subscription.setStartDate(OffsetDateTime.now());
+            subscriptionRepository.save(subscription);
+        } else {
+            Requester requester = new Requester();
+            requester.setCompany(company);
+            requesterRepository.save(requester);
+        }
+
+        return toResponse(company, company.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public CompanyContactResponseDTO findContactUser(UUID companyId) {
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada"));
+        if (company.getStatus() != CompanyStatus.APPROVED || company.getType() != CompanyType.SUPPLIER) {
+            throw new ResourceNotFoundException("Empresa indisponível para contato");
+        }
+
+        UUID contactUserId = userCompanyRepository.findByCompanyId(companyId).stream()
+                .filter(link -> Boolean.TRUE.equals(link.getUser().getActive()) && link.getUser().getAuth_id() != null)
+                .sorted((left, right) -> {
+                    boolean leftAdmin = Position.ADMIN_NAME.equals(left.getPosition().getName());
+                    boolean rightAdmin = Position.ADMIN_NAME.equals(right.getPosition().getName());
+                    if (leftAdmin != rightAdmin) return leftAdmin ? -1 : 1;
+                    return left.getUser().getId().compareTo(right.getUser().getId());
+                })
+                .map(UserCompany::getUser)
+                .map(user -> user.getAuth_id())
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa sem responsável para contato"));
+        return new CompanyContactResponseDTO(contactUserId);
     }
 
     @Transactional
@@ -161,6 +227,27 @@ public class CompanyService {
     }
 
     @Transactional
+    public CompanyResponseDTO approve(UUID id) {
+        return applyStatus(id, CompanyStatus.APPROVED);
+    }
+
+    @Transactional
+    public CompanyResponseDTO reject(UUID id) {
+        return applyStatus(id, CompanyStatus.REJECTED);
+    }
+
+    private CompanyResponseDTO applyStatus(UUID id, CompanyStatus target) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(COMPANY_NOT_FOUND + id));
+        if (company.getStatus() != CompanyStatus.UNDER_ANALYSIS) {
+            throw new BusinessRuleException(
+                    "Transição de status inválida: " + company.getStatus() + " → " + target);
+        }
+        company.setStatus(target);
+        return toResponse(companyRepository.save(company), rbac.findCurrentCompanyId().orElse(null));
+    }
+
+    @Transactional
     public CompanyResponseDTO attachAddress(UUID companyId, UUID addressId) {
         rbac.requireOwnCompany(companyId);
         Company company = companyRepository.findById(companyId)
@@ -199,8 +286,14 @@ public class CompanyService {
 
     @Transactional(readOnly = true)
     public List<CompanyResponseDTO> findAll() {
+        List<Company> companies = companyRepository.findAll();
         UUID actorCompanyId = rbac.findCurrentCompanyId().orElse(null);
-        return companyRepository.findAll().stream().map(company -> CompanyResponseMapper.toResponse(company, actorCompanyId)).toList();
+        Map<UUID, List<CompanyPhoto>> photos = companyPhotoRepository
+                .findByCompanyIdIn(companies.stream().map(Company::getId).toList()).stream()
+                .collect(Collectors.groupingBy(photo -> photo.getCompany().getId()));
+        return companies.stream()
+                .map(company -> toResponse(company, actorCompanyId, photos.getOrDefault(company.getId(), List.of())))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -230,6 +323,7 @@ public class CompanyService {
 
     private String generateUniqueSlug(String tradeName) {
         String base = SlugUtil.slugify(tradeName);
+        if (base == null || base.isBlank()) base = "empresa";
         String candidate = base;
         int suffix = 2;
         while (companyRepository.existsBySlug(candidate)) {
@@ -239,4 +333,18 @@ public class CompanyService {
         return candidate;
     }
 
+    private CompanyResponseDTO toResponse(Company company, UUID actorCompanyId) {
+        return toResponse(company, actorCompanyId, companyPhotoRepository.findByCompanyIdOrderByTypeAsc(company.getId()));
+    }
+
+    private CompanyResponseDTO toResponse(Company company, UUID actorCompanyId, List<CompanyPhoto> photos) {
+        CompanyResponseDTO dto = CompanyResponseMapper.toResponse(company, actorCompanyId);
+        dto.setLogoUrl(photoUrl(photos, PhotoType.PROFILE));
+        dto.setBannerUrl(photoUrl(photos, PhotoType.BANNER));
+        return dto;
+    }
+
+    private String photoUrl(List<CompanyPhoto> photos, PhotoType type) {
+        return photos.stream().filter(photo -> photo.getType() == type).map(CompanyPhoto::getUrl).findFirst().orElse(null);
+    }
 }

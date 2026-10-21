@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.solaria.persistence.domain.enums.unit.LocalUnitPhotoType;
 import com.solaria.persistence.dto.response.unit.LocalUnitPhotoResponseDTO;
 import com.solaria.persistence.openapi.unit.LocalUnitPhotoOpenApi;
 import com.solaria.persistence.service.unit.LocalUnitPhotoService;
@@ -31,8 +32,9 @@ public class LocalUnitPhotoController implements LocalUnitPhotoOpenApi {
     @Override
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<LocalUnitPhotoResponseDTO> upload(@RequestParam("localUnitId") UUID localUnitId,
-                                                               @RequestParam("file") MultipartFile file) {
-        LocalUnitPhotoResponseDTO response = localUnitPhotoService.upload(localUnitId, file);
+                                                               @RequestParam("file") MultipartFile file,
+                                                               @RequestParam(value = "type", defaultValue = "GALLERY") LocalUnitPhotoType type) {
+        LocalUnitPhotoResponseDTO response = localUnitPhotoService.upload(localUnitId, file, type);
         return ResponseEntity.created(URI.create("/api/local-unit-photos/" + response.getId())).body(response);
     }
 

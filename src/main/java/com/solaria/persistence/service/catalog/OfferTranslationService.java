@@ -1,106 +1,113 @@
 package com.solaria.persistence.service.catalog;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.solaria.persistence.domain.entity.catalog.Offer;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import com.solaria.persistence.domain.entity.catalog.OfferTranslation;
 import com.solaria.persistence.domain.enums.catalog.TranslationStatus;
 import com.solaria.persistence.repository.catalog.OfferRepository;
 import com.solaria.persistence.repository.catalog.OfferTranslationRepository;
 import com.solaria.persistence.util.SupportedLocales;
 
-/**
- * Preenche as traduções de uma oferta (placa solar) em background: detecta o idioma de origem
- * via Google Translate e traduz o conteúdo para os demais idiomas suportados.
- *
- * Disparado pelo OfferService após o commit da transação que cria a oferta (via
- * TransactionSynchronizationManager#registerSynchronization), para não bloquear a resposta
- * de criação nem competir com a transação de escrita original.
- */
 @Service
 public class OfferTranslationService {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(OfferTranslationService.class);
-
-    /** Locale temporário gravado na criação da oferta, até a detecção do idioma real concluir. */
     public static final String PENDING_LOCALE = "und";
-
+    private record Source(UUID id, String title, String description, String details) {}
     private final OfferRepository offerRepository;
     private final OfferTranslationRepository offerTranslationRepository;
     private final GoogleTranslateService googleTranslateService;
+    private final TransactionTemplate transaction;
 
     public OfferTranslationService(OfferRepository offerRepository,
-                                   OfferTranslationRepository offerTranslationRepository,
-                                   GoogleTranslateService googleTranslateService) {
+            OfferTranslationRepository offerTranslationRepository,
+            GoogleTranslateService googleTranslateService, PlatformTransactionManager manager) {
         this.offerRepository = offerRepository;
         this.offerTranslationRepository = offerTranslationRepository;
         this.googleTranslateService = googleTranslateService;
+        this.transaction = new TransactionTemplate(manager);
     }
 
-    @Async
-    @Transactional
     public void translateOffer(UUID offerId) {
-        try {
-            Offer offer = offerRepository.findById(offerId).orElse(null);
-            if (offer == null) {
-                return;
-            }
-
-            OfferTranslation sourceTranslation = offerTranslationRepository
-                    .findByOfferIdAndLocale(offerId, PENDING_LOCALE)
-                    .orElse(null);
-            if (sourceTranslation == null) {
-                return;
-            }
-
-            String detectedShortCode = googleTranslateService.detectLanguage(
-                    sourceTranslation.getTitle() + ". " + sourceTranslation.getDescription());
-            String sourceLocale = SupportedLocales.resolveFromShortCode(detectedShortCode);
-
-            sourceTranslation.setLocale(sourceLocale);
-            offerTranslationRepository.save(sourceTranslation);
-            offer.setSourceLocale(sourceLocale);
-
-            List<String> sourceTexts = new ArrayList<>();
-            sourceTexts.add(sourceTranslation.getTitle());
-            sourceTexts.add(sourceTranslation.getDescription());
-            sourceTexts.add(sourceTranslation.getDetails() == null ? "" : sourceTranslation.getDetails());
-
-            String sourceShortCode = shortCode(sourceLocale);
-
-            for (String targetLocale : SupportedLocales.targetsExcluding(sourceLocale)) {
-                List<String> translated = googleTranslateService.translate(
-                        sourceTexts, sourceShortCode, shortCode(targetLocale));
-
-                OfferTranslation translation = new OfferTranslation();
-                translation.setOffer(offer);
-                translation.setLocale(targetLocale);
-                translation.setTitle(translated.get(0));
-                translation.setDescription(translated.get(1));
-                translation.setDetails(sourceTranslation.getDetails() == null ? null : translated.get(2));
-                offerTranslationRepository.save(translation);
-            }
-
-            offer.setTranslationStatus(TranslationStatus.COMPLETED);
-            offerRepository.save(offer);
-        } catch (RuntimeException ex) {
-            LOGGER.error("Falha ao traduzir oferta {}", offerId, ex);
-            offerRepository.findById(offerId).ifPresent(offer -> {
-                offer.setTranslationStatus(TranslationStatus.FAILED);
-                offerRepository.save(offer);
-            });
-        }
+        translateVersion(offerId, null);
     }
 
-    private String shortCode(String locale) {
-        return locale.split("-")[0].toLowerCase();
+    public String failVersion(UUID offerId, UUID sourceId) {
+        return transaction.execute(status -> {
+            var offer = offerRepository.lockById(offerId).orElse(null);
+            if (offer == null) return "CANCELLED";
+            if (offer.getTranslationStatus() == TranslationStatus.COMPLETED) return "COMPLETED";
+            var pending = offerTranslationRepository.findByOfferIdAndLocale(offerId, PENDING_LOCALE).orElse(null);
+            if (pending == null || !Objects.equals(pending.getId(), sourceId)) return "CANCELLED";
+            offer.setTranslationStatus(TranslationStatus.FAILED);
+            offerRepository.save(offer);
+            return "FAILED";
+        });
+    }
+
+    public String translateVersion(UUID offerId, UUID expectedSourceId) {
+        var alreadyCompleted = transaction.execute(status -> offerRepository.findById(offerId)
+                .map(offer -> offer.getTranslationStatus() == TranslationStatus.COMPLETED).orElse(false));
+        if (Boolean.TRUE.equals(alreadyCompleted)) return "COMPLETED";
+        Source source = transaction.execute(status -> offerTranslationRepository.findByOfferIdAndLocale(offerId, PENDING_LOCALE)
+                .map(item -> new Source(item.getId(), item.getTitle(), item.getDescription(), item.getDetails())).orElse(null));
+        if (source == null) {
+            var completed = transaction.execute(status -> offerRepository.findById(offerId)
+                    .map(offer -> offer.getTranslationStatus() == TranslationStatus.COMPLETED).orElse(false));
+            return Boolean.TRUE.equals(completed) ? "COMPLETED" : "CANCELLED";
+        }
+        if (expectedSourceId != null && !Objects.equals(expectedSourceId, source.id())) return "CANCELLED";
+        try {
+            Map<String, String> fields = new LinkedHashMap<>();
+            fields.put("title", source.title());
+            fields.put("description", source.description());
+            if (source.details() != null && !source.details().isBlank()) fields.put("details", source.details());
+            GoogleTranslateService.Result result = googleTranslateService.translateFields(fields);
+            return transaction.execute(status -> {
+                var offer = offerRepository.lockById(offerId).orElse(null);
+                if (offer == null) return "CANCELLED";
+                if (offer.getTranslationStatus() == TranslationStatus.COMPLETED) return "COMPLETED";
+                var pending = offerTranslationRepository.findByOfferIdAndLocale(offerId, PENDING_LOCALE).orElse(null);
+                if (pending == null || !Objects.equals(pending.getId(), source.id())) return "CANCELLED";
+                boolean supportedSource = result.translations().containsKey(result.sourceLanguage());
+                if (supportedSource) {
+                    pending.setLocale(SupportedLocales.resolveFromShortCode(result.sourceLanguage()));
+                    offerTranslationRepository.save(pending);
+                    offer.setSourceLocale(pending.getLocale());
+                } else {
+                    offer.setSourceLocale(PENDING_LOCALE);
+                }
+                for (var entry : result.translations().entrySet()) {
+                    if (supportedSource && entry.getKey().equals(result.sourceLanguage())) continue;
+                    OfferTranslation translated = new OfferTranslation();
+                    translated.setOffer(offer);
+                    translated.setLocale(SupportedLocales.resolveFromShortCode(entry.getKey()));
+                    translated.setTitle(entry.getValue().get("title"));
+                    translated.setDescription(entry.getValue().get("description"));
+                    translated.setDetails(fields.containsKey("details") ? entry.getValue().get("details") : source.details());
+                    offerTranslationRepository.save(translated);
+                }
+                offer.setTranslationStatus(TranslationStatus.COMPLETED);
+                offerRepository.save(offer);
+                return "COMPLETED";
+            });
+        } catch (RuntimeException exception) {
+            LOGGER.warn("Offer translation failed for {}", offerId);
+            transaction.executeWithoutResult(status -> {
+                var offer = offerRepository.lockById(offerId).orElse(null);
+                var pending = offerTranslationRepository.findByOfferIdAndLocale(offerId, PENDING_LOCALE).orElse(null);
+                if (offer != null && offer.getTranslationStatus() != TranslationStatus.COMPLETED && pending != null && Objects.equals(pending.getId(), source.id())) {
+                    offer.setTranslationStatus(TranslationStatus.FAILED);
+                    offerRepository.save(offer);
+                }
+            });
+            return "FAILED";
+        }
     }
 }

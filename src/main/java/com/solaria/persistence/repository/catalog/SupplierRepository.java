@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import com.solaria.persistence.domain.enums.catalog.SupplierStatus;
+import com.solaria.persistence.domain.enums.company.CompanyStatus;
 
 public interface SupplierRepository extends JpaRepository<Supplier, UUID>, JpaSpecificationExecutor<Supplier> {
 
@@ -25,4 +27,7 @@ public interface SupplierRepository extends JpaRepository<Supplier, UUID>, JpaSp
     Optional<Supplier> findById(UUID id);
 
     boolean existsByCompanyId(UUID companyId);
+
+    @EntityGraph(attributePaths = {"company", "company.address"})
+    List<Supplier> findByStatusAndCompany_Status(SupplierStatus status, CompanyStatus companyStatus);
 }

@@ -27,6 +27,7 @@ import com.solaria.persistence.security.CurrentUserService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.PersistenceContext;
+import com.solaria.persistence.repository.identity.PositionPermissionRepository;
 
 
 @Service
@@ -44,6 +45,7 @@ public class UserCompanyService {
     private final CurrentUserService currentUserService;
     @PersistenceContext
     private EntityManager entityManager;
+    private final PositionPermissionRepository positionPermissionRepository;
 
     public UserCompanyService(UserCompanyRepository userCompanyRepository,
                               UserRepository userRepository,
@@ -52,7 +54,8 @@ public class UserCompanyService {
                               CompanyPositionsRepository companyPositionsRepository,
                               RbacAuthorizationService rbac,
                               ObjectMapper objectMapper,
-                              CurrentUserService currentUserService) {
+                              CurrentUserService currentUserService,
+                              PositionPermissionRepository positionPermissionRepository) {
         this.userCompanyRepository = userCompanyRepository;
         this.userRepository = userRepository;
         this.companyRepository = companyRepository;
@@ -61,6 +64,15 @@ public class UserCompanyService {
         this.rbac = rbac;
         this.objectMapper = objectMapper;
         this.currentUserService = currentUserService;
+        this.positionPermissionRepository = positionPermissionRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public UserCompanyResponseDTO findMe() {
+        User user = currentUserService.getCurrentUser();
+        return userCompanyRepository.findByUserId(user.getId())
+                .map(this::toResponse)
+                .orElse(null);
     }
 
     @Transactional
@@ -212,6 +224,8 @@ public class UserCompanyService {
         PositionResponseDTO position = objectMapper.convertValue(entity.getPosition(), PositionResponseDTO.class);
         position.setCompanyId(entity.getCompany().getId());
         response.setPosition(position);
+        response.setPermissions(positionPermissionRepository.findByPositionId(entity.getPosition().getId()).stream()
+                .map(link -> link.getPermission().getPermissionName()).toList());
         return response;
     }
 }

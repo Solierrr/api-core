@@ -11,6 +11,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.solaria.persistence.domain.entity.identity.User;
+import com.solaria.persistence.domain.enums.company.CompanyType;
 import com.solaria.persistence.repository.identity.UserRepository;
 
 /** Fatos de autorização reutilizados somente pela thread da request MVC atual. */
@@ -91,6 +92,6 @@ public final class CurrentUserRequestContext {
         return endpointGrants.computeIfAbsent(endpoint, ignored -> lookup.getAsBoolean());
     }
 
-    public record CompanyAccess(UUID companyId, UUID positionId, String positionName) {
+    public record CompanyAccess(UUID companyId, UUID positionId, String positionName, CompanyType companyType) {
     }
 }

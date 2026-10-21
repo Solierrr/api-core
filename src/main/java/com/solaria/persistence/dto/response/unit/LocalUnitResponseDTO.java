@@ -4,6 +4,7 @@ import com.solaria.persistence.domain.enums.unit.LocationType;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
 import java.util.UUID;
 import com.solaria.persistence.dto.response.shared.AddressResponseDTO;
 
@@ -16,5 +17,8 @@ public class LocalUnitResponseDTO {
     private AddressResponseDTO address;
     private String complement;
     private LocationType locationType;
+    private String mainImageUrl;
+    private String bannerUrl;
+    private List<String> galleryUrls;
 
 }

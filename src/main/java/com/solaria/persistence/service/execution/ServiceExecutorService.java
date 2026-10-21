@@ -25,22 +25,34 @@ import com.solaria.persistence.repository.execution.TechnicalServiceRepository;
 import com.solaria.persistence.repository.professional.TechnicianAffiliationRepository;
 
 
+import tools.jackson.databind.ObjectMapper;
+
+
 @Service
 public class ServiceExecutorService {
 
     private final ServiceExecutorRepository serviceExecutorRepository;
     private final TechnicalServiceRepository technicalServiceRepository;
     private final TechnicianAffiliationRepository technicianAffiliationRepository;
-    private final RbacAuthorizationService rbac;
+    private final ObjectMapper objectMapper;
+    private final ProjectAccess projectAccess;
+    private final com.solaria.persistence.repository.execution.ProjectActivityRepository
+            projectActivities;
 
-    public ServiceExecutorService(ServiceExecutorRepository serviceExecutorRepository,
-                                  TechnicalServiceRepository technicalServiceRepository,
-                                  TechnicianAffiliationRepository technicianAffiliationRepository,
-                                  RbacAuthorizationService rbac) {
+    public ServiceExecutorService(
+            ServiceExecutorRepository serviceExecutorRepository,
+            TechnicalServiceRepository technicalServiceRepository,
+            TechnicianAffiliationRepository technicianAffiliationRepository,
+            ObjectMapper objectMapper,
+            ProjectAccess projectAccess,
+            com.solaria.persistence.repository.execution.ProjectActivityRepository
+                    projectActivities) {
         this.serviceExecutorRepository = serviceExecutorRepository;
         this.technicalServiceRepository = technicalServiceRepository;
         this.technicianAffiliationRepository = technicianAffiliationRepository;
-        this.rbac = rbac;
+        this.objectMapper = objectMapper;
+        this.projectAccess = projectAccess;
+        this.projectActivities = projectActivities;
     }
 
     @Transactional
@@ -60,7 +72,8 @@ public class ServiceExecutorService {
         if (serviceExecutorRepository.existsByServiceIdAndTechnicianAffiliationId(
                 dto.getServiceId(), dto.getTechnicianAffiliationId())) {
             throw new DuplicateResourceException(
-                    "Afiliação já vinculada como executor deste serviço: " + dto.getTechnicianAffiliationId());
+                    "Afiliação já vinculada como executor deste serviço: "
+                            + dto.getTechnicianAffiliationId());
         }
 
         ServiceExecutor serviceExecutor = new ServiceExecutor();
@@ -105,38 +118,42 @@ public class ServiceExecutorService {
     public List<ServiceExecutorResponseDTO> findByService(UUID serviceId) {
         TechnicalService service = technicalServiceRepository.findForManagementById(serviceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Serviço Técnico não encontrado com ID: " + serviceId));
-        requireOwner(service);
+        projectAccess.read(service.getTechnicalProject());
         return serviceExecutorRepository.findByServiceId(serviceId).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     private void requireOwner(TechnicalService service) {
-        var requester = service.getTechnicalProject().getRequester();
-        rbac.requireOwnCompany(requester == null ? null : requester.getCompany().getId());
+        projectAccess.manage(service.getTechnicalProject());
     }
 
     private void validateServiceMutableState(TechnicalService service) {
+        projectAccess.manage(service.getTechnicalProject());
+        projectAccess.mutable(service.getTechnicalProject());
+        if (projectActivities.existsByTechnicalServiceId(service.getId()))
+            throw new BusinessRuleException("Gerencie responsáveis pela agenda do projeto");
         ServiceStatus status = service.getStatus();
         if (status != ServiceStatus.OPEN && status != ServiceStatus.IN_PROGRESS) {
-            throw new BusinessRuleException("Serviço Técnico não pode ser alterado no status: " + status);
+            throw new BusinessRuleException(
+                    "Serviço Técnico não pode ser alterado no status: " + status);
         }
     }
 
     private ServiceExecutorResponseDTO toResponse(ServiceExecutor entity) {
-        ServiceExecutorResponseDTO response = new ServiceExecutorResponseDTO();
-        response.setId(entity.getId());
+        ServiceExecutorResponseDTO response =
+                objectMapper.convertValue(entity, ServiceExecutorResponseDTO.class);
         response.setServiceId(entity.getService().getId());
-        response.setTechnicianAffiliation(toTechnicianAffiliationResponse(entity.getTechnicianAffiliation()));
+        response.setTechnicianAffiliation(
+                toTechnicianAffiliationResponse(entity.getTechnicianAffiliation()));
         response.setPosition(entity.getFunction());
         return response;
     }
 
-    private TechnicianAffiliationResponseDTO toTechnicianAffiliationResponse(TechnicianAffiliation entity) {
-        TechnicianAffiliationResponseDTO response = new TechnicianAffiliationResponseDTO();
-        response.setId(entity.getId());
-        response.setAffiliationType(entity.getAffiliationType());
-        response.setActive(entity.getActive());
+    private TechnicianAffiliationResponseDTO toTechnicianAffiliationResponse(
+            TechnicianAffiliation entity) {
+        TechnicianAffiliationResponseDTO response =
+                objectMapper.convertValue(entity, TechnicianAffiliationResponseDTO.class);
         response.setCompanyId(entity.getCompany() == null ? null : entity.getCompany().getId());
         response.setTechnicianId(entity.getTechnician().getId());
         return response;
