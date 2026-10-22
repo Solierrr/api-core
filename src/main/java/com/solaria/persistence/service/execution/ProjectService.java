@@ -141,6 +141,7 @@ public class ProjectService {
     }
 
     private void apply(TechnicalProject p, ProjectRequest d) {
+        var previousLocation = p.getLocation();
         if (d.startDate() != null && d.endDate() != null && !d.endDate().isAfter(d.startDate()))
             throw new BusinessRuleException("A data final precisa ser posterior ao início");
         p.setName(d.name().trim());
@@ -175,8 +176,28 @@ public class ProjectService {
         } else {
             p.setLocalUnit(null);
             p.setRequester(null);
-            p.setLocation(d.location());
+            var next = d.location();
+            if (next != null) {
+                next.setLatitude(null);
+                next.setLongitude(null);
+                next.setPlaceId(null);
+                next.setGeocodedAt(null);
+            }
+            p.setLocation(next);
         }
+        var nextLocation = p.getLocation();
+        if (previousLocation != null && nextLocation != null && addressKey(previousLocation).equals(addressKey(nextLocation))) {
+            nextLocation.setLatitude(previousLocation.getLatitude());
+            nextLocation.setLongitude(previousLocation.getLongitude());
+            nextLocation.setPlaceId(previousLocation.getPlaceId());
+            nextLocation.setGeocodedAt(previousLocation.getGeocodedAt());
+        }
+    }
+
+    private List<String> addressKey(ProjectLocation location) {
+        return java.util.Arrays.asList(location.getState(), location.getCity(), location.getNeighborhood(),
+                location.getStreet(), location.getNumber(), location.getZipCode()).stream()
+                .map(value -> value == null ? "" : value.trim().toLowerCase(Locale.ROOT)).toList();
     }
 
     public ProjectResponse status(UUID id, ServiceStatus next) {

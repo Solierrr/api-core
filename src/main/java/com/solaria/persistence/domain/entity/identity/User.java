@@ -24,6 +24,9 @@ public class User {
     @Column(name = "auth_id", nullable = false, unique = true)
     private UUID auth_id;
 
+    @Column(name = "managed_by_company_id")
+    private UUID managedByCompanyId;
+
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
