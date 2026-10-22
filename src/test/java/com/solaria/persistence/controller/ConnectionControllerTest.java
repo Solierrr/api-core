@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import com.solaria.persistence.dto.request.ConnectionRequestDTO;
 import com.solaria.persistence.dto.response.identity.UserResponseDTO;
 import com.solaria.persistence.service.ConnectionService;
+import com.solaria.persistence.service.ConnectionDirectoryService;
 
 @ExtendWith(MockitoExtension.class)
 class ConnectionControllerTest {
@@ -26,11 +27,14 @@ class ConnectionControllerTest {
     @Mock
     private ConnectionService connectionService;
 
+    @Mock
+    private ConnectionDirectoryService directory;
+
     private ConnectionController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new ConnectionController(connectionService);
+        controller = new ConnectionController(connectionService, directory);
     }
 
     @Test
