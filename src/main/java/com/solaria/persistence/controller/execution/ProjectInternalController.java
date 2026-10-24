@@ -7,14 +7,9 @@ import com.solaria.persistence.service.execution.*;
 
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.*;
 
 @RestController
@@ -27,21 +22,9 @@ public class ProjectInternalController {
     private final ProjectMemberRepository members;
     private final UserCompanyRepository companies;
 
-    @Value("${app.projects.internal-key:}")
-    private String key;
-
     @GetMapping("/{id}/access/{authId}")
     @Transactional(readOnly = true)
-    public Map<String, Object> authority(
-            @PathVariable UUID id,
-            @PathVariable UUID authId,
-            @RequestHeader(value = "X-Project-Service-Key", defaultValue = "") String provided) {
-        if (key.length() < 32
-                || !MessageDigest.isEqual(
-                        key.getBytes(StandardCharsets.UTF_8),
-                        provided.getBytes(StandardCharsets.UTF_8)))
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED, "Service authentication required");
+    public Map<String, Object> authority(@PathVariable UUID id, @PathVariable UUID authId) {
         var p = projects.entity(id, false);
         var u =
                 users.findByAuthId(authId)
