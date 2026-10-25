@@ -29,7 +29,8 @@ public interface TechnicianAffiliationRepository extends JpaRepository<Technicia
             + "p.name, c.tradeName, a.affiliationType, prof.name, r.council, r.number, r.expirationDate, addr.city) "
             + "from TechnicianAffiliation a join a.technician t join t.person p join a.company c join c.address addr "
             + "left join ProfessionalRegistration r on r.technician = t left join r.profession prof "
-            + "where (:anyProfession = true or lower(prof.name) like :profession) "
+            + "where t.status = com.solaria.persistence.domain.enums.professional.TechnicianStatus.APPROVED and a.active = true "
+            + "and (:anyProfession = true or lower(prof.name) like :profession) "
             + "and (:anyCity = true or lower(addr.city) like :city) "
             + "order by p.name, a.id, r.id")
     List<AccreditedTechnicianResponseDTO> findAccredited(@Param("anyProfession") boolean anyProfession,

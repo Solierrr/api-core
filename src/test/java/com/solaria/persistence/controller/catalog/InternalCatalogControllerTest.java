@@ -87,6 +87,11 @@ class InternalCatalogControllerTest {
         Technician bruno = technician("Bruno Lima", "bruno-lima", "22222222222");
         affiliation(installer, ana, TechnicalAffiliationType.AFFILIATED);
         affiliation(remote, bruno, TechnicalAffiliationType.PARTNER);
+        Technician pending = technician("Carla Dias", "carla-dias", "33333333333");
+        pending.setStatus(TechnicianStatus.UNDER_ANALYSIS);
+        affiliation(installer, pending, TechnicalAffiliationType.AFFILIATED);
+        Technician former = technician("Diego Rocha", "diego-rocha", "44444444444");
+        affiliation(installer, former, TechnicalAffiliationType.AFFILIATED).setActive(false);
         ProfessionalRegistration registration = new ProfessionalRegistration();
         registration.setTechnician(ana);
         registration.setProfession(electrician);
@@ -156,7 +161,7 @@ class InternalCatalogControllerTest {
     }
 
     @Test
-    void listsAccreditedTechnicians() throws Exception {
+    void listsOnlyApprovedTechniciansWithActiveAffiliations() throws Exception {
         mvc.perform(get("/internal/catalog/accredited-technicians").header(HEADER, MCP_KEY))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
@@ -268,11 +273,12 @@ class InternalCatalogControllerTest {
         return technician;
     }
 
-    private void affiliation(Company company, Technician technician, TechnicalAffiliationType type) {
+    private TechnicianAffiliation affiliation(Company company, Technician technician, TechnicalAffiliationType type) {
         TechnicianAffiliation affiliation = new TechnicianAffiliation();
         affiliation.setCompany(company);
         affiliation.setTechnician(technician);
         affiliation.setAffiliationType(type);
         em.persist(affiliation);
+        return affiliation;
     }
 }

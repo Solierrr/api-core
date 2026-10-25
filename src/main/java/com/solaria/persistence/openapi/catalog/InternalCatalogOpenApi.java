@@ -34,7 +34,7 @@ public interface InternalCatalogOpenApi {
     ResponseEntity<List<InfrastructureOfferResponseDTO>> infrastructureOffers(InfrastructureType infrastructureType,
             String brand, int limit);
 
-    @Operation(summary = "Lista técnicos afiliados a empresas, uma linha por afiliação e registro profissional",
+    @Operation(summary = "Lista técnicos aprovados com afiliação ativa a empresas, uma linha por afiliação e registro profissional",
             description = "profession filtra por trecho do nome da profissão e city por trecho da cidade da empresa afiliada, sem diferenciar maiúsculas; limit entre 1 e 100.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de técnicos retornada com sucesso"),
