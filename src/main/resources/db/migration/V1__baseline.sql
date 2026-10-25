@@ -937,7 +937,7 @@ CREATE TABLE user_company (
     created_at      timestamptz DEFAULT now() NOT NULL,
     updated_at      timestamptz DEFAULT now() NOT NULL,
     CONSTRAINT pk_user_company PRIMARY KEY (id),
-    CONSTRAINT uq_user_company_company_user UNIQUE (company_id, user_id)
+    CONSTRAINT uq_user_company_user UNIQUE (user_id)
 );
 
 CREATE TABLE user_photo (
@@ -1118,7 +1118,6 @@ CREATE INDEX idx_technician_person ON technician (person_id);
 CREATE INDEX idx_technician_affiliation_technician ON technician_affiliation (technician_id);
 CREATE UNIQUE INDEX uq_technician_affiliation_active_independent ON technician_affiliation (technician_id) WHERE (is_active AND (company_id IS NULL) AND (affiliation_type = 'INDEPENDENT'));
 CREATE INDEX idx_user_company_company ON user_company (company_id);
-CREATE INDEX idx_user_company_user ON user_company (user_id);
 
 CREATE FUNCTION enforce_user_company_managed_account() RETURNS trigger
     LANGUAGE plpgsql
