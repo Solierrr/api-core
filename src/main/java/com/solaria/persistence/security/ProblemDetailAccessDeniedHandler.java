@@ -51,7 +51,7 @@ public class ProblemDetailAccessDeniedHandler implements AccessDeniedHandler {
         ProblemDetail problem = problemDetailFactory.create(
                 HttpStatus.FORBIDDEN,
                 "Acesso negado: você não tem permissão para acessar este recurso.",
-                "ACCESS_DENIED",
+                "FORBIDDEN",
                 null,
                 request);
         // Escreve status/headers/corpo diretamente na resposta pois esse handler fica na camada de filtro, antes de spring MVC
