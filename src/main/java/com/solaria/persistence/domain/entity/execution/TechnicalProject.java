@@ -43,7 +43,7 @@ public class TechnicalProject {
     @Column(columnDefinition="text") private String description;
     private UUID ownerCompanyId;
     private UUID ownerUserId;
-@Column(name = "created_by_user_id") private UUID createdBy;
+    @Column(name = "created_by_user_id") private UUID createdBy;
     @Column(name = "is_archived", nullable=false) private boolean archived;
     @Column(nullable=false) private OffsetDateTime createdAt=OffsetDateTime.now();
     @Embedded private ProjectLocation location;
