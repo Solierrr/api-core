@@ -90,7 +90,7 @@ public class SecurityConfig {
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers("/internal/users", "/internal/users/**")
                                                 .hasAuthority(ServiceKeyAuthFilter.authorityOf("api-auth"))
-                                                .requestMatchers("/internal/projects/**")
+                                                .requestMatchers("/internal/projects/**", "/internal/technical-projects/**")
                                                 .hasAuthority(ServiceKeyAuthFilter.authorityOf("api-messenger"))
                                                 .anyRequest().denyAll())
                                 .exceptionHandling(e -> e
