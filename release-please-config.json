@@ -1,12 +1,19 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "include-component-in-tag": false,
-  "pull-request-header": "## Release semântico automático\n\nEsta PR prepara a próxima versão e consolida as mudanças abaixo.",
-  "pull-request-footer": "\n\n---\nDepois de validar os checks, comente `/release` para publicar.",
+  "pull-request-header": "## Release semântico automático\n\nEsta pull request prepara a próxima versão do repositório, reunindo os commits já integrados em main desde a última publicação e organizando o changelog abaixo para facilitar a revisão antes de publicar.\n",
+  "pull-request-footer": "\n\n## Como publicar essa release\n\nDepois de conferir o changelog e os checks obrigatórios, comente `/release` nesta pull request para aprovar a publicação da nova versão.",
   "packages": {
     ".": {
       "release-type": "simple",
-      "package-name": "api-core"
+      "package-name": "api-core",
+      "extra-files": [
+        {
+          "type": "xml",
+          "path": "pom.xml",
+          "xpath": "/*[local-name()='project']/*[local-name()='version']"
+        }
+      ]
     }
   }
 }

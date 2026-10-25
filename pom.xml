@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.solaria</groupId>
 	<artifactId>core</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>3.0.1</version>
 	<name>core</name>
 	<description/>
 	<url/>
@@ -125,6 +125,13 @@
 						</exclude>
 					</excludes>
 				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>build-info</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
