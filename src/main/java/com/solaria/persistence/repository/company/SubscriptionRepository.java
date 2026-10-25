@@ -16,7 +16,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
 
 
     @Modifying
-    @Query(value = "CALL sp_generate_subscription_charge(:subscriptionId, :dueDate, :paymentMethod)",
+    @Query(value = "CALL generate_subscription_charge(:subscriptionId, :dueDate, :paymentMethod)",
             nativeQuery = true)
     void callGenerateSubscriptionCharge(@Param("subscriptionId") UUID subscriptionId,
                                          @Param("dueDate") LocalDate dueDate,

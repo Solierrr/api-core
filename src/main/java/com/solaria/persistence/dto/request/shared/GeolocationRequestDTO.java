@@ -12,7 +12,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class GeolocalizationRequestDTO {
+public class GeolocationRequestDTO {
 
     @NotNull(message = "ID do Endereço é obrigatório")
     private UUID addressId;

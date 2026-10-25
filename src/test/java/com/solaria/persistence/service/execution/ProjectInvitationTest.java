@@ -37,7 +37,7 @@ class ProjectInvitationTest {
     void setup(String email, boolean verified) {
         user = new User();
         user.setId(UUID.randomUUID());
-        user.setAuth_id(UUID.randomUUID());
+        user.setAuthId(UUID.randomUUID());
         user.setUsername("Guest");
         invite = new ProjectInvitation();
         invite.setProjectId(UUID.randomUUID());
@@ -52,7 +52,7 @@ class ProjectInvitationTest {
         var token =
                 Jwt.withTokenValue("test")
                         .header("alg", "none")
-                        .subject(user.getAuth_id().toString())
+                        .subject(user.getAuthId().toString())
                         .claim("email", email)
                         .claim("email_verified", verified)
                         .build();

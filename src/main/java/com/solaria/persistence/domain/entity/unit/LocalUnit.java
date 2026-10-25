@@ -21,11 +21,11 @@ public class LocalUnit {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_requester", nullable = false)
+    @JoinColumn(name = "requester_id", nullable = false)
     private Requester requester;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_address")
+    @JoinColumn(name = "address_id")
     private Address address;
 
     @Column(name = "complement")

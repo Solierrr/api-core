@@ -28,10 +28,10 @@ public class PositionPermission {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_position", nullable = false)
+    @JoinColumn(name = "job_position_id", nullable = false)
     private Position position;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_permission", nullable = false)
+    @JoinColumn(name = "permission_id", nullable = false)
     private Permission permission;
 }

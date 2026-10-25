@@ -20,11 +20,11 @@ public class Person {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_users", unique = true)
+    @JoinColumn(name = "user_id", unique = true)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_contact")
+    @JoinColumn(name = "contact_id")
     private Contact contact;
 
     @Column(name = "name", length = 60, nullable = false)

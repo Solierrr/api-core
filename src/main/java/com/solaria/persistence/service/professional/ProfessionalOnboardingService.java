@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
@@ -288,7 +289,7 @@ public class ProfessionalOnboardingService {
         registration.setProfession(professions.findById(draft.professionId()).orElseThrow());
         registration.setCouncil(draft.council());
         registration.setNumber(draft.registrationNumber());
-        registration.setExpirationDate(draft.registrationExpiration() == null ? null : draft.registrationExpiration().atStartOfDay());
+        registration.setExpirationDate(draft.registrationExpiration() == null ? null : draft.registrationExpiration().atStartOfDay().atOffset(ZoneOffset.UTC));
         registrations.save(registration);
         profile.setTechnicianId(technician.getId());
         profile.setApprovedVersion(submission.getRevision());
@@ -363,10 +364,10 @@ public class ProfessionalOnboardingService {
     private ProfessionalOnboarding findOrCreate() {
         User user = current.getCurrentUser();
         users.findByIdForUpdate(user.getId()).orElseThrow();
-        return profiles.lockByAuthId(user.getAuth_id()).orElseGet(() -> {
+        return profiles.lockByAuthId(user.getAuthId()).orElseGet(() -> {
             var profile = new ProfessionalOnboarding();
             profile.setId(UUID.randomUUID());
-            profile.setAuthId(user.getAuth_id());
+            profile.setAuthId(user.getAuthId());
             profile.setUserId(user.getId());
             return profiles.save(profile);
         });

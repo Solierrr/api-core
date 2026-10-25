@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Getter
@@ -20,9 +20,9 @@ public class ShiftRequestDTO {
     private DayWeek dayWeek;
 
     @NotNull(message = "Data/hora de início é obrigatória")
-    private LocalDateTime startDate;
+    private OffsetDateTime startDate;
 
     @NotNull(message = "Data/hora de término é obrigatória")
-    private LocalDateTime endDate;
+    private OffsetDateTime endDate;
 
 }

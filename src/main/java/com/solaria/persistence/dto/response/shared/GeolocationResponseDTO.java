@@ -8,7 +8,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class GeolocalizationResponseDTO {
+public class GeolocationResponseDTO {
 
     private UUID id;
 

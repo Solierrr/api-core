@@ -19,7 +19,7 @@ public class TechnicalCourse {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_company")
+    @JoinColumn(name = "company_id")
     private Company company;
 
     @Column(name = "title", length = 30)

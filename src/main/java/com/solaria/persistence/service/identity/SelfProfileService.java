@@ -61,7 +61,7 @@ public class SelfProfileService {
                 banner = photo.getUrl();
             }
         }
-        return new SelfProfileResponseDTO(user.getId(), user.getAuth_id(), avatar, banner,
+        return new SelfProfileResponseDTO(user.getId(), user.getAuthId(), avatar, banner,
                 person, technician, affiliations, memberships);
     }
 }

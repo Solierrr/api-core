@@ -58,7 +58,7 @@ public class ProfessionalOnboardingController {
     @GetMapping("/api/professions/{id}/requirements")
     public Policy policy(@PathVariable UUID id) { return onboarding.policy(id); }
     @GetMapping("/api/users/me/mobile-eligibility")
-    public Eligibility eligibility() { return onboarding.eligibility(current.getCurrentUser().getAuth_id()); }
+    public Eligibility eligibility() { return onboarding.eligibility(current.getCurrentUser().getAuthId()); }
     @GetMapping("/internal/users/{authId}/mobile-eligibility")
     public Eligibility internal(@PathVariable UUID authId, @RequestHeader(value = "Authorization", defaultValue = "") String token) {
         if (serviceToken.length() < 32) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE);

@@ -237,7 +237,7 @@ public class ProjectActivityService {
                 technician.getStatus()
                                 == com.solaria.persistence.domain.enums.professional
                                         .TechnicianStatus.APPROVED
-                        && profiles.findByAuthId(user.getAuth_id())
+                        && profiles.findByAuthId(user.getAuthId())
                                 .map(p -> p.getApprovedVersion() > 0 && !p.isSuspended())
                                 .orElse(true);
         if (!valid)

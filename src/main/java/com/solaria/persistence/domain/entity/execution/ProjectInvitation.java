@@ -17,7 +17,7 @@ public class ProjectInvitation {
     @Id private UUID id = UUID.randomUUID();
     @Version private long version;
 
-    @Column(nullable = false)
+    @Column(name = "technical_project_id", nullable = false)
     private UUID projectId;
 
     private UUID recipientAuthId;
@@ -41,7 +41,7 @@ public class ProjectInvitation {
     @Column(nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
-    @Column(nullable = false)
+    @Column(name = "created_by_user_id", nullable = false)
     private UUID createdBy;
 
     @Column(nullable = false)

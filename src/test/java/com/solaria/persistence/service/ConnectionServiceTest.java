@@ -63,7 +63,7 @@ class ConnectionServiceTest {
 
         assertEquals(List.of(connectedUser.getId()), owner.getConnections());
         assertEquals(connectedUser.getId(), response.getId());
-        assertEquals(connectedUser.getAuth_id(), response.getAuthId());
+        assertEquals(connectedUser.getAuthId(), response.getAuthId());
         verify(userRepository).save(owner);
     }
 
@@ -218,7 +218,7 @@ class ConnectionServiceTest {
     private User user(UUID id, String username, boolean active) {
         User user = new User();
         user.setId(id);
-        user.setAuth_id(UUID.randomUUID());
+        user.setAuthId(UUID.randomUUID());
         user.setUsername(username);
         user.setAvatar("https://example.com/" + username + ".png");
         user.setBanner("https://example.com/" + username + "-banner.png");

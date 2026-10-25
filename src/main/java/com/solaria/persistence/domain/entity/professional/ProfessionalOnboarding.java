@@ -29,6 +29,6 @@ public class ProfessionalOnboarding {
     private String draftJson = "{}";
     @Column(name = "approved_json", columnDefinition = "text")
     private String approvedJson;
-    @Column(nullable = false)
+    @Column(name = "is_suspended", nullable = false)
     private boolean suspended;
 }

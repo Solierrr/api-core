@@ -39,7 +39,7 @@ public interface AddressOpenApi {
 
     @Operation(
         summary = "Exclui um endereço pelo identificador",
-        description = "Não é possível excluir um endereço referenciado por Company, LocalUnit ou Geolocalization."
+        description = "Não é possível excluir um endereço referenciado por Company, LocalUnit ou Geolocation."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Endereço excluído com sucesso"),

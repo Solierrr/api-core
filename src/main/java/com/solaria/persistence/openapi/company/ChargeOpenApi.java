@@ -62,8 +62,8 @@ public interface ChargeOpenApi {
     ResponseEntity<ChargeResponseDTO> refund(UUID id);
 
     @Operation(
-        summary = "Gera uma cobrança para uma assinatura chamando a procedure sp_generate_subscription_charge",
-        description = "O valor da cobrança vem do plano da assinatura, não é informado pelo cliente; execução delegada à procedure sp_generate_subscription_charge (schema-v3-business-logic.sql, Bloco C)."
+        summary = "Gera uma cobrança para uma assinatura chamando a procedure generate_subscription_charge",
+        description = "O valor da cobrança vem do plano da assinatura, não é informado pelo cliente; execução delegada à procedure generate_subscription_charge (db/migration/V1__baseline.sql)."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Cobrança gerada com sucesso"),

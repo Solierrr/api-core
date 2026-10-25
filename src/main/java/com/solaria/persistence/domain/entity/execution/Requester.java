@@ -20,7 +20,7 @@ public class Requester {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_company", nullable = false, unique = true)
+    @JoinColumn(name = "company_id", nullable = false, unique = true)
     private Company company;
 
     @Column(name = "business_type", length = 40)

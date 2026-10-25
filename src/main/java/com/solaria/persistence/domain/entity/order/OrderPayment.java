@@ -4,8 +4,6 @@ import com.solaria.persistence.domain.enums.company.PaymentMethod;
 import com.solaria.persistence.domain.enums.order.OrderPaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -24,11 +22,10 @@ public class OrderPayment {
     private UUID id;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fk_order", nullable = false, unique = true)
+    @JoinColumn(name = "purchase_order_id", nullable = false, unique = true)
     private PurchaseOrder order;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "method", nullable = false)
     private PaymentMethod method;
 

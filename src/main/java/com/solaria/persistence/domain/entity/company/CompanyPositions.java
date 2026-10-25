@@ -17,7 +17,7 @@ import lombok.Setter;
 import com.solaria.persistence.domain.entity.identity.Position;
 
 @Entity
-@Table(name = "company_positions")
+@Table(name = "company_position")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -29,10 +29,10 @@ public class CompanyPositions {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_company", nullable = false)
+    @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_position", nullable = false)
+    @JoinColumn(name = "job_position_id", nullable = false)
     private Position position;
 }

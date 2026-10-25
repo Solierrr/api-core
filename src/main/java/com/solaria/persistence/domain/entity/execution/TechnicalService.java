@@ -21,7 +21,7 @@ public class TechnicalService {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_technical_project", nullable = false)
+    @JoinColumn(name = "technical_project_id", nullable = false)
     private TechnicalProject technicalProject;
 
 
@@ -33,20 +33,20 @@ public class TechnicalService {
     private ServiceStatus status = ServiceStatus.OPEN;
 
 
-    @Column(name = "scheduled_date")
+    @Column(name = "scheduled_at")
     private OffsetDateTime scheduledDate;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
 
-    @Column(name = "accepted_by")
+    @Column(name = "accepted_by_user_id")
     private UUID acceptedBy;
 
     @Column(name = "accepted_at")
     private OffsetDateTime acceptedAt;
 
 
-    @Column(name = "end_date")
+    @Column(name = "ends_at")
     private OffsetDateTime endDate;
 }

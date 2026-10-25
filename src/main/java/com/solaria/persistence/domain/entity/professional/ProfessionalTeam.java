@@ -14,6 +14,6 @@ public class ProfessionalTeam {
     @Id private UUID id = UUID.randomUUID();
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "company_id", nullable = false) private Company company;
     @Column(nullable = false, length = 100) private String name;
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "responsible_id", nullable = false) private Technician responsible;
-    @Column(nullable = false) private boolean active = true;
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "responsible_technician_id", nullable = false) private Technician responsible;
+    @Column(name = "is_active", nullable = false) private boolean active = true;
 }

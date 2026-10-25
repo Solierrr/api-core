@@ -17,10 +17,10 @@ public class ProjectHistory {
     @Id private UUID id = UUID.randomUUID();
     @Version private long version;
 
-    @Column(nullable = false)
+    @Column(name = "technical_project_id", nullable = false)
     private UUID projectId;
 
-    @Column(nullable = false)
+    @Column(name = "actor_user_id", nullable = false)
     private UUID actorId;
 
     @Column(nullable = false)

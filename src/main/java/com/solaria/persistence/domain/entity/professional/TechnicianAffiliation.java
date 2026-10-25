@@ -21,17 +21,17 @@ public class TechnicianAffiliation {
 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_company")
+    @JoinColumn(name = "company_id")
     private Company company;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_technician", nullable = false)
+    @JoinColumn(name = "technician_id", nullable = false)
     private Technician technician;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "affiliation_type", nullable = false)
     private TechnicalAffiliationType affiliationType;
 
-    @Column(name = "active", nullable = false)
+    @Column(name = "is_active", nullable = false)
     private Boolean active = true;
 }

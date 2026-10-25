@@ -1,6 +1,6 @@
 package com.solaria.persistence.dto.response.professional;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import lombok.Getter;
@@ -15,6 +15,6 @@ public class ProfessionalRegistrationResponseDTO {
     private UUID professionId;
     private String council;
     private String number;
-    private LocalDateTime expirationDate;
+    private OffsetDateTime expirationDate;
 
 }

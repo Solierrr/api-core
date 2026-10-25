@@ -22,17 +22,17 @@ public class Model {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "fk_creator_company", nullable = false, updatable = false)
+    @Column(name = "creator_company_id", nullable = false, updatable = false)
     private UUID creatorCompanyId;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "fk_brand", nullable = false)
+    @JoinColumn(name = "brand_id", nullable = false)
     private Brand brandEntry;
 
     public String getBrand() { return brandEntry == null ? null : brandEntry.getName(); }
     public UUID getBrandId() { return brandEntry == null ? null : brandEntry.getId(); }
 
-    @Column(name = "model", nullable = false)
+    @Column(name = "model_name", nullable = false)
     private String model;
 
     @Enumerated(EnumType.STRING)

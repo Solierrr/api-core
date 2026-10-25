@@ -68,7 +68,7 @@ public class UserService {
         User user = userRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("Usuário com id:" + id + " não encontrado para atualização"));
         rbac.requireOwnUser(user.getId());
-        if (!user.getAuth_id().equals(dto.getAuthId())) {
+        if (!user.getAuthId().equals(dto.getAuthId())) {
             throw new InvalidFieldException("ID de autenticação (authId) imutável: " + dto.getAuthId());
         }
 
@@ -124,7 +124,7 @@ public class UserService {
 
     private UserResponseDTO toResponse(User entity) {
         UserResponseDTO response = objectMapper.convertValue(entity, UserResponseDTO.class);
-        response.setAuthId(entity.getAuth_id());
+        response.setAuthId(entity.getAuthId());
         return response;
     }
 }

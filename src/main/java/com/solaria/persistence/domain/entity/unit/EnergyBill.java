@@ -19,13 +19,13 @@ public class EnergyBill {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_local_unit", nullable = false)
+    @JoinColumn(name = "local_unit_id", nullable = false)
     private LocalUnit localUnit;
 
     @Column(name = "consumption", nullable = false)
     private BigDecimal consumption;
 
-    @Column(name = "price", nullable = false)
+    @Column(name = "amount", nullable = false)
     private BigDecimal price;
 
     @Column(name = "photo_url")
