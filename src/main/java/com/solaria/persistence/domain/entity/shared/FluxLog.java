@@ -20,7 +20,7 @@ public class FluxLog {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_user", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(name = "action", nullable = false, length = 255)

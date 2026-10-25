@@ -17,7 +17,7 @@ public class ProjectPhoto {
     @Id private UUID id = UUID.randomUUID();
     @Version private long version;
 
-    @Column(nullable = false)
+    @Column(name = "technical_project_id", nullable = false)
     private UUID projectId;
 
     @Column(nullable = false)
@@ -32,10 +32,10 @@ public class ProjectPhoto {
     @org.hibernate.annotations.Formula("octet_length(content)")
     private int size;
 
-    @Column(nullable = false)
+    @Column(name = "is_primary", nullable = false)
     private boolean cover;
 
-    @Column(nullable = false)
+    @Column(name = "uploaded_by_user_id", nullable = false)
     private UUID uploadedBy;
 
     @Column(nullable = false)

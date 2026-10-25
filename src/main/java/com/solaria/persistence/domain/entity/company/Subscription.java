@@ -21,23 +21,23 @@ public class Subscription {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_supplier", nullable = false)
+    @JoinColumn(name = "supplier_id", nullable = false)
     private Supplier supplier;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_plan", nullable = false)
+    @JoinColumn(name = "company_plan_id", nullable = false)
     private CompanyPlans plan;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private SubscriptionStatus status = SubscriptionStatus.PAID;
 
-    @Column(name = "auto_renewal", nullable = false)
+    @Column(name = "has_auto_renewal", nullable = false)
     private Boolean autoRenewal = true;
 
-    @Column(name = "start_date", nullable = false)
+    @Column(name = "starts_at", nullable = false)
     private OffsetDateTime startDate;
 
-    @Column(name = "end_date")
+    @Column(name = "ends_at")
     private OffsetDateTime endDate;
 }

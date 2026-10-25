@@ -7,7 +7,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "unit_specifications")
+@Table(name = "unit_specification")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,7 +19,7 @@ public class UnitSpecifications {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_local_unit", nullable = false)
+    @JoinColumn(name = "local_unit_id", nullable = false)
     private LocalUnit localUnit;
 
     @Column(name = "specifications")

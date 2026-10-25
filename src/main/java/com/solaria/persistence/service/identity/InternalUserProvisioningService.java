@@ -28,7 +28,7 @@ public class InternalUserProvisioningService {
     }
 
     User user = new User();
-    user.setAuth_id(authId);
+    user.setAuthId(authId);
     user.setUsername(availableUsername(authId));
     return toResponse(userRepository.saveAndFlush(user), true);
   }
@@ -59,7 +59,7 @@ public class InternalUserProvisioningService {
   private InternalUserProvisionResponseDTO toResponse(User user, boolean created) {
     return InternalUserProvisionResponseDTO.builder()
         .id(user.getId())
-        .authId(user.getAuth_id())
+        .authId(user.getAuthId())
         .created(created)
         .build();
   }

@@ -3,7 +3,7 @@ package com.solaria.persistence.domain.entity.professional;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 
@@ -20,11 +20,11 @@ public class ProfessionalRegistration {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_technician")
+    @JoinColumn(name = "technician_id")
     private Technician technician;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_profession")
+    @JoinColumn(name = "profession_id")
     private Profession profession;
 
     @Column(name = "council", length = 60)
@@ -33,6 +33,6 @@ public class ProfessionalRegistration {
     @Column(name = "number", length = 30)
     private String number;
 
-    @Column(name = "expiration_date")
-    private LocalDateTime expirationDate;
+    @Column(name = "expires_at")
+    private OffsetDateTime expirationDate;
 }

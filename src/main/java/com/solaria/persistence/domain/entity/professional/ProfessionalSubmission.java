@@ -16,7 +16,7 @@ import lombok.Setter;
 public class ProfessionalSubmission {
     @Id
     private UUID id;
-    @Column(name = "onboarding_id", nullable = false)
+    @Column(name = "professional_onboarding_id", nullable = false)
     private UUID onboardingId;
     @Column(nullable = false)
     private long revision;
@@ -38,7 +38,7 @@ public class ProfessionalSubmission {
     private Instant createdAt = Instant.now();
     @Column(name = "decided_at")
     private Instant decidedAt;
-    @Column(name = "decided_by")
+    @Column(name = "decided_by_user_id")
     private UUID decidedBy;
     @Column(name = "decision_origin", length = 10)
     private String decisionOrigin;

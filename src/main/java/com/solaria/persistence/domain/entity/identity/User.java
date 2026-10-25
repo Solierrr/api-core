@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "users")
+@Table(name = "user_account")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,12 +22,12 @@ public class User {
     private UUID id;
 
     @Column(name = "auth_id", nullable = false, unique = true)
-    private UUID auth_id;
+    private UUID authId;
 
     @Column(name = "managed_by_company_id")
     private UUID managedByCompanyId;
 
-    @Column(name = "active", nullable = false)
+    @Column(name = "is_active", nullable = false)
     private Boolean active = true;
 
     @Column(name = "username", nullable = false, unique = true, length = 30)
@@ -40,6 +40,6 @@ public class User {
     private String banner;
 
     @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(name = "connections", nullable = false)
+    @Column(name = "connection_user_ids", nullable = false)
     private List<UUID> connections = new ArrayList<>();
 }

@@ -19,18 +19,18 @@ public class ServiceContract {
     private UUID id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_service", nullable = false)
+    @JoinColumn(name = "technical_service_id", nullable = false)
     private TechnicalService service;
 
     @Column(name = "warranty")
     private String warranty;
 
-    @Column(name = "delivery_deadline")
+    @Column(name = "delivery_deadline_date")
     private LocalDate deliveryDeadline;
 
-    @Column(name = "insurance", nullable = false)
+    @Column(name = "has_insurance", nullable = false)
     private Boolean insurance = false;
 
-    @Column(name = "utility_approval", nullable = false)
+    @Column(name = "has_utility_approval", nullable = false)
     private Boolean utilityApproval = false;
 }

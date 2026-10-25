@@ -17,7 +17,7 @@ public class ProjectActivity {
     @Id private UUID id = UUID.randomUUID();
     @Version private long version;
 
-    @Column(nullable = false)
+    @Column(name = "technical_project_id", nullable = false)
     private UUID projectId;
 
     @Column(nullable = false)
@@ -39,11 +39,11 @@ public class ProjectActivity {
 
     private OffsetDateTime endsAt;
 
-    @Column(nullable = false)
+    @Column(name = "is_onsite", nullable = false)
     private boolean onsite;
 
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.ARRAY)
-    @Column(nullable = false)
+    @Column(name = "assignee_user_ids", nullable = false)
     private java.util.List<UUID> assigneeIds = new java.util.ArrayList<>();
 
     private UUID technicalServiceId;

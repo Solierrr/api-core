@@ -22,15 +22,15 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         String getBanner();
     }
 
-    String PEOPLE = "SELECT u.id, (SELECT min(p.name) FROM person p WHERE p.fk_users=u.id) AS name, "
-            + "u.username, u.avatar, u.banner FROM users u WHERE u.active=true AND u.id<>:owner "
-            + "AND EXISTS (SELECT 1 FROM person p WHERE p.fk_users=u.id) "
+    String PEOPLE = "SELECT u.id, (SELECT min(p.name) FROM person p WHERE p.user_id=u.id) AS name, "
+            + "u.username, u.avatar, u.banner FROM user_account u WHERE u.is_active=true AND u.id<>:owner "
+            + "AND EXISTS (SELECT 1 FROM person p WHERE p.user_id=u.id) "
             + "AND (CAST(:company AS uuid) IS NULL OR u.managed_by_company_id=:company "
-            + "OR EXISTS (SELECT 1 FROM user_company m WHERE m.fk_users=u.id AND m.fk_company=:company)) "
+            + "OR EXISTS (SELECT 1 FROM user_company m WHERE m.user_id=u.id AND m.company_id=:company)) "
             + "AND (u.managed_by_company_id IS NULL OR u.managed_by_company_id=:company "
-            + "OR EXISTS (SELECT 1 FROM user_company m WHERE m.fk_users=:owner AND m.fk_company=u.managed_by_company_id)) ";
+            + "OR EXISTS (SELECT 1 FROM user_company m WHERE m.user_id=:owner AND m.company_id=u.managed_by_company_id)) ";
     String SEARCH = "AND (lower(u.username) LIKE concat('%',CAST(:query AS text),'%') OR EXISTS "
-            + "(SELECT 1 FROM person p WHERE p.fk_users=u.id AND lower(p.name) LIKE concat('%',CAST(:query AS text),'%'))) ";
+            + "(SELECT 1 FROM person p WHERE p.user_id=u.id AND lower(p.name) LIKE concat('%',CAST(:query AS text),'%'))) ";
 
     @Query(value = PEOPLE + SEARCH + "ORDER BY lower(u.username), u.id", nativeQuery = true)
     org.springframework.data.domain.Slice<ConnectionPerson> findConnectionPeople(
@@ -38,7 +38,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             @Param("query") String query, org.springframework.data.domain.Pageable pageable);
 
     @Query(value = PEOPLE + SEARCH
-            + "AND u.id=ANY(SELECT unnest(o.connections) FROM users o WHERE o.id=:owner) "
+            + "AND u.id=ANY(SELECT unnest(o.connection_user_ids) FROM user_account o WHERE o.id=:owner) "
             + "ORDER BY lower(u.username), u.id", nativeQuery = true)
     org.springframework.data.domain.Slice<ConnectionPerson> findConnectedPeople(
             @Param("owner") UUID owner, @Param("company") UUID company,
@@ -48,10 +48,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<ConnectionPerson> findVisiblePerson(@Param("owner") UUID owner,
             @Param("company") UUID company, @Param("target") UUID target);
 
-    @Query("select u from User u where u.auth_id = :authId")
+    @Query("select u from User u where u.authId = :authId")
     Optional<User> findByAuthId(@Param("authId") UUID authId);
 
-    @Query("select u.id from User u where u.auth_id = :authId")
+    @Query("select u.id from User u where u.authId = :authId")
     Optional<UUID> findIdByAuthId(@Param("authId") UUID authId);
 
     boolean existsByUsername(String username);
@@ -63,8 +63,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByIdForUpdate(@Param("id") UUID id);
 
     @Modifying
-    @Query(value = "UPDATE users SET connections = array_remove(connections, :userId) "
-            + "WHERE :userId = ANY(connections)", nativeQuery = true)
+    @Query(value = "UPDATE user_account SET connection_user_ids = array_remove(connection_user_ids, :userId) "
+            + "WHERE :userId = ANY(connection_user_ids)", nativeQuery = true)
     void removeConnectionReferences(@Param("userId") UUID userId);
 
 }

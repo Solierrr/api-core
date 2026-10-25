@@ -24,7 +24,7 @@ public class Technician {
     private TechnicianStatus status = TechnicianStatus.UNDER_ANALYSIS;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_person", nullable = false, unique = true)
+    @JoinColumn(name = "person_id", nullable = false, unique = true)
     private Person person;
 
     @Column(name = "crea", nullable = false)

@@ -18,19 +18,19 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "geolocalization")
+@Table(name = "geolocation")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Geolocalization {
+public class Geolocation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_address", nullable = false)
+    @JoinColumn(name = "address_id", nullable = false)
     private Address address;
 
     @Column(name = "latitude", precision = 10, scale = 7, nullable = false)

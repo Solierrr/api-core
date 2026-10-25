@@ -13,7 +13,7 @@ public interface ModelRepository extends JpaRepository<Model, UUID> {
     List<Model> findByStatus(ModelStatus status);
 
     @org.springframework.data.jpa.repository.Modifying
-    @org.springframework.data.jpa.repository.Query(value = "update model set fk_brand = :target where fk_brand = :source", nativeQuery = true)
+    @org.springframework.data.jpa.repository.Query(value = "update model set brand_id = :target where brand_id = :source", nativeQuery = true)
     void reassignBrand(UUID source, UUID target);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)

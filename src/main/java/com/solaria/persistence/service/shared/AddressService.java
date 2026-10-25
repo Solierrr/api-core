@@ -14,7 +14,7 @@ import com.solaria.persistence.exception.ResourceInUseException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.shared.AddressRepository;
 import com.solaria.persistence.repository.company.CompanyRepository;
-import com.solaria.persistence.repository.shared.GeolocalizationRepository;
+import com.solaria.persistence.repository.shared.GeolocationRepository;
 import com.solaria.persistence.repository.unit.LocalUnitRepository;
 
 @Service
@@ -24,18 +24,18 @@ public class AddressService {
     private final AddressRepository addressRepository;
     private final CompanyRepository companyRepository;
     private final LocalUnitRepository localUnitRepository;
-    private final GeolocalizationRepository geolocalizationRepository;
+    private final GeolocationRepository geolocationRepository;
 
     public AddressService(AddressRepository addressRepository,
                           CompanyRepository companyRepository,
                           LocalUnitRepository localUnitRepository,
-                          GeolocalizationRepository geolocalizationRepository,
+                          GeolocationRepository geolocationRepository,
                           RbacAuthorizationService rbac) {
         this.rbac = rbac;
         this.addressRepository = addressRepository;
         this.companyRepository = companyRepository;
         this.localUnitRepository = localUnitRepository;
-        this.geolocalizationRepository = geolocalizationRepository;
+        this.geolocationRepository = geolocationRepository;
     }
 
     @Transactional
@@ -76,7 +76,7 @@ public class AddressService {
         rbac.requireOwnCompany(address.getOwnerCompany().getId());
         if (companyRepository.existsByAddressId(id)
                 || localUnitRepository.existsByAddressId(id)
-                || geolocalizationRepository.existsByAddressId(id)) {
+                || geolocationRepository.existsByAddressId(id)) {
             throw new ResourceInUseException(
                     "Endereço não pode ser excluído(a): possui vínculo(s) em uso");
         }

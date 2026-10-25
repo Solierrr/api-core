@@ -20,13 +20,13 @@ public class BrandRequest {
     private UUID id;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "fk_brand", nullable = false)
+    @JoinColumn(name = "brand_id", nullable = false)
     private Brand brand;
 
-    @Column(name = "fk_requester_company")
+    @Column(name = "requester_company_id")
     private UUID requesterCompanyId;
 
-    @Column(name = "fk_requester_user")
+    @Column(name = "requester_user_id")
     private UUID requesterUserId;
 
     @Enumerated(EnumType.STRING)
@@ -46,13 +46,13 @@ public class BrandRequest {
     @Column(name = "proposed_reference_url", length = 2048)
     private String proposedReferenceUrl;
 
-    @Column(name = "fk_result_brand")
+    @Column(name = "result_brand_id")
     private UUID resultBrandId;
 
     @Column(name = "decision_reason", length = 2000)
     private String decisionReason;
 
-    @Column(name = "fk_decided_by")
+    @Column(name = "decided_by_user_id")
     private UUID decidedBy;
 
     @Column(name = "decided_at")
@@ -61,5 +61,5 @@ public class BrandRequest {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
-    @Version private long revision;
+    @Version @Column(name = "version") private long revision;
 }

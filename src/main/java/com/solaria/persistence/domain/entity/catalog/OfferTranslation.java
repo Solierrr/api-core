@@ -6,7 +6,7 @@ import lombok.*;
 import java.util.UUID;
 
 @Entity
-@Table(name = "offer_translation", uniqueConstraints = @UniqueConstraint(columnNames = {"fk_offer", "locale"}))
+@Table(name = "offer_translation", uniqueConstraints = @UniqueConstraint(name = "uq_offer_translation_offer_locale", columnNames = {"offer_id", "locale"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,7 +18,7 @@ public class OfferTranslation {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_offer", nullable = false)
+    @JoinColumn(name = "offer_id", nullable = false)
     private Offer offer;
 
     @Column(name = "locale", length = 10, nullable = false)

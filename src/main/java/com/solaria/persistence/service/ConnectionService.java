@@ -135,7 +135,7 @@ public class ConnectionService {
     private UserResponseDTO toUserResponse(User user) {
         UserResponseDTO response = new UserResponseDTO();
         response.setId(user.getId());
-        response.setAuthId(user.getAuth_id());
+        response.setAuthId(user.getAuthId());
         response.setUsername(user.getUsername());
         response.setAvatar(user.getAvatar());
         response.setBanner(user.getBanner());

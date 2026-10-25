@@ -20,7 +20,7 @@ public class CompanyPhoto {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_company", nullable = false)
+    @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
     @Enumerated(EnumType.STRING)

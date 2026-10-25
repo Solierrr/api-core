@@ -17,7 +17,7 @@ public class ProjectMember {
     @Id private UUID id = UUID.randomUUID();
     @Version private long version;
 
-    @Column(nullable = false)
+    @Column(name = "technical_project_id", nullable = false)
     private UUID projectId;
 
     @Column(nullable = false)
@@ -30,7 +30,7 @@ public class ProjectMember {
     @Column(name = "function_name")
     private String functionName;
 
-    @Column(nullable = false)
+    @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
     @Column(nullable = false)

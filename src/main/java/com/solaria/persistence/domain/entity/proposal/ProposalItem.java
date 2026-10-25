@@ -20,17 +20,17 @@ public class ProposalItem {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_proposal", nullable = false)
+    @JoinColumn(name = "proposal_id", nullable = false)
     private Proposal proposal;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_offer", nullable = false)
+    @JoinColumn(name = "offer_id", nullable = false)
     private Offer offer;
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
-    @Column(name = "negotiated_price")
+    @Column(name = "negotiated_unit_price")
     private BigDecimal negotiatedPrice;
 
     @Column(name = "discount")

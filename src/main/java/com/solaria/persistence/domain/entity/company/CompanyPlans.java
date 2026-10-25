@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
-@Table(name = "company_plans")
+@Table(name = "company_plan")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,7 +22,7 @@ public class CompanyPlans {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "value", nullable = false)
+    @Column(name = "price", nullable = false)
     private BigDecimal value;
 
     @Enumerated(EnumType.STRING)

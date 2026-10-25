@@ -32,12 +32,12 @@ public class Company {
 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_address")
+    @JoinColumn(name = "address_id")
     private Address address;
 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_business_contact")
+    @JoinColumn(name = "business_contact_id")
     private BusinessContact businessContact;
 
     @Column(name = "cnpj", length = 14, nullable = false)

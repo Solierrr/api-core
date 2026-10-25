@@ -19,7 +19,7 @@ public class ApprovedProfessionalGuard {
 
     public void requireLegacyChangesAllowed(UUID userId) {
         var user = users.findById(userId).orElseThrow();
-        if (profiles.lockByAuthId(user.getAuth_id()).isPresent()) {
+        if (profiles.lockByAuthId(user.getAuthId()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Submit changes through professional onboarding for review");
         }
     }

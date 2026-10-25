@@ -19,7 +19,7 @@ import com.solaria.persistence.domain.entity.company.Company;
 
 @Entity
 @Table(name = "user_company", uniqueConstraints = @UniqueConstraint(
-        name = "uq_user_company_user", columnNames = "fk_users"))
+        name = "uq_user_company_company_user", columnNames = {"company_id", "user_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -31,14 +31,14 @@ public class UserCompany {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_company", nullable = false)
+    @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_users", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_position", nullable = false)
+    @JoinColumn(name = "job_position_id", nullable = false)
     private Position position;
 }

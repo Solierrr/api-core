@@ -4,7 +4,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Setter
@@ -21,6 +21,6 @@ public class ProfessionalRegistrationRequestDTO {
     @Size(max = 30)
     private String number;
 
-    private LocalDateTime expirationDate;
+    private OffsetDateTime expirationDate;
 
 }
