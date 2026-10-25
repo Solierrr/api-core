@@ -19,7 +19,7 @@ import com.solaria.persistence.domain.entity.company.Company;
 
 @Entity
 @Table(name = "user_company", uniqueConstraints = @UniqueConstraint(
-        name = "uq_user_company_company_user", columnNames = {"company_id", "user_id"}))
+        name = "uq_user_company_user", columnNames = "user_id"))
 @Getter
 @Setter
 @NoArgsConstructor

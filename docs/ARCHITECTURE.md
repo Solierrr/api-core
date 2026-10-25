@@ -11,11 +11,11 @@ O `api-core` segue uma arquitetura em camadas típica de uma aplicação Spring 
 - **Arquitetura em camadas (layered architecture)**, separação entre `controller`, `service`, `repository` e `domain`, cada camada só conhece a camada imediatamente abaixo dela.
 - **DTOs dedicados por operação**, pacotes `dto/request`, `dto/response` e `dto/patch` evitam expor entidades JPA diretamente na API e permitem atualizações parciais tipadas por campo (ex. `UpdateActiveDTO`, `UpdateQuantityDTO`) em vez de um único DTO genérico de update.
 - **Documentação OpenAPI desacoplada dos controllers**, cada recurso tem uma interface espelho em `openapi/*OpenApi.java` carregando as anotações do Swagger/Springdoc, mantendo os `controller/*Controller.java` livres de anotações de documentação.
-- **Duas cadeias de segurança segregadas por `@Order`**, definidas em `security/SecurityConfig`: a chain `@Order(1)` cobre `/internal/**` com token de serviço M2M assinado via JJWT (HS256, segredo compartilhado), e a chain `@Order(2)` cobre o restante das rotas como resource server OAuth2, validando JWT de usuário (RS256) emitido pelo `api-auth` via JWKS.
+- **Duas cadeias de segurança segregadas por `@Order`**, definidas em `security/SecurityConfig`: a chain `@Order(1)` cobre `/internal/**` com chave de serviço no header `X-Service-Key` (`ServiceKeyAuthFilter`; uma chave por serviço chamador em `app.service-keys.*`, comparada em tempo constante, com no mínimo 32 caracteres, e cada prefixo de rota liberado só para o serviço dono dele), e a chain `@Order(2)` cobre o restante das rotas como resource server OAuth2, validando JWT de usuário (RS256) emitido pelo `api-auth` via JWKS.
 - **Autorização RBAC própria**, `security/rbac/EndpointAuthorizationInterceptor` e `RbacAuthorizationService` aplicam controle de acesso por permissão/posição sobre as rotas de usuário, complementando a autenticação da chain `@Order(2)`.
 - **Erros padronizados via RFC 7807**, `exception/handler/GlobalExceptionHandler` e `ProblemDetailFactory` centralizam a tradução das exceções de negócio (`BusinessException`, `ResourceNotFoundException`, `DuplicateResourceException`, entre outras) para respostas `ProblemDetail`, mesmo formato usado pelos handlers de segurança (`ProblemDetailAuthenticationEntryPoint`, `ProblemDetailAccessDeniedHandler`).
 - **Cache de leitura seletivo com Redis**, `service/SupplierCacheService` e `util/CacheKeyGenerator` cacheiam apenas buscas de fornecedor elegíveis (páginas/tamanhos pequenos) e só promovem uma consulta ao cache depois que ela ultrapassa um limiar de popularidade contado via `INCR` no Redis (`redis.supplier-search.*` em `application.properties`), evitando cachear qualquer busca de baixo valor.
-- **Schema versionado com Flyway**, o `api-core` é o dono do DDL do `coredb`: as migrations ficam em `src/main/resources/db/migration` (`V1__baseline.sql` com tabelas, constraints, índices, gatilhos e a procedure `generate_subscription_charge`; `V2__export_views.sql` com o schema `export` lido pelos consumidores em lote; `V3__reference_data.sql` com os dados de referência exigidos em runtime) e são aplicadas na subida; `spring.jpa.hibernate.ddl-auto=validate` confere as entidades contra o schema resultante.
+- **Schema versionado com Flyway**, o `api-core` é o dono do DDL do `coredb`: as migrations ficam em `src/main/resources/db/migration` (`V1__baseline.sql` com tabelas, constraints, índices, gatilhos e a procedure `generate_subscription_charge`; `V2__export_views.sql` com o schema `export` lido pelos consumidores em lote; `V3__reference_data.sql` com os dados de referência exigidos em runtime) e são aplicadas na subida; `spring.jpa.hibernate.ddl-auto=validate` confere as entidades contra o schema resultante. Cada usuário tem no máximo um vínculo de empresa (`uq_user_company_user`); várias empresas por usuário é funcionalidade futura.
 
 ```Tree do Repositório
 ├── .github/
@@ -45,8 +45,7 @@ O `api-core` segue uma arquitetura em camadas típica de uma aplicação Spring 
 │   │   │   ├── repository/
 │   │   │   │   └── specification/ # Specifications JPA (ex. SupplierSpecification)
 │   │   │   ├── security/
-│   │   │   │   ├── rbac/          # Interceptor e serviço de autorização por permissão
-│   │   │   │   └── service/       # Autenticação de token de serviço M2M
+│   │   │   │   └── rbac/          # Interceptor e serviço de autorização por permissão
 │   │   │   ├── service/           # Regras de negócio por recurso + SupplierCacheService
 │   │   │   ├── util/              # CacheKeyGenerator, RegexValidator
 │   │   │   └── PersistenceApplication.java

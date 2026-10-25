@@ -937,7 +937,7 @@ CREATE TABLE user_company (
     created_at      timestamptz DEFAULT now() NOT NULL,
     updated_at      timestamptz DEFAULT now() NOT NULL,
     CONSTRAINT pk_user_company PRIMARY KEY (id),
-    CONSTRAINT uq_user_company_company_user UNIQUE (company_id, user_id)
+    CONSTRAINT uq_user_company_user UNIQUE (user_id)
 );
 
 CREATE TABLE user_photo (
@@ -1118,7 +1118,6 @@ CREATE INDEX idx_technician_person ON technician (person_id);
 CREATE INDEX idx_technician_affiliation_technician ON technician_affiliation (technician_id);
 CREATE UNIQUE INDEX uq_technician_affiliation_active_independent ON technician_affiliation (technician_id) WHERE (is_active AND (company_id IS NULL) AND (affiliation_type = 'INDEPENDENT'));
 CREATE INDEX idx_user_company_company ON user_company (company_id);
-CREATE INDEX idx_user_company_user ON user_company (user_id);
 
 CREATE FUNCTION enforce_user_company_managed_account() RETURNS trigger
     LANGUAGE plpgsql
@@ -1167,14 +1166,24 @@ CREATE TRIGGER trg_order_item_not_own_supplier BEFORE INSERT ON order_item
 CREATE PROCEDURE generate_subscription_charge(p_subscription_id uuid, p_due_date date, p_payment_method varchar(16))
     LANGUAGE plpgsql
     AS $$
+DECLARE
+    v_price numeric;
 BEGIN
-    INSERT INTO charge (subscription_id, amount, payment_method, status, due_date)
-    SELECT s.id, p.price, p_payment_method, 'PENDING', p_due_date
+    SELECT p.price INTO v_price
     FROM subscription s
     JOIN company_plan p ON p.id = s.company_plan_id
-    WHERE s.id = p_subscription_id;
+    WHERE s.id = p_subscription_id
+    FOR UPDATE OF s;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'Assinatura não encontrada: %', p_subscription_id USING ERRCODE = 'P0002';
     END IF;
+    IF EXISTS (SELECT 1 FROM charge WHERE subscription_id = p_subscription_id AND due_date = p_due_date) THEN
+        RETURN;
+    END IF;
+    IF v_price IS NULL OR v_price <= 0 THEN
+        RAISE EXCEPTION 'O plano da assinatura % não tem preço positivo; cobrança não gerada', p_subscription_id USING ERRCODE = '23514';
+    END IF;
+    INSERT INTO charge (subscription_id, amount, payment_method, status, due_date)
+    VALUES (p_subscription_id, v_price, p_payment_method, 'PENDING', p_due_date);
 END;
 $$;
