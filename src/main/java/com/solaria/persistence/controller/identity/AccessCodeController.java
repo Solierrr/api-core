@@ -21,31 +21,38 @@ import com.solaria.persistence.service.identity.AccessCodeService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/access-codes")
 @RequiredArgsConstructor
+@Tag(name = "Códigos de Acesso", description = "Códigos que convidam pessoas a entrar em uma empresa")
 public class AccessCodeController {
 
     private final AccessCodeService accessCodeService;
 
+    @Operation(summary = "Gera um código de acesso para a empresa")
     @PostMapping
     public ResponseEntity<AccessCodeResponseDTO> generate(@Valid @RequestBody AccessCodeRequestDTO dto) {
         AccessCodeResponseDTO response = accessCodeService.generate(dto);
         return ResponseEntity.created(URI.create("/api/access-codes/" + response.getId())).body(response);
     }
 
+    @Operation(summary = "Resgata um código e vincula o usuário à empresa")
     @PostMapping("/redeem")
     public ResponseEntity<UserCompanyResponseDTO> redeem(@Valid @RequestBody RedeemAccessCodeRequestDTO dto) {
         return ResponseEntity.ok(accessCodeService.redeem(dto.getCode()));
     }
 
+    @Operation(summary = "Revoga um código de acesso da empresa")
     @DeleteMapping("/{id}/company/{companyId}")
     public ResponseEntity<Void> revoke(@PathVariable UUID id, @PathVariable UUID companyId) {
         accessCodeService.revoke(id, companyId);
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Lista os códigos de acesso da empresa")
     @GetMapping("/company/{companyId}")
     public ResponseEntity<List<AccessCodeResponseDTO>> findByCompany(@PathVariable UUID companyId) {
         return ResponseEntity.ok(accessCodeService.findByCompany(companyId));

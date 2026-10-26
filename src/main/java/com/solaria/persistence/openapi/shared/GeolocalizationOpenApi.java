@@ -13,7 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "Geolocalizations", description = "Gerenciamento das coordenadas geográficas vinculadas a endereços.")
+@Tag(name = "Geolocalizações", description = "Gerenciamento das coordenadas geográficas vinculadas a endereços.")
 public interface GeolocalizationOpenApi {
 
     @Operation(

@@ -13,7 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "Local Unit Photos", description = "Gerenciamento das fotos de uma unidade local, armazenadas no Cloudinary.")
+@Tag(name = "Fotos de Unidades Locais", description = "Gerenciamento das fotos de uma unidade local, armazenadas no Cloudinary.")
 public interface LocalUnitPhotoOpenApi {
 
     @Operation(

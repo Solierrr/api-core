@@ -11,10 +11,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
 @RequestMapping("/internal/projects")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "serviceKey")
+@Tag(name = "Acesso Interno a Projetos", description = "Endpoint M2M usado pelo api-messenger")
 public class ProjectInternalController {
     private final ProjectService projects;
     private final ProjectAccess access;
@@ -22,6 +27,7 @@ public class ProjectInternalController {
     private final ProjectMemberRepository members;
     private final UserCompanyRepository companies;
 
+    @Operation(summary = "Consulta o papel do usuário no projeto e os participantes")
     @GetMapping("/{id}/access/{authId}")
     @Transactional(readOnly = true)
     public Map<String, Object> authority(@PathVariable UUID id, @PathVariable UUID authId) {

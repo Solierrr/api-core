@@ -12,7 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "service Contracts", description = "Gerenciamento dos contratos de prestação de serviço, imutáveis após criação.")
+@Tag(name = "Contratos de Serviço", description = "Gerenciamento dos contratos de prestação de serviço, imutáveis após criação.")
 public interface ServiceContractOpenApi {
 
     @Operation(

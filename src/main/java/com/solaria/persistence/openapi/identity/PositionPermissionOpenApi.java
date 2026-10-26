@@ -13,7 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "Position Permissions", description = "Gerenciamento das permissões concedidas a cargos (positions).")
+@Tag(name = "Permissões de Cargos", description = "Gerenciamento das permissões concedidas a cargos (positions).")
 public interface PositionPermissionOpenApi {
 
     @Operation(
