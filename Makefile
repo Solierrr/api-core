@@ -3,7 +3,7 @@
 # Requer: make e sh (Git Bash no Windows). Para `make vault`: Infisical CLI e `infisical login`.
 
 # ---- especifico deste repositorio ----
-VAULT_FOLDERS ?= /database /redis /cloudinary /google /otel /service-keys
+VAULT_FOLDERS ?= /database /redis /cloudinary /google /otel /service-keys /service-urls
 INSTALL_CMD   ?= ./mvnw dependency:go-offline
 DEV_CMD       ?= ./mvnw spring-boot:run
 BUILD_CMD     ?= ./mvnw package -DskipTests
