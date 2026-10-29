@@ -1,0 +1,24 @@
+meta {
+  name: GET /api/feeds/suppliers
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/feeds/suppliers
+  body: none
+  auth: bearer
+}
+
+params:query {
+  ~strategy: most_proven
+  ~localUnitId: {{sampleUuid}}
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `RecommendationFeedController.java`.
+}

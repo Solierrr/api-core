@@ -1,0 +1,24 @@
+meta {
+  name: GET /api/feeds/professionals
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/feeds/professionals
+  body: none
+  auth: bearer
+}
+
+params:query {
+  ~strategy: best_match
+  ~professionId: {{sampleUuid}}
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `RecommendationFeedController.java`.
+}
