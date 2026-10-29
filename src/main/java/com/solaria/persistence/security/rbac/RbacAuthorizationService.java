@@ -75,7 +75,10 @@ public class RbacAuthorizationService {
             "POST /api/technician-affiliations",
             "PATCH /api/technician-affiliations/{id}/active",
             "PATCH /api/technician-affiliations/{id}/type",
-            "GET /api/technician-affiliations/technician/{technicianId}"
+            "GET /api/technician-affiliations/technician/{technicianId}",
+            "GET /api/feeds/professionals",
+            "GET /api/feeds/offers",
+            "GET /api/feeds/suppliers"
     );
 
     // Compra de unidades: sem vínculo com empresa passa (a elegibilidade do profissional é checada no serviço);
