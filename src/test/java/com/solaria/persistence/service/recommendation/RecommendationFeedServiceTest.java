@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -27,7 +28,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.solaria.persistence.domain.entity.unit.LocalUnit;
+import com.solaria.persistence.exception.BusinessRuleException;
 import com.solaria.persistence.exception.InvalidFieldException;
+import com.solaria.persistence.exception.RecommendationUnavailableException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.integration.recommendation.RecommendationClient;
 import com.solaria.persistence.integration.recommendation.RecommendationClientProperties;
@@ -55,6 +58,7 @@ class RecommendationFeedServiceTest {
     private LocalUnitRepository localUnits;
 
     private final JsonNode body = JsonMapper.builder().build().createObjectNode();
+    private final JsonNode fallbackBody = JsonMapper.builder().build().createObjectNode().put("source", "fallback");
     private MutableClock clock;
     private RecommendationFeedService service;
 
@@ -218,6 +222,68 @@ class RecommendationFeedServiceTest {
         assertThrows(IllegalStateException.class, () -> service.professionals(null, null));
         assertEquals(body, service.professionals(null, null));
         verify(client, times(2)).feed(eq("professionals"), any());
+    }
+
+    @Test
+    void theGraphFeedIsServedAsIsAndTheSqlFallbackStaysIdle() {
+        when(rbac.findCurrentCompanyId()).thenReturn(Optional.of(COMPANY));
+        when(client.feed(eq("professionals"), any())).thenReturn(body);
+
+        assertSame(body, service.professionals("top_rated", null));
+
+        verifyNoInteractions(fallback);
+    }
+
+    @Test
+    void professionalsFallBackToSqlWhenThereIsNoGraph() {
+        when(rbac.findCurrentCompanyId()).thenReturn(Optional.of(COMPANY));
+        when(client.feed(eq("professionals"), any())).thenThrow(new RecommendationUnavailableException("sem grafo"));
+        when(fallback.professionals("top_rated", COMPANY, PROFESSION)).thenReturn(fallbackBody);
+
+        assertSame(fallbackBody, service.professionals("top_rated", PROFESSION));
+    }
+
+    @Test
+    void offersFallBackToSqlWhenTheRecommendationServiceIsUnreachable() {
+        when(rbac.findCurrentCompanyId()).thenReturn(Optional.of(COMPANY));
+        when(localUnits.findByRequester_Company_Id(COMPANY)).thenReturn(List.of());
+        when(client.feed(eq("offers"), any())).thenThrow(new RecommendationUnavailableException("rede"));
+        when(fallback.offers("best_value", COMPANY)).thenReturn(fallbackBody);
+
+        assertSame(fallbackBody, service.offers("best_value", null));
+        verify(fallback, never()).suppliers(any(), any());
+    }
+
+    @Test
+    void suppliersFallBackToSqlWhenTheFeedIsNotConfigured() {
+        when(rbac.findCurrentCompanyId()).thenReturn(Optional.empty());
+        when(client.feed(eq("suppliers"), any())).thenThrow(new RecommendationUnavailableException("desligado"));
+        when(fallback.suppliers(null, null)).thenReturn(fallbackBody);
+
+        assertSame(fallbackBody, service.suppliers(null, null));
+        verify(fallback, never()).offers(any(), any());
+    }
+
+    @Test
+    void contextErrorsFromTheGraphAreNotHiddenByTheFallback() {
+        when(rbac.findCurrentCompanyId()).thenReturn(Optional.empty());
+        when(client.feed(eq("professionals"), any())).thenThrow(new BusinessRuleException("contexto inválido"));
+
+        assertThrows(BusinessRuleException.class, () -> service.professionals(null, null));
+
+        verifyNoInteractions(fallback);
+    }
+
+    @Test
+    void theSqlFallbackIsCachedLikeTheGraphFeed() {
+        when(rbac.findCurrentCompanyId()).thenReturn(Optional.empty());
+        when(client.feed(eq("professionals"), any())).thenThrow(new RecommendationUnavailableException("sem grafo"));
+        when(fallback.professionals(null, null, null)).thenReturn(fallbackBody);
+
+        service.professionals(null, null);
+        service.professionals(null, null);
+
+        verify(fallback, times(1)).professionals(null, null, null);
     }
 
     private static final class MutableClock extends Clock {
