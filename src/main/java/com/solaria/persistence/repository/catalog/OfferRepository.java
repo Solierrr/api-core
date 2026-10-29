@@ -1,5 +1,6 @@
 package com.solaria.persistence.repository.catalog;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -56,4 +57,27 @@ public interface OfferRepository extends JpaRepository<Offer, UUID> {
     Optional<Offer> findBySlugAndSupplier_Company_Slug(String slug, String companySlug);
 
     List<Offer> findByExpirationDateIsNullOrExpirationDateAfter(OffsetDateTime now);
+
+    String FEED_VISIBLE = "o.commercialStatus = com.solaria.persistence.domain.enums.catalog.OfferStatus.ACTIVE"
+            + " and o.supplier.status = com.solaria.persistence.domain.enums.catalog.SupplierStatus.ACTIVE"
+            + " and o.supplier.company.status = com.solaria.persistence.domain.enums.company.CompanyStatus.APPROVED"
+            + " and o.supplier.company.type = com.solaria.persistence.domain.enums.company.CompanyType.SUPPLIER"
+            + " and o.model.status = com.solaria.persistence.domain.enums.catalog.ModelStatus.APPROVED"
+            + " and o.model.powerWp > 0 and o.availability > 0"
+            + " and (o.expirationDate is null or o.expirationDate > :now)";
+
+    @EntityGraph(attributePaths = {"supplier.company", "model"})
+    @Query("select o from Offer o where " + FEED_VISIBLE + " order by o.unitPrice / o.model.powerWp, o.slug")
+    List<Offer> findFeedOffers(@Param("now") OffsetDateTime now, Pageable pageable);
+
+    @Query("select o.supplier.id as supplierId, count(o) as offerCount from Offer o where " + FEED_VISIBLE
+            + " group by o.supplier.id, o.supplier.company.tradeName"
+            + " order by count(o) desc, o.supplier.company.tradeName")
+    List<SupplierOfferCount> countFeedOffersBySupplier(@Param("now") OffsetDateTime now, Pageable pageable);
+
+    interface SupplierOfferCount {
+        UUID getSupplierId();
+
+        long getOfferCount();
+    }
 }

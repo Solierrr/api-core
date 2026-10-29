@@ -48,6 +48,8 @@ class RecommendationFeedServiceTest {
     @Mock
     private RecommendationClient client;
     @Mock
+    private RecommendationFallbackService fallback;
+    @Mock
     private RbacAuthorizationService rbac;
     @Mock
     private LocalUnitRepository localUnits;
@@ -63,8 +65,8 @@ class RecommendationFeedServiceTest {
     }
 
     private RecommendationFeedService serviceWithTtl(Duration ttl) {
-        return new RecommendationFeedService(client, rbac, localUnits,
-                new RecommendationClientProperties("http://rec", "k", Duration.ofSeconds(5), Duration.ofSeconds(25), ttl),
+        return new RecommendationFeedService(client, fallback, rbac, localUnits,
+                new RecommendationClientProperties("http://rec", "k", Duration.ofSeconds(5), Duration.ofSeconds(25), ttl, 10),
                 clock);
     }
 

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import com.solaria.persistence.domain.entity.unit.LocalUnit;
 import com.solaria.persistence.exception.InvalidFieldException;
+import com.solaria.persistence.exception.RecommendationUnavailableException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.integration.recommendation.RecommendationClient;
 import com.solaria.persistence.integration.recommendation.RecommendationClientProperties;
@@ -22,7 +24,7 @@ import com.solaria.persistence.security.rbac.RbacAuthorizationService;
 
 import tools.jackson.databind.JsonNode;
 
-// Feeds de recomendação do usuário autenticado: deriva empresa e unidade local, injeta o contexto no api-recommendation e guarda a resposta por pouco tempo
+// Feeds de recomendação do usuário autenticado: deriva empresa e unidade local, injeta o contexto no api-recommendation, cai no ranking simples do Postgres quando não há grafo e guarda a resposta por pouco tempo
 @Service
 public class RecommendationFeedService {
 
@@ -30,6 +32,7 @@ public class RecommendationFeedService {
     private static final int MAX_CACHED_FEEDS = 256;
 
     private final RecommendationClient client;
+    private final RecommendationFallbackService fallback;
     private final RbacAuthorizationService rbac;
     private final LocalUnitRepository localUnits;
     private final RecommendationClientProperties properties;
@@ -37,14 +40,16 @@ public class RecommendationFeedService {
     private final Map<String, CachedFeed> cache = new ConcurrentHashMap<>();
 
     @Autowired
-    public RecommendationFeedService(RecommendationClient client, RbacAuthorizationService rbac,
-            LocalUnitRepository localUnits, RecommendationClientProperties properties) {
-        this(client, rbac, localUnits, properties, Clock.systemUTC());
+    public RecommendationFeedService(RecommendationClient client, RecommendationFallbackService fallback,
+            RbacAuthorizationService rbac, LocalUnitRepository localUnits, RecommendationClientProperties properties) {
+        this(client, fallback, rbac, localUnits, properties, Clock.systemUTC());
     }
 
-    RecommendationFeedService(RecommendationClient client, RbacAuthorizationService rbac,
-            LocalUnitRepository localUnits, RecommendationClientProperties properties, Clock clock) {
+    RecommendationFeedService(RecommendationClient client, RecommendationFallbackService fallback,
+            RbacAuthorizationService rbac, LocalUnitRepository localUnits, RecommendationClientProperties properties,
+            Clock clock) {
         this.client = client;
+        this.fallback = fallback;
         this.rbac = rbac;
         this.localUnits = localUnits;
         this.properties = properties;
@@ -53,7 +58,8 @@ public class RecommendationFeedService {
 
     public JsonNode professionals(String strategy, UUID professionId) {
         UUID companyId = rbac.findCurrentCompanyId().orElse(null);
-        return feed("professionals", params(strategy, companyId, null, professionId));
+        return feed("professionals", params(strategy, companyId, null, professionId),
+                () -> fallback.professionals(strategy, companyId, professionId));
     }
 
     public JsonNode offers(String strategy, UUID localUnitId) {
@@ -67,17 +73,24 @@ public class RecommendationFeedService {
     private JsonNode unitFeed(String feed, String strategy, UUID requestedUnitId) {
         UUID companyId = rbac.findCurrentCompanyId().orElse(null);
         UUID localUnitId = resolveLocalUnit(requestedUnitId, companyId);
-        return feed(feed, params(strategy, companyId, localUnitId, null));
+        return feed(feed, params(strategy, companyId, localUnitId, null),
+                () -> "offers".equals(feed) ? fallback.offers(strategy, companyId)
+                        : fallback.suppliers(strategy, companyId));
     }
 
-    private JsonNode feed(String feed, Map<String, String> params) {
+    private JsonNode feed(String feed, Map<String, String> params, Supplier<JsonNode> withoutGraph) {
         String key = feed + params;
         Instant now = clock.instant();
         CachedFeed cached = cache.get(key);
         if (cached != null && cached.expiresAt().isAfter(now)) {
             return cached.body();
         }
-        JsonNode body = client.feed(feed, params);
+        JsonNode body;
+        try {
+            body = client.feed(feed, params);
+        } catch (RecommendationUnavailableException unavailable) {
+            body = withoutGraph.get();
+        }
         if (!properties.cacheTtl().isZero() && !properties.cacheTtl().isNegative()) {
             if (cache.size() >= MAX_CACHED_FEEDS) {
                 cache.values().removeIf(entry -> !entry.expiresAt().isAfter(now));

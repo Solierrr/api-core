@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 import com.solaria.persistence.exception.BusinessRuleException;
@@ -37,18 +36,19 @@ public class RecommendationClient {
         this.json = json;
     }
 
-    // Feed autenticado; uma nova tentativa em falha de rede ou 502/503/504, e feed público se o grafo estiver desligado
+    // Feed autenticado; uma nova tentativa em falha de rede ou 502/503/504; sem grafo ou sem resposta vira RecommendationUnavailableException para o serviço usar o ranking simples no banco
     public JsonNode feed(String feed, Map<String, String> params) {
         if (!properties.enabled()) {
             throw new RecommendationUnavailableException("As recomendações não estão habilitadas neste ambiente.");
         }
         for (int attempt = 1;; attempt++) {
             try {
-                return get("/feeds/" + feed, params, true);
+                return get("/feeds/" + feed, params);
             } catch (RestClientResponseException error) {
                 int status = error.getStatusCode().value();
                 if (status == 503 && FEED_UNAVAILABLE.equals(errorCode(error))) {
-                    return publicFeed(feed, params);
+                    log.warn("api-recommendation sem grafo para o feed {}", feed);
+                    throw new RecommendationUnavailableException(DEFAULT_UNAVAILABLE);
                 }
                 if (attempt == 1 && (status == 502 || status == 503 || status == 504)) {
                     continue;
@@ -64,26 +64,13 @@ public class RecommendationClient {
         }
     }
 
-    // Feed público equivalente, sem chave; só o filtro de profissão faz sentido nele
-    private JsonNode publicFeed(String feed, Map<String, String> params) {
-        Map<String, String> publicParams = params.containsKey("profession_id")
-                ? Map.of("profession_id", params.get("profession_id"))
-                : Map.of();
-        try {
-            return get("/public/feeds/" + feed, publicParams, false);
-        } catch (RestClientException error) {
-            log.warn("api-recommendation sem feed público para {}", feed);
-            throw new RecommendationUnavailableException(DEFAULT_UNAVAILABLE);
-        }
-    }
-
-    private JsonNode get(String path, Map<String, String> params, boolean authenticated) {
+    private JsonNode get(String path, Map<String, String> params) {
         RestClient.RequestHeadersSpec<?> request = restClient.get().uri(builder -> {
             builder.path(path);
             params.forEach(builder::queryParam);
             return builder.build();
         });
-        if (authenticated && properties.apiKey() != null && !properties.apiKey().isBlank()) {
+        if (properties.apiKey() != null && !properties.apiKey().isBlank()) {
             request = request.header(KEY_HEADER, properties.apiKey());
         }
         JsonNode body = request.retrieve().body(JsonNode.class);

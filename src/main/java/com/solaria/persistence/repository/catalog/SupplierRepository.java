@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,6 +24,9 @@ public interface SupplierRepository extends JpaRepository<Supplier, UUID>, JpaSp
     @Override
     @EntityGraph(attributePaths = "company")
     Optional<Supplier> findById(UUID id);
+
+    @EntityGraph(attributePaths = "company")
+    List<Supplier> findByIdIn(Collection<UUID> ids);
 
     boolean existsByCompanyId(UUID companyId);
 

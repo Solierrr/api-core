@@ -43,7 +43,7 @@ class RecommendationClientTest {
 
     private RecommendationClientProperties properties(String baseUrl, String apiKey) {
         return new RecommendationClientProperties(baseUrl, apiKey, Duration.ofSeconds(5), Duration.ofSeconds(25),
-                Duration.ofSeconds(60));
+                Duration.ofSeconds(60), 10);
     }
 
     private MockRestServiceServer mock(RecommendationClientProperties properties, RecommendationClient[] out) {
@@ -90,33 +90,11 @@ class RecommendationClientTest {
     }
 
     @Test
-    void fallsBackToThePublicFeedWithoutKeyWhenTheGraphIsOff() {
-        RecommendationClient[] client = new RecommendationClient[1];
-        MockRestServiceServer server = mock(properties("http://rec", KEY), client);
-        server.expect(requestTo("http://rec/feeds/professionals?strategy=top_rated&profession_id=" + PROFESSION
-                + "&company_id=" + UNIT))
-                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE).contentType(MediaType.APPLICATION_JSON)
-                        .body(FEED_UNAVAILABLE));
-        server.expect(requestTo("http://rec/public/feeds/professionals?profession_id=" + PROFESSION))
-                .andExpect(headerDoesNotExist("X-Recommendation-Key"))
-                .andRespond(withSuccess("{\"source\":\"graph\",\"items\":[{\"name\":\"Ana\"}]}",
-                        MediaType.APPLICATION_JSON));
-
-        JsonNode body = client[0].feed("professionals",
-                params("strategy", "top_rated", "profession_id", PROFESSION, "company_id", UNIT));
-
-        assertEquals("Ana", body.path("items").get(0).path("name").asString());
-        server.verify();
-    }
-
-    @Test
-    void failsClearlyWhenThePublicFallbackFailsToo() {
+    void reportsUnavailabilityWithoutCallingThePublicFeedWhenTheGraphIsOff() {
         RecommendationClient[] client = new RecommendationClient[1];
         MockRestServiceServer server = mock(properties("http://rec", KEY), client);
         server.expect(requestTo("http://rec/feeds/offers")).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE)
                 .contentType(MediaType.APPLICATION_JSON).body(FEED_UNAVAILABLE));
-        server.expect(requestTo("http://rec/public/feeds/offers"))
-                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
 
         assertThrows(RecommendationUnavailableException.class, () -> client[0].feed("offers", Map.of()));
         server.verify();
