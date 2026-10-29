@@ -21,4 +21,6 @@ auth:bearer {
 
 docs {
   Source: `RecommendationFeedController.java`.
+
+  Sem grafo (QA, sem RECOMMENDATION_API_URL ou api-recommendation indisponível), responde `source: "fallback"` com os fornecedores de mais ofertas ativas do Postgres e um aviso em `warnings`; `strategy` e `localUnitId` são ignorados.
 }
