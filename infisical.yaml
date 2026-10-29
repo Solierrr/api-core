@@ -8,6 +8,7 @@ folders:
   - /otel
   - /service-keys
   - /service-urls
+  - /recommendation
 # Variáveis do .env.example que não vêm do Infisical.
 ignore: []
 # Variáveis que só não existem em um ambiente.
