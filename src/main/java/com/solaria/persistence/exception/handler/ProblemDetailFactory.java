@@ -21,12 +21,14 @@ import jakarta.servlet.http.HttpServletRequest;
  * </p>
  *
  * <p>
- * Sem {@code type} (omitido) e sem {@code title} próprio -> o Spring preenche {@code title} com a
- * reason phrase do status ("Not Found")
+ * {@code type} sempre {@code about:blank} e {@code title} igual ao {@code errorCode}
+ * -> padrão de erro da org (docs-warehouse ERRORS.md)
  * </p>
  */
 @Component
 public class ProblemDetailFactory {
+
+    private static final URI ABOUT_BLANK = URI.create("about:blank");
 
     // cria corpo do json a partir da classe ProblemDetail
     public ProblemDetail create(HttpStatusCode status,
@@ -35,6 +37,8 @@ public class ProblemDetailFactory {
                                 Map<String, Object> properties,
                                 HttpServletRequest request) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
+        problem.setType(ABOUT_BLANK);
+        problem.setTitle(errorCode);
         if (request != null) {
             problem.setInstance(URI.create(request.getRequestURI()));
         }
