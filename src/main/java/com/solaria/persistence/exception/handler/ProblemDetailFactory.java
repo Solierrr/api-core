@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.stereotype.Component;
 
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
@@ -17,8 +19,6 @@ import jakarta.servlet.http.HttpServletRequest;
 @Component
 public class ProblemDetailFactory {
 
-    private static final String TYPE_BASE = "https://solier.com/errors/";
-
     // cria corpo do json a partir da classe ProblemDetail
     public ProblemDetail create(HttpStatusCode status,
                                 String detail,
@@ -26,25 +26,19 @@ public class ProblemDetailFactory {
                                 Map<String, Object> properties,
                                 HttpServletRequest request) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
-        problem.setTitle(errorCode);
-        problem.setType(URI.create(TYPE_BASE + toKebabCase(errorCode)));
         if (request != null) {
             problem.setInstance(URI.create(request.getRequestURI()));
         }
         problem.setProperty("errorCode", errorCode);
         problem.setProperty("timestamp", Instant.now());
+        // sem span ativo (tracing desligado) -> corpo sai sem traceId
+        SpanContext span = Span.current().getSpanContext();
+        if (span.isValid()) {
+            problem.setProperty("traceId", span.getTraceId());
+        }
         if (properties != null) {
             properties.forEach(problem::setProperty);
         }
         return problem;
-    }
-
-    // Método de apoio para transformar ERROR_CODE em URL
-
-    private static String toKebabCase(String errorCode) {
-        if (errorCode == null || errorCode.isBlank()) {
-            return "unknown";
-        }
-        return errorCode.toLowerCase().replace('_', '-');
     }
 }
