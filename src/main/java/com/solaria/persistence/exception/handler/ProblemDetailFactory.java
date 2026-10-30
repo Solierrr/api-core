@@ -13,7 +13,7 @@ import io.opentelemetry.api.trace.SpanContext;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * Monta o corpo JSON de todo erro da API no formato {@link ProblemDetail} (RFC 9457)
+ * Monta o corpo JSON de qualquer erro da API no formato {@link ProblemDetail} (RFC 9457)
  *
  * <p>
  * {@code errorCode} identifica o erro, {@code timestamp} marca o instante da falha e {@code traceId}
