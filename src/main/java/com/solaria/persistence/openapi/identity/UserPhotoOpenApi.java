@@ -14,7 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "User Photos", description = "Gerenciamento das fotos (perfil/banner) de um usuário, armazenadas no Cloudinary.")
+@Tag(name = "Fotos de Usuários", description = "Gerenciamento das fotos (perfil/banner) de um usuário, armazenadas no Cloudinary.")
 public interface UserPhotoOpenApi {
 
     @Operation(

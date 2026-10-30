@@ -33,7 +33,12 @@ public class GoogleTranslateService {
         }
         try {
             Response response = googleTranslateRestClient.post().uri("/v1/i18n/translate")
-                    .headers(headers -> headers.setBearerAuth(properties.getConsumerToken()))
+                    .headers(headers -> {
+                        headers.setBearerAuth(properties.getConsumerToken());
+                        if (properties.getServiceKey() != null && !properties.getServiceKey().isBlank()) {
+                            headers.set("X-Service-Key", properties.getServiceKey());
+                        }
+                    })
                     .body(new Request(fields.entrySet().stream().map(entry -> new Field(entry.getKey(), entry.getValue())).toList()))
                     .retrieve().body(Response.class);
             if (response == null || response.sourceLanguage() == null || response.sourceLanguage().isBlank()

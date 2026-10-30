@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.solaria.persistence.service.execution.ProjectRequesterAccessService;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
@@ -21,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/internal/technical-projects")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "serviceKey")
 @Tag(name = "Acesso Interno a Projetos Técnicos", description = "Endpoint M2M usado pelo api-messenger")
 public class TechnicalProjectInternalController {
 

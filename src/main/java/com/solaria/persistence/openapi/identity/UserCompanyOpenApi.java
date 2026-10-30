@@ -16,7 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "User Companies", description = "Gerenciamento do vínculo entre usuários e empresas, incluindo o cargo (position) associado.")
+@Tag(name = "Vínculos de Usuários", description = "Gerenciamento do vínculo entre usuários e empresas, incluindo o cargo (position) associado.")
 public interface UserCompanyOpenApi {
 
     @Operation(

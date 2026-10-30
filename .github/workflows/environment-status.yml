@@ -12,6 +12,7 @@ jobs:
       environment: QA
       check: http
       url: https://api-core-cqfn.onrender.com
+      ready_path: /actuator/health/readiness
 
   production:
     permissions:

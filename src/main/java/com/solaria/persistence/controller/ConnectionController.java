@@ -1,5 +1,6 @@
 package com.solaria.persistence.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -34,6 +35,7 @@ public class ConnectionController implements ConnectionOpenApi {
     private final ConnectionService connectionService;
     private final ConnectionDirectoryService directory;
 
+    @Operation(summary = "Busca pessoas para conectar ou já conectadas", operationId = "searchConnectionPeople")
     @GetMapping("/people")
     public ResponseEntity<ConnectionPeopleResponse> people(
             @RequestParam(defaultValue = "") String query,
@@ -44,6 +46,7 @@ public class ConnectionController implements ConnectionOpenApi {
         return ResponseEntity.ok(directory.search(query, page, connectedOnly));
     }
 
+    @Operation(summary = "Consulta o perfil de uma pessoa do diretório de conexões", operationId = "getConnectionPerson")
     @GetMapping("/people/{id}")
     public ResponseEntity<ConnectionPersonResponse> person(@PathVariable UUID id) {
         return ResponseEntity.ok(directory.profile(id));

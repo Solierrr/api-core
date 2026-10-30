@@ -20,9 +20,11 @@ class GoogleTranslateServiceTest {
         var server = MockRestServiceServer.bindTo(builder).build();
         server.expect(requestTo("http://registry.test/v1/i18n/translate"))
                 .andExpect(method(HttpMethod.POST)).andExpect(header("Authorization", "Bearer consumer-test-token"))
+                .andExpect(header("X-Service-Key", "service-key-0123456789-0123456789-ab"))
                 .andExpect(content().json("{\"fields\":[{\"field_name\":\"title\",\"text\":\"Painel\"}]}"))
                 .andRespond(withSuccess("{\"source_language\":\"pt\",\"translations\":[{\"field_name\":\"title\",\"language\":\"en\",\"value\":\"Panel\"},{\"field_name\":\"title\",\"language\":\"es\",\"value\":\"Panel solar\"}]}", MediaType.APPLICATION_JSON));
         var properties = new GoogleTranslateProperties(); properties.setConsumerToken("consumer-test-token");
+        properties.setServiceKey("service-key-0123456789-0123456789-ab");
         var result = new GoogleTranslateService(builder.build(), properties).translateFields(Map.of("title", "Painel"));
         assertEquals("pt", result.sourceLanguage());
         assertEquals("Painel", result.translations().get("pt").get("title"));
