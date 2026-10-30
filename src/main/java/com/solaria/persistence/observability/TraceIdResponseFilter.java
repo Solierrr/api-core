@@ -13,21 +13,17 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- *<p>
- *  Filtro que copia o {@code traceId} do span ativo para o header de resposta {@code X-Trace-Id}
- * </p>
- * 
+ * Copia o {@code traceId} do span ativo para o header de resposta {@code X-Trace-Id}
+ *
  * <p>
- * Pega o traceId do span já ativo e coloca no response
- * </p>
- * 
- * <p>
- * Sem span ativo, o filtro nao faz nada
+ * Permite que web/mobile devolvam o traceId ao suporte -> localiza a request no Grafana
  * </p>
  *
  * <p>
- * Registrado em {@link ObservabilityConfig#traceIdResponseFilterRegistration}
+ * Sem tracer ou sem span ativo, o filtro não faz nada
  * </p>
+ *
+ * <p>Registrado em {@link ObservabilityConfig#traceIdResponseFilterRegistration}</p>
  */
 public class TraceIdResponseFilter extends OncePerRequestFilter {
 

@@ -4,6 +4,11 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 
+/**
+ * Usuário autenticado sem permissão sobre o recurso -> {@code 403 UNAUTHORIZED_ACCESS}
+ *
+ * <p>Regra de posse checada no serviço; o 403 de RBAC sai pelo {@code ProblemDetailAccessDeniedHandler}</p>
+ */
 public class UnauthorizedAccessException extends BusinessException {
 
     public UnauthorizedAccessException(String message) {

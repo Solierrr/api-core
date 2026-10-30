@@ -7,12 +7,18 @@ import org.springframework.web.filter.ServerHttpObservationFilter;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * Marca a requisição HTTP atual como erro quando uma exceção já foi tratada pela aplicação>
+ * Marca a request HTTP atual como erro quando uma exceção já foi tratada pela aplicação
  *
  * <p>
- * A classe apenas atualiza a observabilidade da request 
- * não altera a resposta HTTP nem o tratamento da exceção -> função dos handlers de exception
+ * Sem isso, uma exceção convertida em resposta pelos handlers não aparece no trace
+ * -> o tail sampling do collector não guarda o trace de erro
  * </p>
+ *
+ * <p>
+ * Só atualiza a observabilidade, não altera a resposta HTTP -> isso é função dos handlers de exceção
+ * </p>
+ *
+ * <p>Usado por {@code GlobalExceptionHandler} e pelos handlers de 401/403 do Spring Security</p>
  */
 
 public final class HttpObservationErrors {

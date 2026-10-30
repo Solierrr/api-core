@@ -5,7 +5,16 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 
 /**
- * Superclasse abstrata de todas as exceções criadas.
+ * Superclasse abstrata de todas as exceções de negócio da API
+ *
+ * <p>
+ * Carrega status HTTP, {@code errorCode} e propriedades extras -> o {@code GlobalExceptionHandler}
+ * converte qualquer subclasse em {@code ProblemDetail} sem handler próprio
+ * </p>
+ *
+ * <p>
+ * Nova exceção = nova subclasse com status e {@code errorCode} ({@code UPPER_SNAKE}) fixos
+ * </p>
  */
 
 public abstract class BusinessException extends RuntimeException {
