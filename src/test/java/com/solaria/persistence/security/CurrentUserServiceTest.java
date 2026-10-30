@@ -111,7 +111,7 @@ class CurrentUserServiceTest {
         assertEquals("USER_NOT_PROVISIONED", exception.getErrorCode());
         ResourceNotFoundException legacyException = assertThrows(ResourceNotFoundException.class,
                 service::getCurrentUser);
-        assertEquals("RESOURCE_NOT_FOUND", legacyException.getErrorCode());
+        assertEquals("NOT_FOUND", legacyException.getErrorCode());
         verify(userRepository).findByAuthId(authId);
     }
 

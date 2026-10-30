@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.*;
 
-@Tag(name = "Solicitações de marcas")
+@Tag(name = "Solicitações de Marcas", description = "Pedidos das empresas para cadastrar marcas novas e a revisão desses pedidos")
 public interface BrandRequestOpenApi {
     @Operation(summary = "Lista somente solicitações da empresa autenticada")
     List<BrandRequestResponseDTO> own();

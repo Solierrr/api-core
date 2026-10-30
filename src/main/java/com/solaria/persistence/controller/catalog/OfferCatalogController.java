@@ -14,19 +14,27 @@ import com.solaria.persistence.dto.response.catalog.CatalogOfferResponseDTO;
 import com.solaria.persistence.service.catalog.OfferCatalogService;
 
 import lombok.RequiredArgsConstructor;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 
 @RestController
 @RequestMapping("/api/catalog/offers")
 @RequiredArgsConstructor
+@Tag(name = "Catálogo Público", description = "Vitrine pública de empresas, ofertas e técnicos; não exige autenticação")
 public class OfferCatalogController {
     private final OfferCatalogService offerCatalogService;
 
+    @Operation(summary = "Lista as ofertas do catálogo público")
+    @SecurityRequirements
     @GetMapping
     public ResponseEntity<List<CatalogOfferResponseDTO>> findAll(@RequestParam(defaultValue = "pt-BR") String locale,
             @RequestParam(required = false) ProductType productType) {
         return ResponseEntity.ok(offerCatalogService.findAll(locale, productType));
     }
 
+    @Operation(summary = "Consulta uma oferta do catálogo público pelos slugs")
+    @SecurityRequirements
     @GetMapping("/{companySlug}/{offerSlug}")
     public ResponseEntity<CatalogOfferResponseDTO> findBySlug(
             @PathVariable String companySlug,

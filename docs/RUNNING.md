@@ -65,7 +65,9 @@ infisical init
 infisical run --env=dev --path=/ --recursive -- ./mvnw spring-boot:run
 ```
 
-Com o serviço no ar, a documentação interativa da API fica disponível em `http://localhost:8080/swagger-ui.html`.
+Com o serviço no ar, o Swagger UI fica em `http://localhost:8080/docs` e o contrato em `/openapi.json`, sem as rotas `/internal/**`, que aparecem só no [`openapi.yaml`](../openapi.yaml) versionado, com o esquema `serviceKey`. `DOCS_ENABLED=false` desliga os dois (PROD). Depois de mudar rota, DTO ou anotação do contrato, rode `make openapi` e versione o `openapi.yaml`: o CI falha se ele não bater com o código.
+
+`GET /actuator/health/liveness` confirma que o processo está no ar e `GET /actuator/health/readiness`, que o PostgreSQL responde; `GET /actuator/info` mostra `build.version`, a mesma do `pom.xml` e do contrato, que o release-please atualiza a cada release.
 
 ### Rodando os testes
 

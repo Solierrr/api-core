@@ -10,6 +10,7 @@ BUILD_CMD     ?= ./mvnw package -DskipTests
 TEST_CMD      ?= ./mvnw test
 LINT_CMD      ?= ./mvnw org.apache.maven.plugins:maven-checkstyle-plugin:3.6.0:check -Dcheckstyle.config.location=google_checks.xml -Dcheckstyle.violationSeverity=error -B
 FORMAT_CMD    ?=
+OPENAPI_CMD   ?= ./mvnw -B -q test -Dtest=OpenApiExportTests -Dsurefire.failIfNoSpecifiedTests=false
 CLEAN_PATHS   ?= target
 DOCTOR_TOOLS  ?= git java
 
@@ -26,7 +27,7 @@ INFISICAL ?= infisical
 endif
 
 .DEFAULT_GOAL := help
-.PHONY: help verify-vault vault env dev install build test lint format clean doctor ci
+.PHONY: help verify-vault vault env dev install build test lint format openapi clean doctor ci
 
 help: ## Show the available commands
 	@awk 'BEGIN {FS = ":.*## "; printf "Usage: make <target>\n\n"} /^[a-zA-Z0-9_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -73,6 +74,9 @@ lint: ## Run the linter
 
 format: ## Format the code
 	$(if $(strip $(FORMAT_CMD)),set -e; $(FORMAT_CMD),@echo "format: not configured for this repository")
+
+openapi: ## Export the OpenAPI contract to openapi.yaml
+	$(if $(strip $(OPENAPI_CMD)),set -e; $(OPENAPI_CMD),@echo "openapi: not configured for this repository")
 
 clean: ## Remove build outputs (CLEAN_PATHS)
 	$(if $(strip $(CLEAN_PATHS)),rm -rf $(CLEAN_PATHS),@echo "clean: not configured for this repository")

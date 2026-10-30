@@ -12,7 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "Certifications", description = "Gerenciamento do cadastro de certificações técnicas/profissionais.")
+@Tag(name = "Certificações", description = "Gerenciamento do cadastro de certificações técnicas/profissionais.")
 public interface CertificationOpenApi {
 
     @Operation(summary = "Busca uma certificação pelo identificador")

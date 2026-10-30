@@ -22,6 +22,7 @@ import com.solaria.persistence.service.identity.UserService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import io.swagger.v3.oas.annotations.Operation;
 
 @RestController
 @RequestMapping("/api/users")
@@ -43,11 +44,13 @@ public class UserController implements UserOpenApi {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Edita os dados do próprio usuário")
     @PatchMapping("/me")
     public ResponseEntity<UserResponseDTO> updateMe(@Valid @RequestBody UpdateOwnUserRequestDTO dto) {
         return ResponseEntity.ok(userService.updateMe(dto));
     }
 
+    @Operation(summary = "Consulta o resumo de um usuário pelo authId")
     @GetMapping("/auth/{authId}/summary")
     public ResponseEntity<UserSummaryResponseDTO> findSummaryByAuthId(@PathVariable UUID authId) {
         return ResponseEntity.ok(userService.findSummaryByAuthId(authId));

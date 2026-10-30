@@ -1,0 +1,19 @@
+name: OpenAPI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  openapi-lint:
+    uses: Solierrr/docs-warehouse/.github/workflows/openapi-lint.yml@main
+    with:
+      contract: openapi.yaml
+      export-command: make openapi
+      java-version: "21"

@@ -9,11 +9,12 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 
 // Proxy de conveniência para autenticar direto pelo Swagger deste serviço,
 // sem precisar acessar o Swagger de api-auth. Chama api-auth por baixo.
 @RestController
-@Tag(name = "Dev")
+@Tag(name = "Dev", description = "Atalho de login para testar pelo Swagger; sai quando o login pelo web-sandbox estiver no ar")
 public class DevAuthController {
 
     private final AuthClient authClient;
@@ -23,6 +24,7 @@ public class DevAuthController {
     }
 
     @Operation(summary = "Autentica em api-auth e devolve o JWT, para colar no botão Authorize deste Swagger")
+    @SecurityRequirements
     @PostMapping("/dev/login")
     public AuthLoginResponseDTO login(@Valid @RequestBody LoginRequestDTO request) {
         return authClient.login(request.getEmail(), request.getPassword());

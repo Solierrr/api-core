@@ -27,7 +27,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 
-@Tag(name = "Proposals", description = "Gerenciamento do ciclo de vida das propostas comerciais, incluindo o handshake de negociação entre fornecedor e solicitante.")
+@Tag(name = "Propostas", description = "Gerenciamento do ciclo de vida das propostas comerciais, incluindo o handshake de negociação entre fornecedor e solicitante.")
 @RestController
 @RequestMapping("/api/proposals")
 @RequiredArgsConstructor

@@ -11,6 +11,7 @@ import com.solaria.persistence.dto.response.identity.InternalUserProvisionRespon
 import com.solaria.persistence.service.identity.InternalUserProvisioningService;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
@@ -18,6 +19,7 @@ import jakarta.validation.Valid;
 // do evento USER_REGISTERED exista em dbsolier
 @RestController
 @RequestMapping("/internal/users")
+@SecurityRequirement(name = "serviceKey")
 @Tag(name = "Provisionamento Interno de Usuários", description = "Endpoint M2M usado pelo api-auth")
 public class InternalUserProvisioningController {
 
