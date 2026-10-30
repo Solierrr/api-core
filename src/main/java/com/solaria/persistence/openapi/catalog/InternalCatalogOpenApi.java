@@ -12,9 +12,11 @@ import com.solaria.persistence.dto.response.professional.AccreditedTechnicianRes
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Tag(name = "Catálogo interno", description = "Leituras do catálogo para o mcp-database, autenticadas pelo header X-Service-Key com a chave SERVICE_KEY_MCP_DATABASE")
+@SecurityRequirement(name = "serviceKey")
 public interface InternalCatalogOpenApi {
 
     @Operation(summary = "Lista as profissões ordenadas por nome")

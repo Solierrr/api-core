@@ -2288,6 +2288,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
           description: Erro interno inesperado
+      summary: Busca pessoas para conectar ou já conectadas
       tags:
       - Conexões
   /api/connections/people/{id}:
@@ -2313,6 +2314,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
           description: Erro interno inesperado
+      summary: Consulta o perfil de uma pessoa do diretório de conexões
       tags:
       - Conexões
   /api/connections/{id}:
@@ -6391,8 +6393,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
           description: Erro interno inesperado
+      summary: Resolve a localização do projeto no mapa a partir do endereço
       tags:
-      - project-map-controller
+      - Projetos
   /api/projects/{id}/members:
     get:
       operationId: membersProject
@@ -11027,6 +11030,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
           description: Erro interno inesperado
+      security:
+      - serviceKey: []
       summary: "Lista técnicos aprovados com afiliação ativa a empresas, uma linha\
         \ por afiliação e registro profissional"
       tags:
@@ -11088,6 +11093,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
           description: Erro interno inesperado
+      security:
+      - serviceKey: []
       summary: "Lista ofertas de itens de infraestrutura visíveis no catálogo, da\
         \ mais barata para a mais cara"
       tags:
@@ -11116,6 +11123,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
           description: Erro interno inesperado
+      security:
+      - serviceKey: []
       summary: Lista as profissões ordenadas por nome
       tags:
       - Catálogo interno
