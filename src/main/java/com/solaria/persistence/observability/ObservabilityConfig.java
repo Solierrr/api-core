@@ -15,22 +15,21 @@ import io.micrometer.tracing.Tracer;
 import jakarta.servlet.DispatcherType;
 
 /**
- * Configuracao central de observabilidade da aplicacao
+ * Configuração central de observabilidade da aplicação
  *
- * Concentra na camda de infra os beans que para comportamento das libs Micrometer|Micrometer Tracing|OpenTelemetry
- * sem misturar camada de observabilidade com camada de negocios
- * 
+ * <p>
+ * Concentra na camada de infra os beans que ajustam o comportamento de Micrometer, Micrometer Tracing
+ * e OpenTelemetry -> observabilidade não se mistura com a camada de negócio
  * </p>
  *
  * <p>Beans disponibilizados:</p>
  * <ul>
  *     <li>{@link #traceIdResponseFilterRegistration(ObjectProvider)} -> registra o
- *     {@link TraceIdResponseFilter} logo apos o filtro de observacao do Spring MVC</li>
- *     <li>{@link #noActuatorObservations()} -> descarta observacoes (spans/metricas)
- *     do trafego de probe em {@code /actuator/**} reduzindo ruido e custo</li>
+ *     {@link TraceIdResponseFilter} logo após o filtro de observação do Spring MVC</li>
+ *     <li>{@link #noActuatorObservations()} -> descarta observações (spans/métricas)
+ *     do tráfego de probe em {@code /actuator/**}, reduzindo ruído e custo</li>
  *     <li>{@link #contextPropagatingTaskDecorator()} -> preserva o contexto de
- *     observabilidade em trocas de thread (async) aplicado automaticamente pelo
- *     Spring Boot ao executor padrao</li>
+ *     observabilidade em trocas de thread (async), aplicado pelo Spring Boot ao executor padrão</li>
  * </ul>
  */
 @Configuration

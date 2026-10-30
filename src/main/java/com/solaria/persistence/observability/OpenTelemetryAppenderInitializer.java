@@ -10,12 +10,14 @@ import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppen
 
 
 /**
- * 
- * Prepara o envio dos logs da aplicação para o OpenTelemetry
- * 
+ * Liga o appender {@code OTEL} do {@code logback-spring.xml} ao OpenTelemetry da aplicação
+ *
  * <p>
- * Caso o OpenTelemetry não esteja disponível a aplicação continua funcionando
- * normalmente e os logs seguem apenas o comportamento padrão do Logback
+ * O Spring Boot não instala o appender sozinho -> sem esta classe os logs ficam só no console
+ * </p>
+ *
+ * <p>
+ * Sem bean {@link OpenTelemetry}, não faz nada e os logs seguem o comportamento padrão do Logback
  * </p>
  */
 
