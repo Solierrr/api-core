@@ -12,6 +12,12 @@ import java.util.UUID;
 
 public interface TechnicalProjectRepository extends JpaRepository<TechnicalProject, UUID> {
 
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query(value = "UPDATE technical_project SET location_latitude=NULL, "
+            + "location_longitude=NULL, location_geocoded_at=NULL WHERE location_geocoded_at < now()-interval '29 days'", nativeQuery = true)
+    int removeExpiredGeocodes();
+
+
     @EntityGraph(attributePaths = {"requester.company", "localUnit"})
     @Query("select entity from TechnicalProject entity where entity.id = :id")
     Optional<TechnicalProject> findForManagementById(UUID id);

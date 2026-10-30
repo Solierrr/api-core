@@ -89,7 +89,7 @@ public class ProjectService {
         else {
             boolean approved =
                     professionals
-                            .findByAuthId(user.getAuth_id())
+                            .findByAuthId(user.getAuthId())
                             .map(
                                     profile ->
                                             profile.getApprovedVersion() > 0
@@ -141,15 +141,13 @@ public class ProjectService {
     }
 
     private void apply(TechnicalProject p, ProjectRequest d) {
+        var previousLocation = p.getLocation();
         if (d.startDate() != null && d.endDate() != null && !d.endDate().isAfter(d.startDate()))
             throw new BusinessRuleException("A data final precisa ser posterior ao início");
         p.setName(d.name().trim());
         p.setDescription(d.description());
         p.setStartDate(d.startDate());
-        p.setEndDate(
-                d.endDate() == null
-                        ? null
-                        : d.endDate().withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime());
+        p.setEndDate(d.endDate());
         if (d.localUnitId() != null) {
             var unit =
                     units.findById(d.localUnitId())
@@ -175,8 +173,28 @@ public class ProjectService {
         } else {
             p.setLocalUnit(null);
             p.setRequester(null);
-            p.setLocation(d.location());
+            var next = d.location();
+            if (next != null) {
+                next.setLatitude(null);
+                next.setLongitude(null);
+                next.setPlaceId(null);
+                next.setGeocodedAt(null);
+            }
+            p.setLocation(next);
         }
+        var nextLocation = p.getLocation();
+        if (previousLocation != null && nextLocation != null && addressKey(previousLocation).equals(addressKey(nextLocation))) {
+            nextLocation.setLatitude(previousLocation.getLatitude());
+            nextLocation.setLongitude(previousLocation.getLongitude());
+            nextLocation.setPlaceId(previousLocation.getPlaceId());
+            nextLocation.setGeocodedAt(previousLocation.getGeocodedAt());
+        }
+    }
+
+    private List<String> addressKey(ProjectLocation location) {
+        return java.util.Arrays.asList(location.getState(), location.getCity(), location.getNeighborhood(),
+                location.getStreet(), location.getNumber(), location.getZipCode()).stream()
+                .map(value -> value == null ? "" : value.trim().toLowerCase(Locale.ROOT)).toList();
     }
 
     public ProjectResponse status(UUID id, ServiceStatus next) {
@@ -223,7 +241,7 @@ public class ProjectService {
                     new ProjectMemberResponse(
                             m.getId(),
                             u.getId(),
-                            u.getAuth_id(),
+                            u.getAuthId(),
                             u.getUsername(),
                             (access.isOwner(p, u) ? ProjectRole.OWNER : m.getRole()),
                             m.getFunctionName()));
@@ -255,7 +273,7 @@ public class ProjectService {
         return new ProjectMemberResponse(
                 m.getId(),
                 uid,
-                u.getAuth_id(),
+                u.getAuthId(),
                 u.getUsername(),
                 (access.isOwner(p, u) ? ProjectRole.OWNER : m.getRole()),
                 m.getFunctionName());
@@ -330,7 +348,7 @@ public class ProjectService {
                 p.getStatus(),
                 p.isArchived(),
                 p.getStartDate(),
-                p.getEndDate() == null ? null : p.getEndDate().atOffset(ZoneOffset.UTC),
+                p.getEndDate(),
                 p.getLocalUnit() == null ? null : p.getLocalUnit().getId(),
                 p.getLocation(),
                 role,

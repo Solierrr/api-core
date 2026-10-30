@@ -54,28 +54,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/checkout@v4
-        with:
-          repository: Solierrr/database-console
-          path: database-console
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Build the coredb schema from the database-console migrations
-        env:
-          DB_POSTGRES_HOST: 127.0.0.1
-          DB_POSTGRES_PORT: "5432"
-          DB_POSTGRES_USER: solaria
-          DB_POSTGRES_PASSWORD: solaria
-          DB_POSTGRES_CORE: coredb
-          DB_POSTGRES_SSLMODE: disable
-        run: |
-          pip install psycopg2-binary python-dotenv
-          python database-console/scripts/migrate.py --target core
-          PGPASSWORD=solaria psql -h 127.0.0.1 -U solaria -d coredb -v ON_ERROR_STOP=1 -q -f database-console/db/core/seed.sql
-
       - uses: actions/setup-java@v4
         with:
           distribution: "temurin"

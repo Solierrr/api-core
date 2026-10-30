@@ -18,10 +18,10 @@ public class CertificationRecord {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_professional_registration")
+    @JoinColumn(name = "professional_registration_id")
     private ProfessionalRegistration professionalRegistration;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_certification")
+    @JoinColumn(name = "certification_id")
     private Certification certification;
 }

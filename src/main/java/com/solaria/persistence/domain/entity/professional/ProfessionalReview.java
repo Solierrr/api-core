@@ -13,8 +13,8 @@ import com.solaria.persistence.domain.entity.execution.TechnicalService;
 @Entity
 @Table(name = "professional_review",
         uniqueConstraints = @UniqueConstraint(
-                name = "uq_professional_review_reviewer_professional_service",
-                columnNames = {"fk_reviewer", "fk_professional", "fk_service"}))
+                name = "uq_professional_review_reviewer_technician_service",
+                columnNames = {"reviewer_user_id", "technician_id", "technical_service_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,15 +26,15 @@ public class ProfessionalReview {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_professional", nullable = false)
+    @JoinColumn(name = "technician_id", nullable = false)
     private Technician professional;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_reviewer", nullable = false)
+    @JoinColumn(name = "reviewer_user_id", nullable = false)
     private User reviewer;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_service", nullable = false)
+    @JoinColumn(name = "technical_service_id", nullable = false)
     private TechnicalService service;
 
     @Column(name = "rating", nullable = false, precision = 2, scale = 1)
@@ -43,7 +43,7 @@ public class ProfessionalReview {
     @Column(name = "comment")
     private String comment;
 
-    @Column(name = "active", nullable = false)
+    @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
     @Column(name = "created_at", nullable = false)

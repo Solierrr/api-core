@@ -24,11 +24,11 @@ public class Proposal {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_requester", nullable = false)
+    @JoinColumn(name = "requester_id", nullable = false)
     private Requester requester;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_supplier", nullable = false, updatable = false)
+    @JoinColumn(name = "supplier_id", nullable = false, updatable = false)
     private Supplier supplier;
 
     @Enumerated(EnumType.STRING)

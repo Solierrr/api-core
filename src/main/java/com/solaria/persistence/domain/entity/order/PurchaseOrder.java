@@ -22,14 +22,14 @@ public class PurchaseOrder {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fk_buyer", nullable = false)
+    @JoinColumn(name = "buyer_user_id", nullable = false)
     private User buyer;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 16)
     private OrderStatus status = OrderStatus.PAID;
 
-    @Column(name = "subtotal", nullable = false)
+    @Column(name = "subtotal_amount", nullable = false)
     private BigDecimal subtotal;
 
     @Column(name = "fee_percentage", nullable = false)
@@ -38,7 +38,7 @@ public class PurchaseOrder {
     @Column(name = "fee_amount", nullable = false)
     private BigDecimal feeAmount;
 
-    @Column(name = "total", nullable = false)
+    @Column(name = "total_amount", nullable = false)
     private BigDecimal total;
 
     @Column(name = "created_at", nullable = false)
@@ -47,6 +47,6 @@ public class PurchaseOrder {
     @Column(name = "canceled_at")
     private OffsetDateTime canceledAt;
 
-    @Column(name = "canceled_by")
+    @Column(name = "canceled_by_user_id")
     private UUID canceledBy;
 }

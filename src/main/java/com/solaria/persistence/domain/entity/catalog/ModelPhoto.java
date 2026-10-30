@@ -19,7 +19,7 @@ public class ModelPhoto {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_model", nullable = false)
+    @JoinColumn(name = "model_id", nullable = false)
     private Model model;
 
     @Column(name = "url", nullable = false)

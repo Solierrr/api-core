@@ -72,7 +72,7 @@ public class ProfessionalOnboardingController {
     public Policy policy(@PathVariable UUID id) { return onboarding.policy(id); }
     @Operation(summary = "Consulta se o usuário autenticado pode usar o app")
     @GetMapping("/api/users/me/mobile-eligibility")
-    public Eligibility eligibility() { return onboarding.eligibility(current.getCurrentUser().getAuth_id()); }
+    public Eligibility eligibility() { return onboarding.eligibility(current.getCurrentUser().getAuthId()); }
     @Operation(summary = "Consulta se um usuário pode usar o app")
     @SecurityRequirement(name = "serviceKey")
     @GetMapping("/internal/users/{authId}/mobile-eligibility")

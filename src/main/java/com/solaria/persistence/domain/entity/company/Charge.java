@@ -4,8 +4,6 @@ import com.solaria.persistence.domain.enums.company.BillingStatus;
 import com.solaria.persistence.domain.enums.company.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -25,25 +23,23 @@ public class Charge {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_subscription", nullable = false)
+    @JoinColumn(name = "subscription_id", nullable = false)
     private Subscription subscription;
 
     @Column(name = "amount", nullable = false)
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "payment_method", nullable = false)
     private PaymentMethod paymentMethod;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false)
     private BillingStatus status = BillingStatus.PENDING;
 
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
 
-    @Column(name = "payment_date")
+    @Column(name = "paid_at")
     private OffsetDateTime paymentDate;
 }

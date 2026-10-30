@@ -28,4 +28,7 @@ public interface TechnicianRepository extends JpaRepository<Technician, UUID> {
     boolean existsBySlug(String slug);
 
     Optional<Technician> findBySlug(String slug);
+
+    @EntityGraph(attributePaths = "person")
+    List<Technician> findByStatusAndPersonUserActiveTrue(com.solaria.persistence.domain.enums.professional.TechnicianStatus status);
 }

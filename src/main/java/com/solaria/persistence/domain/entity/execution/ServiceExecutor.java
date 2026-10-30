@@ -30,11 +30,11 @@ public class ServiceExecutor {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_service", nullable = false)
+    @JoinColumn(name = "technical_service_id", nullable = false)
     private TechnicalService service;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_technician_affiliation", nullable = false)
+    @JoinColumn(name = "technician_affiliation_id", nullable = false)
     private TechnicianAffiliation technicianAffiliation;
 
     @Column(name = "function", nullable = false)

@@ -49,20 +49,20 @@ class ProfessionalOnboardingServiceTest {
 
     @Test
     void pendingOrRejectedProposalDoesNotChangeApprovedEligibility() {
-        var user = new User(); user.setId(UUID.randomUUID()); user.setAuth_id(UUID.randomUUID());
-        var profile = new ProfessionalOnboarding(); profile.setId(UUID.randomUUID()); profile.setAuthId(user.getAuth_id());
+        var user = new User(); user.setId(UUID.randomUUID()); user.setAuthId(UUID.randomUUID());
+        var profile = new ProfessionalOnboarding(); profile.setId(UUID.randomUUID()); profile.setAuthId(user.getAuthId());
         profile.setUserId(user.getId()); profile.setTechnicianId(UUID.randomUUID()); profile.setApprovedVersion(1);
         profile.setApprovedJson("{}"); profile.setDraftJson("{\"name\":\"Proposta\"}");
         var technician = new Technician(); technician.setStatus(TechnicianStatus.APPROVED);
-        when(users.findByAuthId(user.getAuth_id())).thenReturn(Optional.of(user));
-        when(profiles.findByAuthId(user.getAuth_id())).thenReturn(Optional.of(profile));
+        when(users.findByAuthId(user.getAuthId())).thenReturn(Optional.of(user));
+        when(profiles.findByAuthId(user.getAuthId())).thenReturn(Optional.of(profile));
         when(technicians.findById(profile.getTechnicianId())).thenReturn(Optional.of(technician));
-        assertTrue(service.eligibility(user.getAuth_id()).eligible());
+        assertTrue(service.eligibility(user.getAuthId()).eligible());
         verifyNoInteractions(submissions);
         profile.setSuspended(true);
-        assertFalse(service.eligibility(user.getAuth_id()).eligible());
+        assertFalse(service.eligibility(user.getAuthId()).eligible());
         profile.setSuspended(false); user.setActive(false);
-        assertFalse(service.eligibility(user.getAuth_id()).eligible());
+        assertFalse(service.eligibility(user.getAuthId()).eligible());
     }
 
     @Test

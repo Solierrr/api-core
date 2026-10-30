@@ -19,11 +19,11 @@ public class ProposalUnit {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_proposal_item", nullable = false)
+    @JoinColumn(name = "proposal_item_id", nullable = false)
     private ProposalItem proposalItem;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_local_unit", nullable = false)
+    @JoinColumn(name = "local_unit_id", nullable = false)
     private LocalUnit localUnit;
 
     @Column(name = "quantity", nullable = false)

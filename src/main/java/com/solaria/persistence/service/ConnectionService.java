@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.solaria.persistence.domain.entity.identity.User;
 import com.solaria.persistence.dto.request.ConnectionRequestDTO;
 import com.solaria.persistence.dto.response.identity.UserResponseDTO;
+import com.solaria.persistence.exception.BusinessRuleException;
 import com.solaria.persistence.exception.DuplicateResourceException;
 import com.solaria.persistence.exception.InvalidFieldException;
 import com.solaria.persistence.exception.ResourceNotFoundException;
@@ -23,11 +24,16 @@ public class ConnectionService {
 
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
+    private final ConnectionVisibility visibility;
+    private final jakarta.persistence.EntityManager entityManager;
 
     public ConnectionService(UserRepository userRepository,
-                             CurrentUserService currentUserService) {
+                             CurrentUserService currentUserService, ConnectionVisibility visibility,
+                             jakarta.persistence.EntityManager entityManager) {
         this.userRepository = userRepository;
         this.currentUserService = currentUserService;
+        this.visibility = visibility;
+        this.entityManager = entityManager;
     }
 
     @Transactional
@@ -43,6 +49,13 @@ public class ConnectionService {
                 () -> new ResourceNotFoundException(
                         "Usuário não encontrado com ID: " + dto.getConnectedUserId()));
 
+        if (!Boolean.TRUE.equals(connectedUser.getActive())) {
+            throw new BusinessRuleException("Não é possível conectar-se a um usuário inativo");
+        }
+        if (!visibility.visible(owner, connectedUser)) {
+            throw new ResourceNotFoundException("Perfil não disponível");
+        }
+
         List<UUID> connections = mutableConnections(owner);
         if (connections.contains(connectedUser.getId())) {
             throw new DuplicateResourceException("A conexão entre os usuários já existe");
@@ -56,7 +69,8 @@ public class ConnectionService {
 
     @Transactional(readOnly = true)
     public List<UserResponseDTO> findAll() {
-        List<UUID> connectionIds = connectionsOf(currentUserService.getCurrentUser());
+        User owner = currentUserService.getCurrentUser();
+        List<UUID> connectionIds = connectionsOf(owner);
         if (connectionIds.isEmpty()) {
             return List.of();
         }
@@ -67,7 +81,7 @@ public class ConnectionService {
 
         return connectionIds.stream()
                 .map(usersById::get)
-                .filter(user -> user != null)
+                .filter(user -> user != null && visibility.visible(owner, user))
                 .map(this::toUserResponse)
                 .toList();
     }
@@ -79,6 +93,7 @@ public class ConnectionService {
         User connectedUser = userRepository.findById(connectedUserId).orElseThrow(
                 () -> new ResourceNotFoundException(
                         "Usuário conectado não encontrado com ID: " + connectedUserId));
+        if (!visibility.visible(owner, connectedUser)) throw new ResourceNotFoundException("Perfil não disponível");
         return toUserResponse(connectedUser);
     }
 
@@ -96,8 +111,10 @@ public class ConnectionService {
     }
 
     private User findOwnerForUpdate(UUID ownerId) {
-        return userRepository.findByIdForUpdate(ownerId).orElseThrow(
+        User owner = userRepository.findByIdForUpdate(ownerId).orElseThrow(
                 () -> new ResourceNotFoundException("Usuário autenticado não encontrado na api-core"));
+        entityManager.refresh(owner);
+        return owner;
     }
 
     private void requireConnection(User owner, UUID connectedUserId) {
@@ -118,7 +135,7 @@ public class ConnectionService {
     private UserResponseDTO toUserResponse(User user) {
         UserResponseDTO response = new UserResponseDTO();
         response.setId(user.getId());
-        response.setAuthId(user.getAuth_id());
+        response.setAuthId(user.getAuthId());
         response.setUsername(user.getUsername());
         response.setAvatar(user.getAvatar());
         response.setBanner(user.getBanner());

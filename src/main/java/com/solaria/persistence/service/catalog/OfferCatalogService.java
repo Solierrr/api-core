@@ -57,7 +57,7 @@ public class OfferCatalogService {
         return toResponse(offer, locale);
     }
 
-    private boolean visible(Offer offer) {
+    boolean visible(Offer offer) {
         return offer.getCommercialStatus() == com.solaria.persistence.domain.enums.catalog.OfferStatus.ACTIVE
                 && offer.getSupplier().getStatus() == SupplierStatus.ACTIVE
                 && offer.getSupplier().getCompany().getStatus() == CompanyStatus.APPROVED

@@ -1,0 +1,26 @@
+meta {
+  name: GET /api/feeds/offers
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/feeds/offers
+  body: none
+  auth: bearer
+}
+
+params:query {
+  ~strategy: best_value
+  ~localUnitId: {{sampleUuid}}
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `RecommendationFeedController.java`.
+
+  Sem grafo (QA, sem RECOMMENDATION_API_URL ou api-recommendation indisponível), responde `source: "fallback"` com as ofertas de melhor custo por Wp do Postgres e um aviso em `warnings`; `strategy` e `localUnitId` são ignorados.
+}

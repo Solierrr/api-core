@@ -20,7 +20,7 @@ import com.solaria.persistence.domain.entity.identity.Person;
 import com.solaria.persistence.domain.entity.identity.User;
 import com.solaria.persistence.domain.entity.identity.UserPhoto;
 import com.solaria.persistence.domain.entity.shared.Address;
-import com.solaria.persistence.domain.entity.shared.Geolocalization;
+import com.solaria.persistence.domain.entity.shared.Geolocation;
 import com.solaria.persistence.domain.entity.unit.LocalUnit;
 import com.solaria.persistence.domain.enums.shared.PhotoType;
 import com.solaria.persistence.dto.response.execution.PersonalTechnicalServiceAddressResponseDTO;
@@ -29,7 +29,7 @@ import com.solaria.persistence.dto.response.execution.PersonalTechnicalServiceGe
 import com.solaria.persistence.dto.response.execution.PersonalTechnicalServiceResponseDTO;
 import com.solaria.persistence.repository.execution.ServiceExecutorRepository;
 import com.solaria.persistence.repository.identity.UserPhotoRepository;
-import com.solaria.persistence.repository.shared.GeolocalizationRepository;
+import com.solaria.persistence.repository.shared.GeolocationRepository;
 import com.solaria.persistence.security.mobile.ActorServiceAccess;
 
 import lombok.RequiredArgsConstructor;
@@ -40,7 +40,7 @@ public class PersonalTechnicalServiceAssembler {
 
     private final ServiceExecutorRepository serviceExecutorRepository;
     private final UserPhotoRepository userPhotoRepository;
-    private final GeolocalizationRepository geolocalizationRepository;
+    private final GeolocationRepository geolocationRepository;
 
     public List<ServiceExecutor> loadCrew(Collection<TechnicalService> services) {
         List<UUID> serviceIds = services.stream().map(TechnicalService::getId).distinct().toList();
@@ -56,7 +56,7 @@ public class PersonalTechnicalServiceAssembler {
         }
         Map<UUID, List<ServiceExecutor>> crewByService = groupCrewByService(crew);
         Map<UUID, String> profilePhotoUrls = loadProfilePhotoUrls(crew);
-        Map<UUID, PersonalTechnicalServiceGeoResponseDTO> geolocalizations = loadGeolocalizations(services);
+        Map<UUID, PersonalTechnicalServiceGeoResponseDTO> geolocations = loadGeolocations(services);
 
         return services.stream()
                 .map(service -> assembleOne(
@@ -64,7 +64,7 @@ public class PersonalTechnicalServiceAssembler {
                         requiredAccess(accessByServiceId, service.getId()),
                         crewByService.getOrDefault(service.getId(), List.of()),
                         profilePhotoUrls,
-                        geolocalizations))
+                        geolocations))
                 .toList();
     }
 
@@ -78,7 +78,7 @@ public class PersonalTechnicalServiceAssembler {
             ActorServiceAccess access,
             List<ServiceExecutor> crew,
             Map<UUID, String> profilePhotoUrls,
-            Map<UUID, PersonalTechnicalServiceGeoResponseDTO> geolocalizations) {
+            Map<UUID, PersonalTechnicalServiceGeoResponseDTO> geolocations) {
         PersonalTechnicalServiceResponseDTO response = new PersonalTechnicalServiceResponseDTO();
         response.setId(service.getId());
         response.setTechnicalProjectId(service.getTechnicalProject().getId());
@@ -107,7 +107,7 @@ public class PersonalTechnicalServiceAssembler {
                         address.getCity(),
                         address.getState(),
                         address.getZipCode()));
-                response.setGeo(geolocalizations.get(address.getId()));
+                response.setGeo(geolocations.get(address.getId()));
             }
         }
 
@@ -154,7 +154,7 @@ public class PersonalTechnicalServiceAssembler {
         return photoUrls;
     }
 
-    private Map<UUID, PersonalTechnicalServiceGeoResponseDTO> loadGeolocalizations(
+    private Map<UUID, PersonalTechnicalServiceGeoResponseDTO> loadGeolocations(
             Collection<TechnicalService> services) {
         Set<UUID> addressIds = services.stream()
                 .map(TechnicalService::getTechnicalProject)
@@ -167,8 +167,8 @@ public class PersonalTechnicalServiceAssembler {
             return Map.of();
         }
 
-        Map<UUID, List<Geolocalization>> byAddress = new HashMap<>();
-        for (Geolocalization item : geolocalizationRepository.findWithAddressByAddressIds(addressIds)) {
+        Map<UUID, List<Geolocation>> byAddress = new HashMap<>();
+        for (Geolocation item : geolocationRepository.findWithAddressByAddressIds(addressIds)) {
                 byAddress.computeIfAbsent(item.getAddress().getId(), ignored -> new ArrayList<>()).add(item);
         }
 
@@ -179,9 +179,9 @@ public class PersonalTechnicalServiceAssembler {
     }
 
     private static Optional<PersonalTechnicalServiceGeoResponseDTO> resolveGeo(
-            List<Geolocalization> geolocalizations) {
-        Map<CoordinateKey, Geolocalization> uniqueCoordinates = new LinkedHashMap<>();
-        for (Geolocalization item : geolocalizations) {
+            List<Geolocation> geolocations) {
+        Map<CoordinateKey, Geolocation> uniqueCoordinates = new LinkedHashMap<>();
+        for (Geolocation item : geolocations) {
             if (item.getLatitude() == null || item.getLongitude() == null) {
                 return Optional.empty();
             }
@@ -194,7 +194,7 @@ public class PersonalTechnicalServiceAssembler {
             return Optional.empty();
         }
 
-        Geolocalization coordinate = uniqueCoordinates.values().iterator().next();
+        Geolocation coordinate = uniqueCoordinates.values().iterator().next();
         return Optional.of(new PersonalTechnicalServiceGeoResponseDTO(
                 coordinate.getLatitude(), coordinate.getLongitude()));
     }
@@ -203,7 +203,7 @@ public class PersonalTechnicalServiceAssembler {
             ServiceExecutor executor, Map<UUID, String> profilePhotoUrls) {
         Person person = executor.getTechnicianAffiliation().getTechnician().getPerson();
         User user = person.getUser();
-        UUID authId = user == null ? null : user.getAuth_id();
+        UUID authId = user == null ? null : user.getAuthId();
         String avatarUrl = user == null ? null : profilePhotoUrls.getOrDefault(user.getId(), user.getAvatar());
         return new PersonalTechnicalServiceExecutorResponseDTO(
                 authId,

@@ -19,7 +19,7 @@ public class Brand {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "fk_owner_company")
+    @Column(name = "owner_company_id")
     private UUID ownerCompanyId;
 
     @Column(nullable = false, length = 255)
@@ -32,10 +32,10 @@ public class Brand {
     @Column(nullable = false)
     private BrandVisibility visibility = BrandVisibility.PRIVATE;
 
-    @Column(nullable = false)
+    @Column(name = "is_archived", nullable = false)
     private boolean archived;
 
-    @Column(nullable = false)
+    @Column(name = "is_legacy", nullable = false)
     private boolean legacy;
 
     @Column(name = "logo_url", length = 2048)
@@ -44,7 +44,7 @@ public class Brand {
     @Column(name = "reference_url", length = 2048)
     private String referenceUrl;
 
-    @Version private long revision;
+    @Version @Column(name = "version") private long revision;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();

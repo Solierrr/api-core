@@ -3,7 +3,7 @@ package com.solaria.persistence.domain.entity.professional;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 
@@ -25,8 +25,8 @@ public class Certification {
     @Column(name = "issuer", length = 100)
     private String issuer;
 
-    @Column(name = "validity")
-    private LocalDateTime validity;
+    @Column(name = "valid_until_at")
+    private OffsetDateTime validity;
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;

@@ -16,6 +16,6 @@ public class OfferStatusHistory {
     @Column(name = "offer_id", nullable = false) private UUID offerId;
     @Enumerated(EnumType.STRING) @Column(name = "previous_status", nullable = false, length = 16) private OfferStatus previousStatus;
     @Enumerated(EnumType.STRING) @Column(name = "new_status", nullable = false, length = 16) private OfferStatus newStatus;
-    @Column(name = "actor_id", nullable = false) private UUID actorId;
+    @Column(name = "actor_user_id", nullable = false) private UUID actorId;
     @Column(name = "created_at", nullable = false) private Instant createdAt = Instant.now();
 }

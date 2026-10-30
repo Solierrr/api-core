@@ -20,11 +20,11 @@ public class CartItem {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fk_cart", nullable = false)
+    @JoinColumn(name = "cart_id", nullable = false)
     private Cart cart;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fk_offer", nullable = false)
+    @JoinColumn(name = "offer_id", nullable = false)
     private Offer offer;
 
     @Column(name = "quantity", nullable = false)

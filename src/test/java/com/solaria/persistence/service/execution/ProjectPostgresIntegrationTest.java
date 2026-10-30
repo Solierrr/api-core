@@ -28,6 +28,7 @@ import java.util.*;
 @EnabledIfSystemProperty(named = "solaria.postgres.url", matches = ".+")
 @SpringBootTest(
         properties = {
+            "spring.flyway.enabled=true",
             "spring.jpa.hibernate.ddl-auto=validate",
             "spring.datasource.driver-class-name=org.postgresql.Driver",
             "spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect",
@@ -64,20 +65,20 @@ class ProjectPostgresIntegrationTest {
     @Test
     void personalProjectPersistsWithPrivateAgendaInvitesAndHistory() {
         var user = new User();
-        user.setAuth_id(UUID.randomUUID());
+        user.setAuthId(UUID.randomUUID());
         user.setUsername("project_" + UUID.randomUUID().toString().substring(0, 8));
         user.setActive(true);
         user = users.saveAndFlush(user);
         var profile = new ProfessionalOnboarding();
         profile.setId(UUID.randomUUID());
         profile.setUserId(user.getId());
-        profile.setAuthId(user.getAuth_id());
+        profile.setAuthId(user.getAuthId());
         profile.setApprovedVersion(1);
         profiles.saveAndFlush(profile);
         var jwt =
                 Jwt.withTokenValue("test")
                         .header("alg", "none")
-                        .subject(user.getAuth_id().toString())
+                        .subject(user.getAuthId().toString())
                         .claim("email", "owner@solaria.test")
                         .claim("email_verified", true)
                         .build();
@@ -156,7 +157,7 @@ class ProjectPostgresIntegrationTest {
     @Test
     void approvedIndependentProfessionalExecutesOwnServiceWithoutEmployment() {
         var user = new User();
-        user.setAuth_id(UUID.randomUUID());
+        user.setAuthId(UUID.randomUUID());
         user.setUsername("independent_" + UUID.randomUUID().toString().substring(0, 8));
         user.setActive(true);
         user = users.saveAndFlush(user);
@@ -175,7 +176,7 @@ class ProjectPostgresIntegrationTest {
         var jwt =
                 Jwt.withTokenValue("test")
                         .header("alg", "none")
-                        .subject(user.getAuth_id().toString())
+                        .subject(user.getAuthId().toString())
                         .claim("email", "independent@solaria.test")
                         .claim("email_verified", true)
                         .build();

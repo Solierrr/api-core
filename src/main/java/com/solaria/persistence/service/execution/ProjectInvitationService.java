@@ -32,7 +32,7 @@ public class ProjectInvitationService {
 
     public List<ProjectInvitationResponse> mine() {
         var u = access.user();
-        return invites.findPendingFor(u.getAuth_id(), email()).stream()
+        return invites.findPendingFor(u.getAuthId(), email()).stream()
                 .filter(i -> i.getExpiresAt().isAfter(OffsetDateTime.now()))
                 .map(this::response)
                 .toList();
@@ -76,7 +76,7 @@ public class ProjectInvitationService {
                                         p,
                                         d,
                                         person.getContact().getEmail(),
-                                        person.getUser().getAuth_id())));
+                                        person.getUser().getAuthId())));
             }
             if (result.isEmpty()) throw new BusinessRuleException("Equipe sem integrantes");
         } else {
@@ -90,7 +90,7 @@ public class ProjectInvitationService {
     private ProjectInvitation save(
             TechnicalProject p, ProjectInvitationRequest d, String address, UUID authId) {
         String target = address.trim().toLowerCase(Locale.ROOT);
-        if (target.equals(email()) || access.user().getAuth_id().equals(authId))
+        if (target.equals(email()) || access.user().getAuthId().equals(authId))
             throw new BusinessRuleException("Você já participa do projeto");
         boolean duplicate =
                 invites.findByProjectIdOrderByCreatedAtDesc(p.getId()).stream()
@@ -127,7 +127,7 @@ public class ProjectInvitationService {
         var u = access.user();
         boolean recipient =
                 i.getRecipientAuthId() != null
-                        ? u.getAuth_id().equals(i.getRecipientAuthId())
+                        ? u.getAuthId().equals(i.getRecipientAuthId())
                         : i.getEmail().equals(email());
         if (!recipient) throw new UnauthorizedAccessException("Convite indisponível");
         if (i.getStatus() != ProjectInvitationStatus.PENDING

@@ -4,7 +4,6 @@ import com.solaria.persistence.domain.enums.execution.ServiceStatus;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -20,6 +19,6 @@ public class TechnicalProjectRequestDTO {
 
     private OffsetDateTime startDate;
 
-    private LocalDateTime endDate;
+    private OffsetDateTime endDate;
 
 }

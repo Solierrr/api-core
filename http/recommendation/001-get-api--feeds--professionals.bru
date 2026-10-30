@@ -1,0 +1,26 @@
+meta {
+  name: GET /api/feeds/professionals
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/feeds/professionals
+  body: none
+  auth: bearer
+}
+
+params:query {
+  ~strategy: best_match
+  ~professionId: {{sampleUuid}}
+}
+
+auth:bearer {
+  token: {{userToken}}
+}
+
+docs {
+  Source: `RecommendationFeedController.java`.
+
+  Sem grafo (QA, sem RECOMMENDATION_API_URL ou api-recommendation indisponível), responde `source: "fallback"` com ranking simples do Postgres e um aviso em `warnings`.
+}

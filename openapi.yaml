@@ -26,6 +26,9 @@ tags:
   name: Pessoas
 - description: Gerenciamento das avaliações realizadas sobre profissionais
   name: Avaliações de Profissionais
+- description: Feeds de recomendação do api-recommendation para o usuário autenticado;
+    a chave do serviço nunca chega ao navegador.
+  name: Recommendation Feeds
 - description: Gerenciamento de endereços cadastrados no sistema
   name: Endereços
 - description: Gerenciamento dos solicitantes vinculados às empresas
@@ -35,6 +38,9 @@ tags:
   name: Vínculos de Usuários
 - description: Gerenciamento das profissões cadastradas
   name: Profissões
+- description: "Leituras do catálogo para o mcp-database, autenticadas pelo header\
+    \ X-Service-Key com a chave SERVICE_KEY_MCP_DATABASE"
+  name: Catálogo interno
 - description: Gerenciamento dos usuários do sistema
   name: Usuários
 - description: Gerenciamento dos serviços técnicos e do seu ciclo de vida
@@ -323,7 +329,7 @@ paths:
   /api/addresses/{id}:
     delete:
       description: "Não é possível excluir um endereço referenciado por Company, LocalUnit\
-        \ ou Geolocalization."
+        \ ou Geolocation."
       operationId: deleteByIdAddress
       parameters:
       - in: path
@@ -1457,8 +1463,8 @@ paths:
   /api/charges/subscription/{subscriptionId}/generate:
     post:
       description: "O valor da cobrança vem do plano da assinatura, não é informado\
-        \ pelo cliente; execução delegada à procedure sp_generate_subscription_charge\
-        \ (schema-v3-business-logic.sql, Bloco C)."
+        \ pelo cliente; execução delegada à procedure generate_subscription_charge\
+        \ (db/migration/V1__baseline.sql)."
       operationId: generateFromSubscriptionCharge
       parameters:
       - in: path
@@ -1499,7 +1505,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
           description: Erro interno inesperado
-      summary: Gera uma cobrança para uma assinatura chamando a procedure sp_generate_subscription_charge
+      summary: Gera uma cobrança para uma assinatura chamando a procedure generate_subscription_charge
       tags:
       - Cobranças
   /api/charges/{id}/cancellation:
@@ -2246,6 +2252,69 @@ paths:
       summary: Cria uma conexão
       tags:
       - Conexões
+  /api/connections/people:
+    get:
+      operationId: peopleConnection
+      parameters:
+      - in: query
+        name: query
+        required: false
+        schema:
+          type: string
+          default: ""
+      - in: query
+        name: page
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - in: query
+        name: connectedOnly
+        required: false
+        schema:
+          type: boolean
+          default: false
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectionPeopleResponse"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      tags:
+      - Conexões
+  /api/connections/people/{id}:
+    get:
+      operationId: personConnection
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectionPersonResponse"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      tags:
+      - Conexões
   /api/connections/{id}:
     delete:
       description: Remove do array somente o ID do usuário conectado informado.
@@ -2573,6 +2642,185 @@ paths:
       summary: Anexa (ou substitui) a foto da conta de energia
       tags:
       - Contas de Energia
+  /api/feeds/offers:
+    get:
+      description: "Repassa o feed do api-recommendation com a empresa e a unidade\
+        \ local do usuário autenticado. A unidade informada precisa ser da empresa\
+        \ do usuário; sem informar, vale a única unidade da empresa, se houver só\
+        \ uma. Se o grafo estiver desligado, devolve o feed público de ofertas."
+      operationId: offersRecommendationFeed
+      parameters:
+      - description: "best_value, most_efficient, nearest_available ou most_proven\
+          \ (padrão do serviço: best_value)"
+        in: query
+        name: strategy
+        required: false
+        schema:
+          type: string
+      - description: "Unidade local da empresa do usuário, usada em nearest_available"
+        in: query
+        name: localUnitId
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JsonNode"
+          description: Feed gerado
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Estratégia inválida
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Unidade local não encontrada
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Estratégia exige unidade local com geolocalização
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+        "503":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Recomendações desligadas ou indisponíveis
+      summary: Feed de ofertas recomendadas
+      tags:
+      - Recommendation Feeds
+  /api/feeds/professionals:
+    get:
+      description: "Repassa o feed do api-recommendation com a empresa do usuário\
+        \ autenticado, quando houver. Cache curto no servidor. Se o grafo estiver\
+        \ desligado, devolve o feed público de profissionais (sem context e sem ranking)."
+      operationId: professionalsRecommendationFeed
+      parameters:
+      - description: "top_rated, most_qualified, most_experienced, most_reliable ou\
+          \ best_match (padrão do serviço: best_match)"
+        in: query
+        name: strategy
+        required: false
+        schema:
+          type: string
+      - description: Restringe a uma profissão
+        in: query
+        name: professionId
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JsonNode"
+          description: Feed gerado
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Estratégia inválida
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Profissão não encontrada
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+        "503":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Recomendações desligadas ou indisponíveis
+      summary: Feed de profissionais recomendados
+      tags:
+      - Recommendation Feeds
+  /api/feeds/suppliers:
+    get:
+      description: "Repassa o feed do api-recommendation com a empresa e a unidade\
+        \ local do usuário autenticado. A unidade informada precisa ser da empresa\
+        \ do usuário; sem informar, vale a única unidade da empresa, se houver só\
+        \ uma. Se o grafo estiver desligado, devolve o feed público de fornecedores."
+      operationId: suppliersRecommendationFeed
+      parameters:
+      - description: "most_proven, broadest_catalog ou nearest (padrão do serviço:\
+          \ most_proven)"
+        in: query
+        name: strategy
+        required: false
+        schema:
+          type: string
+      - description: "Unidade local da empresa do usuário, usada em nearest"
+        in: query
+        name: localUnitId
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JsonNode"
+          description: Feed gerado
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Estratégia inválida
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Unidade local não encontrada
+        "422":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Estratégia exige unidade local com geolocalização
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+        "503":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Recomendações desligadas ou indisponíveis
+      summary: Feed de fornecedores recomendados
+      tags:
+      - Recommendation Feeds
   /api/flux-logs:
     post:
       description: "Registro append-only do próprio usuário autenticado, sem alterar\
@@ -2664,23 +2912,23 @@ paths:
       summary: "Lista o histórico de ações de um usuário, mais recente primeiro"
       tags:
       - Log de Atividade
-  /api/geolocalizations:
+  /api/geolocations:
     post:
       description: Address proprio obrigatorio; latitude entre -90 e 90 e longitude
         entre -180 e 180; um endereco so pode ter no maximo uma geolocalizacao.
-      operationId: saveGeolocalization
+      operationId: saveGeolocation
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/GeolocalizationRequestDTO"
+              $ref: "#/components/schemas/GeolocationRequestDTO"
         required: true
       responses:
         "201":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GeolocalizationResponseDTO"
+                $ref: "#/components/schemas/GeolocationResponseDTO"
           description: Geolocalização criada com sucesso
         "400":
           content:
@@ -2697,9 +2945,9 @@ paths:
       summary: Cadastra uma nova geolocalização
       tags:
       - Geolocalizações
-  /api/geolocalizations/address/{addressId}:
+  /api/geolocations/address/{addressId}:
     get:
-      operationId: findByAddressGeolocalization
+      operationId: findByAddressGeolocation
       parameters:
       - in: path
         name: addressId
@@ -2714,7 +2962,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/GeolocalizationResponseDTO"
+                  $ref: "#/components/schemas/GeolocationResponseDTO"
           description: Listagem realizada com sucesso
         "500":
           content:
@@ -2725,9 +2973,9 @@ paths:
       summary: Lista as geolocalizações vinculadas a um endereço
       tags:
       - Geolocalizações
-  /api/geolocalizations/{id}:
+  /api/geolocations/{id}:
     delete:
-      operationId: deleteByIdGeolocalization
+      operationId: deleteByIdGeolocation
       parameters:
       - in: path
         name: id
@@ -2754,7 +3002,7 @@ paths:
       tags:
       - Geolocalizações
     get:
-      operationId: findByIdGeolocalization
+      operationId: findByIdGeolocation
       parameters:
       - in: path
         name: id
@@ -2767,7 +3015,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GeolocalizationResponseDTO"
+                $ref: "#/components/schemas/GeolocationResponseDTO"
           description: Geolocalização encontrada
         "404":
           content:
@@ -2787,7 +3035,7 @@ paths:
     put:
       description: Exige owner dos enderecos atual e novo; addressId obrigatorio.
         Latitude entre -90 e 90 e longitude entre -180 e 180.
-      operationId: updateGeolocalization
+      operationId: updateGeolocation
       parameters:
       - in: path
         name: id
@@ -2799,14 +3047,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/GeolocalizationRequestDTO"
+              $ref: "#/components/schemas/GeolocationRequestDTO"
         required: true
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GeolocalizationResponseDTO"
+                $ref: "#/components/schemas/GeolocationResponseDTO"
           description: Geolocalização atualizada com sucesso
         "400":
           content:
@@ -6120,6 +6368,31 @@ paths:
       summary: Convida por e-mail ou snapshot de equipe
       tags:
       - Projetos
+  /api/projects/{id}/map-location:
+    post:
+      operationId: resolveProjectMap
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectResponse"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      tags:
+      - project-map-controller
   /api/projects/{id}/members:
     get:
       operationId: membersProject
@@ -10703,6 +10976,149 @@ paths:
         \ deste Swagger"
       tags:
       - Dev
+  /internal/catalog/accredited-technicians:
+    get:
+      description: "profession filtra por trecho do nome da profissão e city por trecho\
+        \ da cidade da empresa afiliada, sem diferenciar maiúsculas; limit entre 1\
+        \ e 100."
+      operationId: accreditedTechniciansInternalCatalog
+      parameters:
+      - in: query
+        name: profession
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: city
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 100
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccreditedTechnicianResponseDTO"
+          description: Lista de técnicos retornada com sucesso
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Parâmetro inválido
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Chave de serviço ausente ou inválida
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      summary: "Lista técnicos aprovados com afiliação ativa a empresas, uma linha\
+        \ por afiliação e registro profissional"
+      tags:
+      - Catálogo interno
+  /internal/catalog/infrastructure-offers:
+    get:
+      description: "Aplica a mesma regra de visibilidade do catálogo público; brand\
+        \ filtra por trecho do nome, sem diferenciar maiúsculas; limit entre 1 e 20."
+      operationId: infrastructureOffersInternalCatalog
+      parameters:
+      - in: query
+        name: infrastructureType
+        required: false
+        schema:
+          type: string
+          enum:
+          - RAIL
+          - CLAMP
+          - BRACKET
+          - HOOK
+          - KIT
+          - OTHER
+      - in: query
+        name: brand
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 10
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InfrastructureOfferResponseDTO"
+          description: Lista de ofertas retornada com sucesso
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Parâmetro inválido
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Chave de serviço ausente ou inválida
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      summary: "Lista ofertas de itens de infraestrutura visíveis no catálogo, da\
+        \ mais barata para a mais cara"
+      tags:
+      - Catálogo interno
+  /internal/catalog/professions:
+    get:
+      operationId: professionsInternalCatalog
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InternalProfessionResponseDTO"
+          description: Lista de profissões retornada com sucesso
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Chave de serviço ausente ou inválida
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      summary: Lista as profissões ordenadas por nome
+      tags:
+      - Catálogo interno
   /internal/projects/{id}/access/{authId}:
     get:
       operationId: authorityProjectInternal
@@ -10865,6 +11281,30 @@ components:
           - ACTIVE
           - USED
           - REVOKED
+    AccreditedTechnicianResponseDTO:
+      type: object
+      properties:
+        affiliatedCompany:
+          type: string
+        affiliationType:
+          type: string
+          enum:
+          - INDEPENDENT
+          - AFFILIATED
+          - PARTNER
+        city:
+          type: string
+        council:
+          type: string
+        profession:
+          type: string
+        registrationExpirationDate:
+          type: string
+          format: date-time
+        registrationNumber:
+          type: string
+        technicianName:
+          type: string
     ActiveAffiliation:
       type: object
       properties:
@@ -11316,7 +11756,7 @@ components:
           type: string
           enum:
           - SUPPLIER
-          - DEMANDANT
+          - REQUESTER
       required:
       - cnpj
       - corporateName
@@ -11395,7 +11835,7 @@ components:
           type: string
           enum:
           - SUPPLIER
-          - DEMANDANT
+          - REQUESTER
     CompanyUpdateRequestDTO:
       type: object
       properties:
@@ -11415,6 +11855,31 @@ components:
       required:
       - corporateName
       - tradeName
+    ConnectionPeopleResponse:
+      type: object
+      properties:
+        hasMore:
+          type: boolean
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConnectionPersonResponse"
+    ConnectionPersonResponse:
+      type: object
+      properties:
+        avatar:
+          type: string
+        banner:
+          type: string
+        connected:
+          type: boolean
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        username:
+          type: string
     ConnectionRequestDTO:
       type: object
       properties:
@@ -11597,7 +12062,7 @@ components:
         userId:
           type: string
           format: uuid
-    GeolocalizationRequestDTO:
+    GeolocationRequestDTO:
       type: object
       properties:
         addressId:
@@ -11615,7 +12080,7 @@ components:
       - addressId
       - latitude
       - longitude
-    GeolocalizationResponseDTO:
+    GeolocationResponseDTO:
       type: object
       properties:
         addressId:
@@ -11636,6 +12101,36 @@ components:
           format: uuid
       required:
       - userId
+    InfrastructureOfferResponseDTO:
+      type: object
+      properties:
+        availability:
+          type: integer
+          format: int32
+        brand:
+          type: string
+        expirationDate:
+          type: string
+          format: date-time
+        infrastructureType:
+          type: string
+        model:
+          type: string
+        offerId:
+          type: string
+          format: uuid
+        supplierTradeName:
+          type: string
+        unitPrice:
+          type: string
+    InternalProfessionResponseDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
     InternalUserProvisionRequestDTO:
       type: object
       properties:
@@ -11686,6 +12181,68 @@ components:
         supplierId:
           type: string
           format: uuid
+    JsonNode:
+      type: object
+      properties:
+        array:
+          type: boolean
+        bigDecimal:
+          type: boolean
+        bigInteger:
+          type: boolean
+        binary:
+          type: boolean
+        boolean:
+          type: boolean
+        container:
+          type: boolean
+        double:
+          type: boolean
+        embeddedValue:
+          type: boolean
+        empty:
+          type: boolean
+        float:
+          type: boolean
+        floatingPointNumber:
+          type: boolean
+        int:
+          type: boolean
+        integralNumber:
+          type: boolean
+        long:
+          type: boolean
+        missingNode:
+          type: boolean
+        nodeType:
+          type: string
+          enum:
+          - ARRAY
+          - BINARY
+          - BOOLEAN
+          - MISSING
+          - "NULL"
+          - NUMBER
+          - OBJECT
+          - POJO
+          - STRING
+        "null":
+          type: boolean
+        number:
+          type: boolean
+        object:
+          type: boolean
+        pojo:
+          type: boolean
+        short:
+          type: boolean
+        string:
+          type: boolean
+        textual:
+          type: boolean
+          deprecated: true
+        valueNode:
+          type: boolean
     Line:
       type: object
       properties:
@@ -12050,7 +12607,7 @@ components:
           type: string
           enum:
           - SUPPLIER
-          - DEMANDANT
+          - REQUESTER
         permissions:
           type: array
           items:
@@ -12695,6 +13252,20 @@ components:
           type: string
           maxLength: 180
           minLength: 0
+        geocodedAt:
+          type: string
+          format: date-time
+          readOnly: true
+        latitude:
+          type: number
+          format: double
+          maximum: 90
+          minimum: -90
+        longitude:
+          type: number
+          format: double
+          maximum: 180
+          minimum: -180
         neighborhood:
           type: string
           maxLength: 120
@@ -12702,6 +13273,10 @@ components:
         number:
           type: string
           maxLength: 30
+          minLength: 0
+        placeId:
+          type: string
+          maxLength: 300
           minLength: 0
         state:
           type: string

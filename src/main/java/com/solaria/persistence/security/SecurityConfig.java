@@ -92,6 +92,8 @@ public class SecurityConfig {
                                                 .hasAuthority(ServiceKeyAuthFilter.authorityOf("api-auth"))
                                                 .requestMatchers("/internal/projects/**", "/internal/technical-projects/**")
                                                 .hasAuthority(ServiceKeyAuthFilter.authorityOf("api-messenger"))
+                                                .requestMatchers(HttpMethod.GET, "/internal/catalog/**")
+                                                .hasAuthority(ServiceKeyAuthFilter.authorityOf("mcp-database"))
                                                 .anyRequest().denyAll())
                                 .exceptionHandling(e -> e
                                                 .authenticationEntryPoint(problemDetailAuthenticationEntryPoint)

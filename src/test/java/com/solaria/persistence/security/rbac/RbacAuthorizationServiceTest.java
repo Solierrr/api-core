@@ -84,6 +84,15 @@ class RbacAuthorizationServiceTest {
     }
 
     @Test
+    void recommendationFeedsNeedOnlyAnAuthenticatedUser() {
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/feeds/professionals"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/feeds/offers"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/feeds/suppliers"));
+
+        verifyNoInteractions(currentUserService, userCompanyRepository, positionPermissionRepository);
+    }
+
+    @Test
     void ownMembershipReadsNeedOnlyAnAuthenticatedUser() {
         assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/user-companies/me"));
         assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/user-companies/me/all"));

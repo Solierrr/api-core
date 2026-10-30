@@ -27,11 +27,11 @@ public class Offer {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_supplier", nullable = false)
+    @JoinColumn(name = "supplier_id", nullable = false)
     private Supplier supplier;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_model", nullable = false)
+    @JoinColumn(name = "model_id", nullable = false)
     private Model model;
 
     @Column(name = "unit_price", nullable = false)
@@ -40,7 +40,7 @@ public class Offer {
     @Column(name = "availability", nullable = false)
     private Integer availability;
 
-    @Column(name = "expiration_date")
+    @Column(name = "expires_at")
     private OffsetDateTime expirationDate;
 
     @Column(name = "slug", length = 160, nullable = false, unique = true)
@@ -50,7 +50,7 @@ public class Offer {
     private BigDecimal discountPercentage;
 
     @ElementCollection
-    @CollectionTable(name = "offer_service_region", joinColumns = @JoinColumn(name = "fk_offer"))
+    @CollectionTable(name = "offer_service_region", joinColumns = @JoinColumn(name = "offer_id"))
     @Column(name = "region", length = 120)
     private List<String> serviceRegions;
 

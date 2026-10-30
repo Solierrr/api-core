@@ -20,15 +20,15 @@ public class Profession {
     @Column(name = "name", length = 100)
     private String name;
 
-    @Column(name = "accept_emergency_call", nullable = false)
+    @Column(name = "is_emergency_call_accepted", nullable = false)
     private Boolean accept_emergency_call;
 
-    @Column(name = "requires_registration")
+    @Column(name = "is_registration_required")
     private Boolean requiresRegistration;
 
-    @Column(name = "requires_nr10")
+    @Column(name = "is_nr10_required")
     private Boolean requiresNr10;
 
-    @Column(name = "requires_nr35")
+    @Column(name = "is_nr35_required")
     private Boolean requiresNr35;
 }

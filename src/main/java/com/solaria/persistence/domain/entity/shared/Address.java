@@ -19,7 +19,7 @@ public class Address {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_owner_company", nullable = false, updatable = false)
+    @JoinColumn(name = "owner_company_id", nullable = false, updatable = false)
     private Company ownerCompany;
 
     @Column(name = "state", length = 2, nullable = false)

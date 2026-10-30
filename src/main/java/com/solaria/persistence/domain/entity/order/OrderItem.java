@@ -21,15 +21,15 @@ public class OrderItem {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fk_order", nullable = false)
+    @JoinColumn(name = "purchase_order_id", nullable = false)
     private PurchaseOrder order;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fk_offer")
+    @JoinColumn(name = "offer_id")
     private Offer offer;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fk_supplier", nullable = false)
+    @JoinColumn(name = "supplier_id", nullable = false)
     private Supplier supplier;
 
     @Column(name = "offer_slug", nullable = false, length = 160)
@@ -50,6 +50,6 @@ public class OrderItem {
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
-    @Column(name = "line_total", nullable = false)
+    @Column(name = "line_total_amount", nullable = false)
     private BigDecimal lineTotal;
 }

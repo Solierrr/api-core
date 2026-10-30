@@ -55,7 +55,7 @@ class CurrentUserServiceTest {
         UUID authId = UUID.randomUUID();
         User user = new User();
         user.setId(UUID.randomUUID());
-        user.setAuth_id(authId);
+        user.setAuthId(authId);
         authenticate(authId.toString());
         when(userRepository.findByAuthId(authId)).thenReturn(Optional.of(user));
 
@@ -87,14 +87,14 @@ class CurrentUserServiceTest {
         UUID authId = UUID.randomUUID();
         User user = new User();
         user.setId(UUID.randomUUID());
-        user.setAuth_id(authId);
+        user.setAuthId(authId);
         authenticate(authId.toString());
         when(userRepository.findByAuthId(authId)).thenReturn(Optional.of(user));
 
         User result = new CurrentUserService(userRepository).getProvisionedCurrentUser();
 
         assertEquals(user.getId(), result.getId());
-        assertEquals(authId, result.getAuth_id());
+        assertEquals(authId, result.getAuthId());
     }
 
     @Test
