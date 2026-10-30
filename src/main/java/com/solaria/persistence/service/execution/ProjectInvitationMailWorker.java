@@ -23,6 +23,7 @@ public class ProjectInvitationMailWorker {
     private final TransactionTemplate transaction;
     private final RestClient email;
     private final String key;
+    private final String serviceKey;
     private final String web;
 
     public ProjectInvitationMailWorker(
@@ -31,11 +32,13 @@ public class ProjectInvitationMailWorker {
             PlatformTransactionManager manager,
             @Value("${app.projects.email-url:http://localhost:8030}") String base,
             @Value("${app.projects.email-key:}") String key,
+            @Value("${app.projects.email-service-key:}") String serviceKey,
             @Value("${app.projects.web-url:http://localhost:5173}") String web) {
         this.invites = invites;
         this.projects = projects;
         this.transaction = new TransactionTemplate(manager);
         this.key = key;
+        this.serviceKey = serviceKey;
         this.web = web;
         var factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(3));
@@ -83,6 +86,11 @@ public class ProjectInvitationMailWorker {
                         email.post()
                                 .uri("/emails")
                                 .header("x-api-key", key)
+                                .headers(
+                                        headers -> {
+                                            if (!serviceKey.isBlank())
+                                                headers.set("X-Service-Key", serviceKey);
+                                        })
                                 .body(
                                         Map.of(
                                                 "template",

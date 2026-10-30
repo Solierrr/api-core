@@ -12,7 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "Company Plans", description = "Gerenciamento dos planos de assinatura vinculados às empresas.")
+@Tag(name = "Planos de Empresas", description = "Gerenciamento dos planos de assinatura vinculados às empresas.")
 public interface CompanyPlansOpenApi {
 
     @Operation(summary = "Busca um plano de empresa pelo identificador")

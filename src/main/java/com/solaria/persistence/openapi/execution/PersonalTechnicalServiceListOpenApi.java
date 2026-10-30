@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "Serviços Técnicos", description = "Serviços vinculados ao técnico autenticado")
+@Tag(name = "Serviços Técnicos", description = "Gerenciamento dos serviços técnicos e do seu ciclo de vida")
 public interface PersonalTechnicalServiceListOpenApi {
 
     @Operation(

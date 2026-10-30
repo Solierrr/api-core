@@ -10,10 +10,15 @@ folders:
   - /service-urls
   - /recommendation
 # Variáveis do .env.example que não vêm do Infisical.
-ignore: []
+ignore:
+  # o código usa SERVICE_KEY_API_CORE (em /service-keys) quando SERVICE_KEY não existe
+  - SERVICE_KEY
 # Variáveis que só não existem em um ambiente.
 ignore_by_env:
   local:
     - UPSTASH_CORE_PASSWORD
   qa:
     - OTEL_EXPORTER_OTLP_ENDPOINT
+  # origens de produção ainda não definidas
+  prod:
+    - CORS_ALLOWED_ORIGINS

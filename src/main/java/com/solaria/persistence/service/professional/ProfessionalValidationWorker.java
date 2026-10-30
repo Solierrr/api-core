@@ -35,12 +35,14 @@ public class ProfessionalValidationWorker {
     private final TransactionTemplate transaction;
     private final RestClient client;
     private final String token;
+    private final String serviceKey;
 
     public ProfessionalValidationWorker(ProfessionalSubmissionRepository submissions,
             ProfessionalOnboardingRepository profiles, ProfessionalDocumentRepository documents,
             ProfessionalOnboardingService onboarding, ProfessionalDocumentStorageService storage, ObjectMapper json, PlatformTransactionManager manager,
             @Value("${app.professional-validation.base-url:http://localhost:8000}") String baseUrl,
-            @Value("${app.professional-validation.service-token:}") String token) {
+            @Value("${app.professional-validation.service-token:}") String token,
+            @Value("${app.professional-validation.service-key:}") String serviceKey) {
         this.submissions = submissions;
         this.profiles = profiles;
         this.documents = documents;
@@ -49,6 +51,7 @@ public class ProfessionalValidationWorker {
         this.json = json;
         this.transaction = new TransactionTemplate(manager);
         this.token = token;
+        this.serviceKey = serviceKey;
         var factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(5));
         factory.setReadTimeout(Duration.ofSeconds(180));
@@ -98,7 +101,9 @@ public class ProfessionalValidationWorker {
             String result = work.getResultJson();
             if (result == null || !passesPolicy(json, result, work.getId(), work.getRevision(), policy, draft.documentIds())) {
                 result = client.post().uri("/api/v1/professionals/validate")
-                        .header("Authorization", "Bearer " + token).body(request).retrieve().body(String.class);
+                        .header("Authorization", "Bearer " + token)
+                        .headers(headers -> { if (!serviceKey.isBlank()) headers.set("X-Service-Key", serviceKey); })
+                        .body(request).retrieve().body(String.class);
             }
             if (passesPolicy(json, result, work.getId(), work.getRevision(), policy, draft.documentIds())) validationResult = result;
             String completedResult = result;

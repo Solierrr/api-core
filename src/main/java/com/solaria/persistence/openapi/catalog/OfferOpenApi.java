@@ -13,7 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "Offers", description = "Gerenciamento das ofertas comerciais disponibilizadas pelos fornecedores.")
+@Tag(name = "Ofertas", description = "Gerenciamento das ofertas comerciais disponibilizadas pelos fornecedores.")
 public interface OfferOpenApi {
 
     @Operation(

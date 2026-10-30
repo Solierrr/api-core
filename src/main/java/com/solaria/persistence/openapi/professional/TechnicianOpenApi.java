@@ -13,7 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "Technicians", description = "Gerenciamento do cadastro de técnicos responsáveis pela execução de serviços.")
+@Tag(name = "Técnicos", description = "Gerenciamento do cadastro de técnicos responsáveis pela execução de serviços.")
 public interface TechnicianOpenApi {
 
     @Operation(

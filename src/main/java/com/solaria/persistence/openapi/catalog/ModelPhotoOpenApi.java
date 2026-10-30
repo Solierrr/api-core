@@ -13,7 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "Model Photos", description = "Gerenciamento das fotos de um modelo de placa solar, armazenadas no Cloudinary.")
+@Tag(name = "Fotos de Modelos", description = "Gerenciamento das fotos de um modelo de placa solar, armazenadas no Cloudinary.")
 public interface ModelPhotoOpenApi {
 
     @Operation(

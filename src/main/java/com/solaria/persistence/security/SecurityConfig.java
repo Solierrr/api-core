@@ -130,8 +130,8 @@ public class SecurityConfig {
                                                 .accessDeniedHandler(problemDetailAccessDeniedHandler))
                                 .authorizeHttpRequests(auth -> auth
                                                 // Docs OpenAPI/Swagger ficam públicas
-                                                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**",
-                                                                "/swagger-ui.html")
+                                                .requestMatchers("/docs", "/swagger-ui/**", "/openapi.json",
+                                                                "/openapi.json/**", "/openapi.json.yaml")
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/catalog/companies", "/api/catalog/companies/*",
                                                                 "/api/catalog/offers", "/api/catalog/offers/*/*",

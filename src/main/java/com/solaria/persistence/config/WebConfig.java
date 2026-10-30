@@ -22,7 +22,7 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(endpointAuthorizationInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/internal/**", "/actuator/**", "/v3/api-docs/**", "/swagger-ui/**",
-                        "/swagger-ui.html");
+                .excludePathPatterns("/internal/**", "/actuator/**", "/docs", "/swagger-ui/**", "/openapi.json",
+                        "/openapi.json/**", "/openapi.json.yaml");
     }
 }

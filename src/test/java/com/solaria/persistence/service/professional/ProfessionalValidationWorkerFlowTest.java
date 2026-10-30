@@ -2,6 +2,7 @@ package com.solaria.persistence.service.professional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 import java.time.LocalDate;
@@ -51,7 +52,7 @@ class ProfessionalValidationWorkerFlowTest {
         when(documents.findById(document.getId())).thenReturn(Optional.of(document));
         when(onboarding.readDraft("snapshot")).thenReturn(draft); when(onboarding.readPolicy("policy")).thenReturn(policy);
         when(storage.read(document)).thenReturn(new byte[]{1,2,3});
-        worker = new ProfessionalValidationWorker(submissions, profiles, documents, onboarding, storage, json, manager, "http://validation.test", "service-token");
+        worker = new ProfessionalValidationWorker(submissions, profiles, documents, onboarding, storage, json, manager, "http://validation.test", "service-token", "service-key-0123456789-0123456789-ab");
         var builder = RestClient.builder().baseUrl("http://validation.test"); server = MockRestServiceServer.bindTo(builder).build();
         ReflectionTestUtils.setField(worker, "client", builder.build());
     }
@@ -66,7 +67,7 @@ class ProfessionalValidationWorkerFlowTest {
         verify(onboarding, never()).apply(any(), any(), anySet()); verify(storage, never()).archive(any()); server.verify();
     }
     @Test void matchingPositiveValidationApprovesOnlyConfirmedDocuments() {
-        server.expect(requestTo("http://validation.test/api/v1/professionals/validate")).andRespond(withSuccess(result(true), MediaType.APPLICATION_JSON));
+        server.expect(requestTo("http://validation.test/api/v1/professionals/validate")).andExpect(header("X-Service-Key", "service-key-0123456789-0123456789-ab")).andRespond(withSuccess(result(true), MediaType.APPLICATION_JSON));
         worker.process(submission.getId());
         assertEquals("APPROVED",submission.getStatus());
         verify(onboarding).apply(profile, submission, Set.of(document.getId())); server.verify();
