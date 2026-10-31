@@ -21,6 +21,7 @@ import java.util.*;
 public class ProjectController implements ProjectOpenApi {
     private final ProjectService projects;
     private final ProjectInvitationService invites;
+    private final ProjectInviteLinkService inviteLinks;
     private final ProjectActivityService agenda;
     private final ProjectPhotoService photos;
 
@@ -109,6 +110,34 @@ public class ProjectController implements ProjectOpenApi {
     @PostMapping("/invitations/{id}/resend")
     public ProjectInvitationResponse resend(@PathVariable UUID id) {
         return invites.resend(id);
+    }
+
+    @GetMapping("/{id}/invite-links")
+    public List<ProjectInviteLinkResponse> inviteLinks(@PathVariable UUID id) {
+        return inviteLinks.list(id);
+    }
+
+    @PostMapping("/{id}/invite-links")
+    public ProjectInviteLinkResponse createInviteLink(
+            @PathVariable UUID id, @Valid @RequestBody ProjectInviteLinkRequest d) {
+        return inviteLinks.create(id, d);
+    }
+
+    @DeleteMapping("/{id}/invite-links/{linkId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void revokeInviteLink(@PathVariable UUID id, @PathVariable UUID linkId) {
+        inviteLinks.revoke(id, linkId);
+    }
+
+    @PostMapping("/invite-links/preview")
+    public ProjectInviteLinkPreviewResponse previewInviteLink(
+            @Valid @RequestBody ProjectInviteLinkTokenRequest d) {
+        return inviteLinks.preview(d.token());
+    }
+
+    @PostMapping("/invite-links/redeem")
+    public ProjectResponse redeemInviteLink(@Valid @RequestBody ProjectInviteLinkTokenRequest d) {
+        return inviteLinks.redeem(d.token());
     }
 
     @GetMapping("/{id}/activities")

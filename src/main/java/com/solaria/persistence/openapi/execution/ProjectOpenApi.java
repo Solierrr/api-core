@@ -64,6 +64,24 @@ public interface ProjectOpenApi {
     @Operation(summary = "Reenvia convite; renova validade por sete dias")
     ProjectInvitationResponse resend(UUID id);
 
+    @Operation(summary = "Lista links de convite do projeto, sem o endereço; apenas gestores")
+    List<ProjectInviteLinkResponse> inviteLinks(UUID id);
+
+    @Operation(
+            summary = "Cria link de convite para Membro ou Observador",
+            description =
+                    "O endereço completo só é devolvido nesta resposta; o servidor guarda apenas o hash")
+    ProjectInviteLinkResponse createInviteLink(UUID id, ProjectInviteLinkRequest dto);
+
+    @Operation(summary = "Desativa um link de convite")
+    void revokeInviteLink(UUID id, UUID linkId);
+
+    @Operation(summary = "Consulta o projeto de um link de convite válido")
+    ProjectInviteLinkPreviewResponse previewInviteLink(ProjectInviteLinkTokenRequest dto);
+
+    @Operation(summary = "Entra no projeto pelo link de convite")
+    ProjectResponse redeemInviteLink(ProjectInviteLinkTokenRequest dto);
+
     @Operation(summary = "Lista atividades da agenda")
     List<ProjectActivityResponse> activities(UUID id);
 
