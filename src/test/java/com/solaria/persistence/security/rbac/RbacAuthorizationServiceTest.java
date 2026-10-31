@@ -128,6 +128,15 @@ class RbacAuthorizationServiceTest {
     }
 
     @Test
+    void technicianProfileRoutesOnlyNeedASession() {
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/technicians/me/profile"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("PUT /api/technicians/me/profile"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("POST /api/technicians/me/profile/completion"));
+
+        verifyNoInteractions(currentUserService, userCompanyRepository, positionPermissionRepository);
+    }
+
+    @Test
     void shouldExemptOnlyExplicitSelfProfileAndPhotoMethodPatterns() {
         assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/users/me"));
         assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/user-photos/user/{userId}"));
