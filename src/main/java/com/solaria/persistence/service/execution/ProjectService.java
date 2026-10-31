@@ -304,25 +304,30 @@ public class ProjectService {
         access.read(entity(id, false));
         return history.findByProjectIdOrderByCreatedAtDesc(id).stream()
                 .map(
-                        h ->
-                                Map.<String, Object>of(
-                                        "id",
-                                        h.getId(),
-                                        "action",
-                                        h.getAction(),
-                                        "detail",
-                                        h.getDetail(),
-                                        "createdAt",
-                                        h.getCreatedAt(),
-                                        "actor",
-                                        users.findById(h.getActorId())
-                                                .map(u -> u.getUsername())
-                                                .orElse("Usuário")))
+                        h -> {
+                            var entry = new LinkedHashMap<String, Object>();
+                            entry.put("id", h.getId());
+                            entry.put("action", h.getAction());
+                            entry.put("detail", h.getDetail());
+                            entry.put("createdAt", h.getCreatedAt());
+                            entry.put(
+                                    "actor",
+                                    users.findById(h.getActorId())
+                                            .map(u -> u.getUsername())
+                                            .orElse("Usuário"));
+                            if (h.getReportId() != null) entry.put("reportId", h.getReportId());
+                            return (Map<String, Object>) entry;
+                        })
                 .toList();
     }
 
     public void record(TechnicalProject p, String action, String detail) {
+        record(p, action, detail, null);
+    }
+
+    public void record(TechnicalProject p, String action, String detail, UUID reportId) {
         var h = new ProjectHistory();
+        h.setReportId(reportId);
         h.setProjectId(p.getId());
         h.setActorId(access.user().getId());
         h.setAction(action);

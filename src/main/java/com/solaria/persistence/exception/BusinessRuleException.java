@@ -4,6 +4,11 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 
+/**
+ * Regra de negócio violada -> {@code 422 BUSINESS_RULE_VIOLATION}
+ *
+ * <p>Ex.: transição de status inválida, estoque insuficiente</p>
+ */
 public class BusinessRuleException extends BusinessException {
 
     public BusinessRuleException(String message) {

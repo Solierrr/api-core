@@ -64,6 +64,24 @@ public interface ProjectOpenApi {
     @Operation(summary = "Reenvia convite; renova validade por sete dias")
     ProjectInvitationResponse resend(UUID id);
 
+    @Operation(summary = "Lista links de convite do projeto, sem o endereço; apenas gestores")
+    List<ProjectInviteLinkResponse> inviteLinks(UUID id);
+
+    @Operation(
+            summary = "Cria link de convite para Membro ou Observador",
+            description =
+                    "O endereço completo só é devolvido nesta resposta; o servidor guarda apenas o hash")
+    ProjectInviteLinkResponse createInviteLink(UUID id, ProjectInviteLinkRequest dto);
+
+    @Operation(summary = "Desativa um link de convite")
+    void revokeInviteLink(UUID id, UUID linkId);
+
+    @Operation(summary = "Consulta o projeto de um link de convite válido")
+    ProjectInviteLinkPreviewResponse previewInviteLink(ProjectInviteLinkTokenRequest dto);
+
+    @Operation(summary = "Entra no projeto pelo link de convite")
+    ProjectResponse redeemInviteLink(ProjectInviteLinkTokenRequest dto);
+
     @Operation(summary = "Lista atividades da agenda")
     List<ProjectActivityResponse> activities(UUID id);
 
@@ -94,4 +112,18 @@ public interface ProjectOpenApi {
 
     @Operation(summary = "Define capa do projeto")
     ProjectPhotoResponse cover(UUID id, UUID photoId);
+
+    @Operation(summary = "Lista os relatórios do projeto, do mais recente ao mais antigo")
+    List<ProjectReportResponse> reportList(UUID id);
+
+    @Operation(summary = "Consulta um relatório com o conteúdo e as imagens")
+    ProjectReportResponse report(UUID id, UUID reportId);
+
+    @Operation(
+            summary = "Cria um relatório com título, conteúdo e até 5 imagens",
+            description =
+                    "As imagens passam a fazer parte das fotos do projeto e o relatório entra no histórico."
+                        + " Exige permissão de contribuir.")
+    ProjectReportResponse createReport(
+            UUID id, String title, String content, List<org.springframework.web.multipart.MultipartFile> files);
 }

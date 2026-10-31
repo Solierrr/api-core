@@ -21,8 +21,10 @@ import java.util.*;
 public class ProjectController implements ProjectOpenApi {
     private final ProjectService projects;
     private final ProjectInvitationService invites;
+    private final ProjectInviteLinkService inviteLinks;
     private final ProjectActivityService agenda;
     private final ProjectPhotoService photos;
+    private final ProjectReportService reports;
 
     @GetMapping("/options")
     public Map<String, Object> options(@RequestParam(required = false) UUID companyId) {
@@ -111,6 +113,34 @@ public class ProjectController implements ProjectOpenApi {
         return invites.resend(id);
     }
 
+    @GetMapping("/{id}/invite-links")
+    public List<ProjectInviteLinkResponse> inviteLinks(@PathVariable UUID id) {
+        return inviteLinks.list(id);
+    }
+
+    @PostMapping("/{id}/invite-links")
+    public ProjectInviteLinkResponse createInviteLink(
+            @PathVariable UUID id, @Valid @RequestBody ProjectInviteLinkRequest d) {
+        return inviteLinks.create(id, d);
+    }
+
+    @DeleteMapping("/{id}/invite-links/{linkId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void revokeInviteLink(@PathVariable UUID id, @PathVariable UUID linkId) {
+        inviteLinks.revoke(id, linkId);
+    }
+
+    @PostMapping("/invite-links/preview")
+    public ProjectInviteLinkPreviewResponse previewInviteLink(
+            @Valid @RequestBody ProjectInviteLinkTokenRequest d) {
+        return inviteLinks.preview(d.token());
+    }
+
+    @PostMapping("/invite-links/redeem")
+    public ProjectResponse redeemInviteLink(@Valid @RequestBody ProjectInviteLinkTokenRequest d) {
+        return inviteLinks.redeem(d.token());
+    }
+
     @GetMapping("/{id}/activities")
     public List<ProjectActivityResponse> activities(@PathVariable UUID id) {
         return agenda.list(id);
@@ -141,6 +171,26 @@ public class ProjectController implements ProjectOpenApi {
     @GetMapping("/{id}/history")
     public List<Map<String, Object>> history(@PathVariable UUID id) {
         return projects.timeline(id);
+    }
+
+    @GetMapping("/{id}/reports")
+    public List<ProjectReportResponse> reportList(@PathVariable UUID id) {
+        return reports.list(id);
+    }
+
+    @GetMapping("/{id}/reports/{reportId}")
+    public ProjectReportResponse report(@PathVariable UUID id, @PathVariable UUID reportId) {
+        return reports.get(id, reportId);
+    }
+
+    @PostMapping(value = "/{id}/reports", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProjectReportResponse createReport(
+            @PathVariable UUID id,
+            @RequestParam String title,
+            @RequestParam String content,
+            @RequestPart(required = false) List<MultipartFile> files) {
+        return reports.create(id, title, content, files);
     }
 
     @GetMapping("/{id}/photos")
