@@ -166,6 +166,9 @@ tags:
   name: Turnos
 - description: Compra de unidades de ofertas com pagamento fictício
   name: Pedidos
+- description: Informações complementares que o próprio técnico preenche depois do
+    cadastro
+  name: Perfil do técnico
 paths:
   /api/access-codes:
     post:
@@ -6018,6 +6021,60 @@ paths:
       summary: Aceita ou recusa convite autenticado
       tags:
       - Projetos
+  /api/projects/invite-links/preview:
+    post:
+      operationId: previewInviteLinkProject
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectInviteLinkTokenRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectInviteLinkPreviewResponse"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: Consulta o projeto de um link de convite válido
+      tags:
+      - Projetos
+  /api/projects/invite-links/redeem:
+    post:
+      operationId: redeemInviteLinkProject
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectInviteLinkTokenRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectResponse"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: Entra no projeto pelo link de convite
+      tags:
+      - Projetos
   /api/projects/options:
     get:
       operationId: optionsProject
@@ -6370,6 +6427,101 @@ paths:
       summary: Convida por e-mail ou snapshot de equipe
       tags:
       - Projetos
+  /api/projects/{id}/invite-links:
+    get:
+      operationId: inviteLinksProject
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectInviteLinkResponse"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: "Lista links de convite do projeto, sem o endereço; apenas gestores"
+      tags:
+      - Projetos
+    post:
+      description: O endereço completo só é devolvido nesta resposta; o servidor guarda
+        apenas o hash
+      operationId: createInviteLinkProject
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectInviteLinkRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectInviteLinkResponse"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: Cria link de convite para Membro ou Observador
+      tags:
+      - Projetos
+  /api/projects/{id}/invite-links/{linkId}:
+    delete:
+      operationId: revokeInviteLinkProject
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - in: path
+        name: linkId
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: No Content
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: Desativa um link de convite
+      tags:
+      - Projetos
   /api/projects/{id}/map-location:
     post:
       operationId: resolveProjectMap
@@ -6666,6 +6818,120 @@ paths:
       security:
       - bearerAuth: []
       summary: Define capa do projeto
+      tags:
+      - Projetos
+  /api/projects/{id}/reports:
+    get:
+      operationId: reportListProject
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectReportResponse"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: "Lista os relatórios do projeto, do mais recente ao mais antigo"
+      tags:
+      - Projetos
+    post:
+      description: As imagens passam a fazer parte das fotos do projeto e o relatório
+        entra no histórico. Exige permissão de contribuir.
+      operationId: createReportProject
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: title
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: content
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectReportResponse"
+          description: Created
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: "Cria um relatório com título, conteúdo e até 5 imagens"
+      tags:
+      - Projetos
+  /api/projects/{id}/reports/{reportId}:
+    get:
+      operationId: reportProject
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - in: path
+        name: reportId
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectReportResponse"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: Consulta um relatório com o conteúdo e as imagens
       tags:
       - Projetos
   /api/projects/{id}/status:
@@ -10023,6 +10289,104 @@ paths:
       summary: Cadastra um novo técnico
       tags:
       - Técnicos
+  /api/technicians/me/profile:
+    get:
+      description: "Sem nada preenchido, devolve o perfil vazio com `missing` e `progress`."
+      operationId: getTechnicianProfile
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TechnicianProfileResponse"
+          description: Perfil retornado com sucesso
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: A conta não tem perfil de técnico
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      summary: Consulta o perfil do técnico autenticado
+      tags:
+      - Perfil do técnico
+    put:
+      description: "Substitui todos os campos pelo que foi enviado. Pode salvar sem\
+        \ endereço: o perfil só fica concluído pela operação de conclusão."
+      operationId: saveTechnicianProfile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TechnicianProfileRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TechnicianProfileResponse"
+          description: Rascunho salvo com sucesso
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Dados de entrada inválidos
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: A conta não tem perfil de técnico
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      summary: Salva o rascunho do perfil
+      tags:
+      - Perfil do técnico
+  /api/technicians/me/profile/completion:
+    post:
+      description: "Exige endereço completo, ao menos uma especialidade (descrita,\
+        \ quando for \"outros\") e os anos de experiência; sem isso, responde com\
+        \ os itens que faltam."
+      operationId: completeTechnicianProfile
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TechnicianProfileResponse"
+          description: Perfil concluído
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Faltam informações obrigatórias
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: A conta não tem perfil de técnico
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      summary: Conclui o perfil
+      tags:
+      - Perfil do técnico
   /api/technicians/{id}:
     delete:
       operationId: deleteByIdTechnician
@@ -11328,6 +11692,35 @@ components:
           - INDEPENDENT
           - AFFILIATED
           - PARTNER
+    Address:
+      type: object
+      properties:
+        city:
+          type: string
+          maxLength: 120
+          minLength: 0
+        complement:
+          type: string
+          maxLength: 120
+          minLength: 0
+        neighborhood:
+          type: string
+          maxLength: 120
+          minLength: 0
+        number:
+          type: string
+          maxLength: 20
+          minLength: 0
+        state:
+          type: string
+          pattern: "^[A-Za-z]{2}$"
+        street:
+          type: string
+          maxLength: 160
+          minLength: 0
+        zipCode:
+          type: string
+          pattern: "^\\d{5}-?\\d{3}$"
     AddressRequestDTO:
       type: object
       properties:
@@ -13250,6 +13643,91 @@ components:
           - ACCEPTED
           - DECLINED
           - REVOKED
+    ProjectInviteLinkPreviewResponse:
+      type: object
+      properties:
+        expiresAt:
+          type: string
+          format: date-time
+        functionName:
+          type: string
+        invitedBy:
+          type: string
+        projectName:
+          type: string
+        role:
+          type: string
+          enum:
+          - OWNER
+          - MANAGER
+          - MEMBER
+          - VIEWER
+    ProjectInviteLinkRequest:
+      type: object
+      properties:
+        expiresInDays:
+          type: integer
+          format: int32
+          maximum: 30
+          minimum: 1
+        functionName:
+          type: string
+          maxLength: 120
+          minLength: 0
+        maxUses:
+          type: integer
+          format: int32
+          maximum: 1000
+          minimum: 1
+        role:
+          type: string
+          enum:
+          - OWNER
+          - MANAGER
+          - MEMBER
+          - VIEWER
+      required:
+      - role
+    ProjectInviteLinkResponse:
+      type: object
+      properties:
+        expiresAt:
+          type: string
+          format: date-time
+        functionName:
+          type: string
+        id:
+          type: string
+          format: uuid
+        maxUses:
+          type: integer
+          format: int32
+        role:
+          type: string
+          enum:
+          - OWNER
+          - MANAGER
+          - MEMBER
+          - VIEWER
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - REVOKED
+        url:
+          type: string
+        useCount:
+          type: integer
+          format: int32
+    ProjectInviteLinkTokenRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          maxLength: 128
+          minLength: 0
+      required:
+      - token
     ProjectLocation:
       type: object
       properties:
@@ -13358,6 +13836,25 @@ components:
         size:
           type: integer
           format: int64
+    ProjectReportResponse:
+      type: object
+      properties:
+        author:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        id:
+          type: string
+          format: uuid
+        photos:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectPhotoResponse"
+        title:
+          type: string
     ProjectRequest:
       type: object
       properties:
@@ -14248,6 +14745,83 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ProfessionSummary"
+    TechnicianProfileRequest:
+      type: object
+      properties:
+        address:
+          $ref: "#/components/schemas/Address"
+        bio:
+          type: string
+          maxLength: 500
+          minLength: 0
+        otherSpecialty:
+          type: string
+          maxLength: 120
+          minLength: 0
+        serviceRadiusKm:
+          type: integer
+          format: int32
+          maximum: 500
+          minimum: 1
+        specialties:
+          type: array
+          items:
+            type: string
+            enum:
+            - INSTALLATION
+            - MAINTENANCE
+            - CLEANING
+            - INSPECTION
+            - PROJECT
+            - OTHER
+          uniqueItems: true
+        yearsExperience:
+          type: integer
+          format: int32
+          maximum: 60
+          minimum: 0
+    TechnicianProfileResponse:
+      type: object
+      properties:
+        address:
+          $ref: "#/components/schemas/Address"
+        bio:
+          type: string
+        completed:
+          type: boolean
+        completedAt:
+          type: string
+          format: date-time
+        missing:
+          type: array
+          items:
+            type: string
+        otherSpecialty:
+          type: string
+        progress:
+          type: integer
+          format: int32
+        serviceRadiusKm:
+          type: integer
+          format: int32
+        specialties:
+          type: array
+          items:
+            type: string
+            enum:
+            - INSTALLATION
+            - MAINTENANCE
+            - CLEANING
+            - INSPECTION
+            - PROJECT
+            - OTHER
+          uniqueItems: true
+        technicianId:
+          type: string
+          format: uuid
+        yearsExperience:
+          type: integer
+          format: int32
     TechnicianRequestDTO:
       type: object
       properties:

@@ -14,6 +14,13 @@ public interface ProjectPhotoRepository extends JpaRepository<ProjectPhoto, UUID
     java.util.List<com.solaria.persistence.dto.response.execution.ProjectPhotoResponse> metadata(
             UUID projectId);
 
+    @Query(
+            "select new"
+                + " com.solaria.persistence.dto.response.execution.ProjectPhotoResponse(p.id,p.name,p.mime,p.cover,p.size,p.createdAt)"
+                + " from ProjectPhoto p where p.projectId=:projectId and p.reportId=:reportId order by p.createdAt")
+    java.util.List<com.solaria.persistence.dto.response.execution.ProjectPhotoResponse> ofReport(
+            UUID projectId, UUID reportId);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update ProjectPhoto p set p.cover=false where p.projectId=:projectId and p.cover=true")
     void clearCover(UUID projectId);

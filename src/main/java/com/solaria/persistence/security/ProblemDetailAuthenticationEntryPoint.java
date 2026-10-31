@@ -18,7 +18,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Classe responsável por montar corpos de Jsons de erro, especificos para autentificação 
+ * Devolve o 401 de autenticação no formato {@link ProblemDetail} ({@code UNAUTHENTICATED})
+ *
+ * <p>
+ * Chamado pelo Spring Security quando o token está ausente, inválido ou expirado -> roda antes do
+ * Spring MVC, por isso a resposta é escrita direto no {@link HttpServletResponse}
+ * </p>
+ *
+ * <p>Marca o span como erro e loga {@code WARN}, igual aos demais 4xx</p>
  */
 @Component
 public class ProblemDetailAuthenticationEntryPoint implements AuthenticationEntryPoint {

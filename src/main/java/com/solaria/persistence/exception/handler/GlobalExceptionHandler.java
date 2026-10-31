@@ -34,18 +34,20 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * Classe responsável por centralizar tratamento de exceções
- * Diferentes handlers foram implementados visando cobrir escopos de: Banco de
- * Dados,
- * Regras de negócio, Jsons, BEAN validations e erros inesperados.
+ * Centraliza o tratamento de exceções da API e devolve qualquer erro como {@link ProblemDetail}
  *
- * Logging -> toda exceção tratada é registrada como erro no tracing e nas
- * métricas (span {@code ERROR} + tag {@code exception} em
- * {@code http.server.requests})
- * gerando um log correlacionado ao trace
- * 
- * {@code WARN} para 4xx
- * {@code ERROR} com stack trace para 5xx
+ * <p>
+ * Cobre regras de negócio ({@code BusinessException}), banco de dados, JSON malformado,
+ * Bean Validation e erros inesperados -> web e mobile recebem sempre o mesmo formato
+ * </p>
+ *
+ * <p>
+ * Toda exceção tratada é marcada como erro no tracing e nas métricas (span {@code ERROR} + tag
+ * {@code exception} em {@code http.server.requests}) e gera log correlacionado ao trace:
+ * {@code WARN} para 4xx, {@code ERROR} com stack trace para 5xx
+ * </p>
+ *
+ * <p>Corpo montado por {@link ProblemDetailFactory}</p>
  */
 
 @RestControllerAdvice

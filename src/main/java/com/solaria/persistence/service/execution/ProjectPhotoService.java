@@ -1,6 +1,6 @@
 package com.solaria.persistence.service.execution;
 
-import com.solaria.persistence.domain.entity.execution.ProjectPhoto;
+import com.solaria.persistence.domain.entity.execution.*;
 import com.solaria.persistence.dto.response.execution.ProjectPhotoResponse;
 import com.solaria.persistence.exception.*;
 import com.solaria.persistence.repository.execution.ProjectPhotoRepository;
@@ -33,6 +33,18 @@ public class ProjectPhotoService {
         var p = projects.entity(id, true);
         access.contribute(p);
         if (cover) access.manage(p);
+        var photo = store(p, file, cover, null);
+        projects.record(p, "PHOTO_ADDED", "Foto adicionada");
+        return response(photo);
+    }
+
+    /** Guarda uma imagem de relatório como foto do projeto; a permissão de contribuir já foi conferida por quem chama. */
+    ProjectPhoto storeForReport(TechnicalProject p, MultipartFile file, UUID reportId) {
+        return store(p, file, false, reportId);
+    }
+
+    private ProjectPhoto store(TechnicalProject p, MultipartFile file, boolean cover, UUID reportId) {
+        var id = p.getId();
         if (file.isEmpty() || file.getSize() > 8 * 1024 * 1024)
             throw new BusinessRuleException("Selecione uma imagem de até 8 MB");
         if (photos.countByProjectId(id) >= 30)
@@ -77,9 +89,8 @@ public class ProjectPhotoService {
         photo.setContent(bytes);
         photo.setCover(cover);
         photo.setUploadedBy(access.user().getId());
-        photos.save(photo);
-        projects.record(p, "PHOTO_ADDED", "Foto adicionada");
-        return response(photo);
+        photo.setReportId(reportId);
+        return photos.save(photo);
     }
 
     public ProjectPhoto read(UUID projectId, UUID id) {
