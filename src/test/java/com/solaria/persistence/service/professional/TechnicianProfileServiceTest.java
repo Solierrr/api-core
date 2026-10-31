@@ -51,7 +51,7 @@ class TechnicianProfileServiceTest {
     }
 
     private static TechnicianProfileRequest request(TechnicianProfileRequest.Address address, Set<TechnicianSpecialty> specialties) {
-        return new TechnicianProfileRequest("  Instalo painéis há anos  ", 8, 60, address, specialties);
+        return new TechnicianProfileRequest("  Instalo painéis há anos  ", 8, 60, address, specialties, null);
     }
 
     @Test
@@ -67,7 +67,7 @@ class TechnicianProfileServiceTest {
 
         assertFalse(response.completed());
         assertEquals(0, response.progress());
-        assertEquals(java.util.List.of("ADDRESS", "SPECIALTIES"), response.missing());
+        assertEquals(java.util.List.of("ADDRESS", "SPECIALTIES", "EXPERIENCE"), response.missing());
         assertTrue(response.specialties().isEmpty());
     }
 
@@ -100,11 +100,50 @@ class TechnicianProfileServiceTest {
         verify(profiles).save(saved.capture());
         when(profiles.findById(technicianId)).thenReturn(Optional.of(saved.getValue()));
 
-        TechnicianProfileResponse response = service.save(new TechnicianProfileRequest(null, null, null, null, Set.of(TechnicianSpecialty.OTHER)));
+        TechnicianProfileResponse response = service.save(new TechnicianProfileRequest(null, null, null, null, Set.of(TechnicianSpecialty.OTHER), null));
 
         assertNull(response.bio());
         assertNull(response.address().street());
         assertEquals(Set.of(TechnicianSpecialty.OTHER), response.specialties());
+    }
+
+    private TechnicianProfileResponse saveAndLoad(TechnicianProfileRequest request) {
+        service.save(request);
+        var saved = ArgumentCaptor.forClass(TechnicianProfile.class);
+        verify(profiles, atLeastOnce()).save(saved.capture());
+        when(profiles.findById(technicianId)).thenReturn(Optional.of(saved.getValue()));
+        return service.get();
+    }
+
+    @Test
+    void theYearsOfExperienceAreRequiredToComplete() {
+        var withoutYears = new TechnicianProfileRequest(null, null, null, address("74000140", "GO"), Set.of(TechnicianSpecialty.INSTALLATION), null);
+
+        assertEquals(java.util.List.of("EXPERIENCE"), saveAndLoad(withoutYears).missing());
+        assertThrows(BusinessRuleException.class, () -> service.complete());
+    }
+
+    @Test
+    void choosingOtherRequiresSayingWhatItIs() {
+        var other = new TechnicianProfileRequest(null, 3, null, address("74000140", "GO"), Set.of(TechnicianSpecialty.OTHER), "  ");
+
+        TechnicianProfileResponse response = saveAndLoad(other);
+
+        assertEquals(java.util.List.of("OTHER_SPECIALTY"), response.missing());
+        assertNull(response.otherSpecialty());
+        assertThrows(BusinessRuleException.class, () -> service.complete());
+    }
+
+    @Test
+    void theDescriptionOfOtherIsKeptOnlyWhileOtherIsSelected() {
+        var described = new TechnicianProfileRequest(null, 3, null, address("74000140", "GO"), Set.of(TechnicianSpecialty.OTHER), "  Eletricista  ");
+        TechnicianProfileResponse response = saveAndLoad(described);
+        assertEquals("Eletricista", response.otherSpecialty());
+        assertTrue(response.missing().isEmpty());
+        assertTrue(service.complete().completed());
+
+        var dropped = new TechnicianProfileRequest(null, 3, null, address("74000140", "GO"), Set.of(TechnicianSpecialty.CLEANING), "Eletricista");
+        assertNull(service.save(dropped).otherSpecialty());
     }
 
     @Test
