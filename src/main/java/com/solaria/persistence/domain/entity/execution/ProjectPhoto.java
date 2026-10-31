@@ -38,6 +38,10 @@ public class ProjectPhoto {
     @Column(name = "uploaded_by_user_id", nullable = false)
     private UUID uploadedBy;
 
+    /** Relatório de onde a imagem veio; vazio nas fotos enviadas direto para o projeto. */
+    @Column(name = "report_id")
+    private UUID reportId;
+
     @Column(nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 }

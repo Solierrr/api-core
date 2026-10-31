@@ -24,6 +24,7 @@ public class ProjectController implements ProjectOpenApi {
     private final ProjectInviteLinkService inviteLinks;
     private final ProjectActivityService agenda;
     private final ProjectPhotoService photos;
+    private final ProjectReportService reports;
 
     @GetMapping("/options")
     public Map<String, Object> options(@RequestParam(required = false) UUID companyId) {
@@ -170,6 +171,26 @@ public class ProjectController implements ProjectOpenApi {
     @GetMapping("/{id}/history")
     public List<Map<String, Object>> history(@PathVariable UUID id) {
         return projects.timeline(id);
+    }
+
+    @GetMapping("/{id}/reports")
+    public List<ProjectReportResponse> reportList(@PathVariable UUID id) {
+        return reports.list(id);
+    }
+
+    @GetMapping("/{id}/reports/{reportId}")
+    public ProjectReportResponse report(@PathVariable UUID id, @PathVariable UUID reportId) {
+        return reports.get(id, reportId);
+    }
+
+    @PostMapping(value = "/{id}/reports", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProjectReportResponse createReport(
+            @PathVariable UUID id,
+            @RequestParam String title,
+            @RequestParam String content,
+            @RequestPart(required = false) List<MultipartFile> files) {
+        return reports.create(id, title, content, files);
     }
 
     @GetMapping("/{id}/photos")

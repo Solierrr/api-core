@@ -112,4 +112,18 @@ public interface ProjectOpenApi {
 
     @Operation(summary = "Define capa do projeto")
     ProjectPhotoResponse cover(UUID id, UUID photoId);
+
+    @Operation(summary = "Lista os relatórios do projeto, do mais recente ao mais antigo")
+    List<ProjectReportResponse> reportList(UUID id);
+
+    @Operation(summary = "Consulta um relatório com o conteúdo e as imagens")
+    ProjectReportResponse report(UUID id, UUID reportId);
+
+    @Operation(
+            summary = "Cria um relatório com título, conteúdo e até 5 imagens",
+            description =
+                    "As imagens passam a fazer parte das fotos do projeto e o relatório entra no histórico."
+                        + " Exige permissão de contribuir.")
+    ProjectReportResponse createReport(
+            UUID id, String title, String content, List<org.springframework.web.multipart.MultipartFile> files);
 }

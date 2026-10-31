@@ -29,6 +29,10 @@ public class ProjectHistory {
     @Column(columnDefinition = "text", nullable = false)
     private String detail;
 
+    /** Relatório a que a entrada se refere, quando houver. */
+    @Column(name = "report_id")
+    private UUID reportId;
+
     @Column(nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 }

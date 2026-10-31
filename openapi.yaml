@@ -6820,6 +6820,120 @@ paths:
       summary: Define capa do projeto
       tags:
       - Projetos
+  /api/projects/{id}/reports:
+    get:
+      operationId: reportListProject
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectReportResponse"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: "Lista os relatórios do projeto, do mais recente ao mais antigo"
+      tags:
+      - Projetos
+    post:
+      description: As imagens passam a fazer parte das fotos do projeto e o relatório
+        entra no histórico. Exige permissão de contribuir.
+      operationId: createReportProject
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: title
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: content
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectReportResponse"
+          description: Created
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: "Cria um relatório com título, conteúdo e até 5 imagens"
+      tags:
+      - Projetos
+  /api/projects/{id}/reports/{reportId}:
+    get:
+      operationId: reportProject
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - in: path
+        name: reportId
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectReportResponse"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: Consulta um relatório com o conteúdo e as imagens
+      tags:
+      - Projetos
   /api/projects/{id}/status:
     patch:
       operationId: statusProject
@@ -13722,6 +13836,25 @@ components:
         size:
           type: integer
           format: int64
+    ProjectReportResponse:
+      type: object
+      properties:
+        author:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        id:
+          type: string
+          format: uuid
+        photos:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectPhotoResponse"
+        title:
+          type: string
     ProjectRequest:
       type: object
       properties:
