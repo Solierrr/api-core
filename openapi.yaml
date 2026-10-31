@@ -6018,6 +6018,60 @@ paths:
       summary: Aceita ou recusa convite autenticado
       tags:
       - Projetos
+  /api/projects/invite-links/preview:
+    post:
+      operationId: previewInviteLinkProject
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectInviteLinkTokenRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectInviteLinkPreviewResponse"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: Consulta o projeto de um link de convite válido
+      tags:
+      - Projetos
+  /api/projects/invite-links/redeem:
+    post:
+      operationId: redeemInviteLinkProject
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectInviteLinkTokenRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectResponse"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: Entra no projeto pelo link de convite
+      tags:
+      - Projetos
   /api/projects/options:
     get:
       operationId: optionsProject
@@ -6368,6 +6422,101 @@ paths:
       security:
       - bearerAuth: []
       summary: Convida por e-mail ou snapshot de equipe
+      tags:
+      - Projetos
+  /api/projects/{id}/invite-links:
+    get:
+      operationId: inviteLinksProject
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectInviteLinkResponse"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: "Lista links de convite do projeto, sem o endereço; apenas gestores"
+      tags:
+      - Projetos
+    post:
+      description: O endereço completo só é devolvido nesta resposta; o servidor guarda
+        apenas o hash
+      operationId: createInviteLinkProject
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectInviteLinkRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectInviteLinkResponse"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: Cria link de convite para Membro ou Observador
+      tags:
+      - Projetos
+  /api/projects/{id}/invite-links/{linkId}:
+    delete:
+      operationId: revokeInviteLinkProject
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - in: path
+        name: linkId
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: No Content
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      security:
+      - bearerAuth: []
+      summary: Desativa um link de convite
       tags:
       - Projetos
   /api/projects/{id}/map-location:
@@ -13250,6 +13399,91 @@ components:
           - ACCEPTED
           - DECLINED
           - REVOKED
+    ProjectInviteLinkPreviewResponse:
+      type: object
+      properties:
+        expiresAt:
+          type: string
+          format: date-time
+        functionName:
+          type: string
+        invitedBy:
+          type: string
+        projectName:
+          type: string
+        role:
+          type: string
+          enum:
+          - OWNER
+          - MANAGER
+          - MEMBER
+          - VIEWER
+    ProjectInviteLinkRequest:
+      type: object
+      properties:
+        expiresInDays:
+          type: integer
+          format: int32
+          maximum: 30
+          minimum: 1
+        functionName:
+          type: string
+          maxLength: 120
+          minLength: 0
+        maxUses:
+          type: integer
+          format: int32
+          maximum: 1000
+          minimum: 1
+        role:
+          type: string
+          enum:
+          - OWNER
+          - MANAGER
+          - MEMBER
+          - VIEWER
+      required:
+      - role
+    ProjectInviteLinkResponse:
+      type: object
+      properties:
+        expiresAt:
+          type: string
+          format: date-time
+        functionName:
+          type: string
+        id:
+          type: string
+          format: uuid
+        maxUses:
+          type: integer
+          format: int32
+        role:
+          type: string
+          enum:
+          - OWNER
+          - MANAGER
+          - MEMBER
+          - VIEWER
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - REVOKED
+        url:
+          type: string
+        useCount:
+          type: integer
+          format: int32
+    ProjectInviteLinkTokenRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          maxLength: 128
+          minLength: 0
+      required:
+      - token
     ProjectLocation:
       type: object
       properties:
