@@ -19,7 +19,9 @@ public class MobileSessionGuard {
             "GET /api/users/me", "GET /api/users/me/mobile-eligibility",
             "GET /api/connections", "GET /api/connections/{id}",
             "GET /api/connections/people", "GET /api/connections/people/{id}",
-            "POST /api/connections", "DELETE /api/connections/{id}", "GET /api/professions");
+            "POST /api/connections", "DELETE /api/connections/{id}", "GET /api/professions",
+            "GET /api/technicians/me/profile", "PUT /api/technicians/me/profile",
+            "POST /api/technicians/me/profile/completion");
     private final ProfessionalOnboardingService onboarding;
     private final RestClient auth;
     private final String serviceToken;
