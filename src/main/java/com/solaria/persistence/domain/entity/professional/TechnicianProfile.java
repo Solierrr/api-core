@@ -46,6 +46,9 @@ public class TechnicianProfile {
     @Column(name = "specialty", nullable = false)
     private Set<TechnicianSpecialty> specialties = EnumSet.noneOf(TechnicianSpecialty.class);
 
+    /** What the technician does when they choose "other"; only kept while that specialty is selected. */
+    private String otherSpecialty;
+
     private OffsetDateTime completedAt;
 
     @Column(nullable = false, updatable = false)

@@ -13,7 +13,8 @@ public record TechnicianProfileRequest(
         @Min(0) @Max(60) Integer yearsExperience,
         @Min(1) @Max(500) Integer serviceRadiusKm,
         @Valid Address address,
-        Set<TechnicianSpecialty> specialties) {
+        Set<TechnicianSpecialty> specialties,
+        @Size(max = 120) String otherSpecialty) {
 
     public record Address(
             @Pattern(regexp = "^\\d{5}-?\\d{3}$") String zipCode,

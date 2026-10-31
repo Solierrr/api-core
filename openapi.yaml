@@ -10241,8 +10241,9 @@ paths:
       - Perfil do técnico
   /api/technicians/me/profile/completion:
     post:
-      description: "Exige endereço completo e ao menos uma especialidade; sem isso,\
-        \ responde com os itens que faltam."
+      description: "Exige endereço completo, ao menos uma especialidade (descrita,\
+        \ quando for \"outros\") e os anos de experiência; sem isso, responde com\
+        \ os itens que faltam."
       operationId: completeTechnicianProfile
       responses:
         "200":
@@ -14620,6 +14621,10 @@ components:
           type: string
           maxLength: 500
           minLength: 0
+        otherSpecialty:
+          type: string
+          maxLength: 120
+          minLength: 0
         serviceRadiusKm:
           type: integer
           format: int32
@@ -14658,6 +14663,8 @@ components:
           type: array
           items:
             type: string
+        otherSpecialty:
+          type: string
         progress:
           type: integer
           format: int32
