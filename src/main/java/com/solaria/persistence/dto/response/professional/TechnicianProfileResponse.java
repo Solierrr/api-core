@@ -8,8 +8,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * {@code missing} lists what still blocks completion ({@code ADDRESS}, {@code SPECIALTIES}); {@code progress} is the
- * share of the five profile items already filled in, 0 to 100.
+ * {@code missing} lists what still blocks completion ({@code ADDRESS}, {@code SPECIALTIES}, {@code OTHER_SPECIALTY},
+ * {@code EXPERIENCE}); {@code progress} is the share of the five profile items already filled in, 0 to 100.
  */
 public record TechnicianProfileResponse(
         UUID technicianId,
@@ -18,6 +18,7 @@ public record TechnicianProfileResponse(
         Integer serviceRadiusKm,
         Address address,
         Set<TechnicianSpecialty> specialties,
+        String otherSpecialty,
         boolean completed,
         OffsetDateTime completedAt,
         int progress,

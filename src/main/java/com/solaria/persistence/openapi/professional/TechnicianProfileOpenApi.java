@@ -37,7 +37,8 @@ public interface TechnicianProfileOpenApi {
 
     @Operation(
         summary = "Conclui o perfil",
-        description = "Exige endereço completo e ao menos uma especialidade; sem isso, responde com os itens que faltam."
+        description = "Exige endereço completo, ao menos uma especialidade (descrita, quando for \"outros\") e os anos de experiência; "
+                + "sem isso, responde com os itens que faltam."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Perfil concluído"),

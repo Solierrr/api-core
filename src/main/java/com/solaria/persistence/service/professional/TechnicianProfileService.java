@@ -23,13 +23,16 @@ import java.util.UUID;
 
 /**
  * The signed-in technician's own profile. Saving is always allowed, even with the address missing, and only keeps a
- * draft; {@link #complete()} is what marks the profile as done, and only when the required data is present.
+ * draft; {@link #complete()} is what marks the profile as done, and only when the required data is present: a complete
+ * address, at least one specialty (described, when it is "other") and the years of experience.
  */
 @Service
 @Transactional
 public class TechnicianProfileService {
     static final String ADDRESS = "ADDRESS";
     static final String SPECIALTIES = "SPECIALTIES";
+    static final String OTHER_SPECIALTY = "OTHER_SPECIALTY";
+    static final String EXPERIENCE = "EXPERIENCE";
     private static final int ITEMS = 5;
     private static final Set<String> STATES = Set.of(
             "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR",
@@ -107,6 +110,7 @@ public class TechnicianProfileService {
         if (r.specialties() != null) specialties.addAll(r.specialties());
         profile.getSpecialties().clear();
         profile.getSpecialties().addAll(specialties);
+        profile.setOtherSpecialty(specialties.contains(TechnicianSpecialty.OTHER) ? text(r.otherSpecialty()) : null);
     }
 
     private static String text(String value) {
@@ -125,17 +129,23 @@ public class TechnicianProfileService {
                 && STATES.contains(p.getState());
     }
 
+    private static boolean needsOtherSpecialty(TechnicianProfile p) {
+        return p.getSpecialties().contains(TechnicianSpecialty.OTHER) && p.getOtherSpecialty() == null;
+    }
+
     static List<String> missing(TechnicianProfile p) {
         List<String> missing = new ArrayList<>();
         if (!hasAddress(p)) missing.add(ADDRESS);
         if (p.getSpecialties().isEmpty()) missing.add(SPECIALTIES);
+        if (needsOtherSpecialty(p)) missing.add(OTHER_SPECIALTY);
+        if (p.getYearsExperience() == null) missing.add(EXPERIENCE);
         return missing;
     }
 
     private static int progress(TechnicianProfile p) {
         int done = 0;
         if (hasAddress(p)) done++;
-        if (!p.getSpecialties().isEmpty()) done++;
+        if (!p.getSpecialties().isEmpty() && !needsOtherSpecialty(p)) done++;
         if (p.getYearsExperience() != null) done++;
         if (p.getServiceRadiusKm() != null) done++;
         if (p.getBio() != null) done++;
@@ -152,6 +162,7 @@ public class TechnicianProfileService {
                         p.getZipCode(), p.getStreet(), p.getNumber(), p.getComplement(),
                         p.getNeighborhood(), p.getCity(), p.getState()),
                 EnumSet.copyOf(p.getSpecialties().isEmpty() ? EnumSet.noneOf(TechnicianSpecialty.class) : p.getSpecialties()),
+                p.getOtherSpecialty(),
                 p.getCompletedAt() != null,
                 p.getCompletedAt(),
                 progress(p),
