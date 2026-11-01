@@ -1,0 +1,8 @@
+{
+  "service": "api-core",
+  "aliases": [
+    "core"
+  ],
+  "project": "DEV",
+  "host": "https://core.solarianetwork.site"
+}
