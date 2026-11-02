@@ -35,14 +35,14 @@ public class ProjectGeocodingService {
         var location = project.getLocation();
         if (location == null || !location.isUsable()) throw new BusinessRuleException("Complete o endereço do projeto");
         if (fresh(location)) return projects.response(project);
-        if (properties.getConsumerToken() == null || properties.getConsumerToken().isBlank())
+        if (properties.getServiceKey() == null || properties.getServiceKey().isBlank())
             throw new BusinessRuleException("Localização temporariamente indisponível");
         var address = java.util.Arrays.asList(location.getStreet(), location.getNumber(), location.getNeighborhood(),
                 location.getCity(), location.getState(), location.getZipCode(), "Brasil").stream()
                 .filter(Objects::nonNull).filter(s -> !s.isBlank()).collect(Collectors.joining(", "));
         try {
-            var response = googleTranslateRestClient.post().uri("/v1/address/geocode")
-                    .headers(h -> h.setBearerAuth(properties.getConsumerToken()))
+            var response = googleTranslateRestClient.post().uri("/internal/address/geocode")
+                    .header("X-Service-Key", properties.getServiceKey())
                     .body(Map.of("address", address, "language", "pt-BR")).retrieve().body(Results.class);
             if (response == null || response.results() == null || response.results().isEmpty())
                 throw new BusinessRuleException("Não encontramos esse endereço no mapa");
