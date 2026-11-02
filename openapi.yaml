@@ -11834,6 +11834,10 @@ components:
               additionalProperties: {}
         loadedAt:
           type: string
+        names:
+          type: object
+          additionalProperties:
+            type: string
         scope:
           type: string
     AuthLoginResponseDTO:

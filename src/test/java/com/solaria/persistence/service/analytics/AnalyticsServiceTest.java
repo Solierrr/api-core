@@ -53,13 +53,24 @@ class AnalyticsServiceTest {
 
     @Test
     void platformReadsTheAdminScopeOnly() {
-        when(reader.read("ADMIN", "*", AnalyticsService.PLATFORM_TABLES)).thenReturn(Map.of());
+        List<String> tables = new java.util.ArrayList<>(AnalyticsService.PLATFORM_TABLES);
+        tables.addAll(AnalyticsService.PLATFORM_DETAIL_TABLES);
+        UUID supplierId = UUID.randomUUID();
+        Company company = new Company();
+        company.setTradeName("Solar XPTO");
+        Supplier supplier = new Supplier();
+        supplier.setId(supplierId);
+        supplier.setCompany(company);
+        when(reader.read("ADMIN", "*", tables)).thenReturn(Map.of("kpi_supplier_offers_summary",
+                List.of(Map.of("supplier_id", supplierId.toString()))));
+        when(supplierRepository.findByIdIn(java.util.Set.of(supplierId))).thenReturn(List.of(supplier));
         when(reader.loadedAt()).thenReturn("2026-11-02T10:00:00Z");
 
         AnalyticsDashboardResponseDTO response = service.platform();
 
         assertEquals("PLATFORM", response.scope());
         assertEquals("2026-11-02T10:00:00Z", response.loadedAt());
+        assertEquals(Map.of(supplierId.toString(), "Solar XPTO"), response.names());
     }
 
     @Test
