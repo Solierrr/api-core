@@ -213,4 +213,17 @@ class RbacAuthorizationServiceTest {
             assertThrows(UnauthorizedAccessException.class, () -> rbac.requireEndpointAccess(route));
         }
     }
+
+    @Test
+    void analyticsPlatformDashboardIsRestrictedToPlatformAdmins() {
+        java.util.UUID userId = java.util.UUID.randomUUID();
+        when(currentUserService.findCurrentUserId()).thenReturn(java.util.Optional.of(userId));
+        when(platformAdminRepository.existsByUserId(userId)).thenReturn(false);
+
+        assertThrows(UnauthorizedAccessException.class, () -> rbac.requireEndpointAccess("GET /api/analytics/platform"));
+
+        when(platformAdminRepository.existsByUserId(userId)).thenReturn(true);
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/analytics/platform"));
+        assertDoesNotThrow(() -> rbac.requireEndpointAccess("GET /api/analytics/companies/{companyId}"));
+    }
 }
