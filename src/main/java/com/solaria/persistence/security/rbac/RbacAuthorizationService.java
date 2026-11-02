@@ -131,11 +131,16 @@ public class RbacAuthorizationService {
         }
         if (endpointIdentifier.contains(" /api/professional-review/") || endpointIdentifier.contains(" /api/brand-review")
                 || endpointIdentifier.equals("POST /api/platform-admins")
+                || endpointIdentifier.equals("GET /api/analytics/platform")
                 || endpointIdentifier.equals("PATCH /api/companies/{id}/approval")
                 || endpointIdentifier.equals("PATCH /api/companies/{id}/rejection")
                 || endpointIdentifier.equals("POST /api/technicians/{id}/approval")
                 || endpointIdentifier.equals("POST /api/technicians/{id}/rejection")) {
             if (!isPlatformAdmin()) throw new UnauthorizedAccessException("Operação restrita ao Admin Solaria");
+            return;
+        }
+        // Dashboard de empresa: o admin da plataforma vê qualquer uma; os demais seguem o cargo e a empresa (service).
+        if ("GET /api/analytics/companies/{companyId}".equals(endpointIdentifier) && isPlatformAdmin()) {
             return;
         }
         if (PUBLIC_CATALOG_ENDPOINTS.contains(endpointIdentifier)) {

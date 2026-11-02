@@ -67,6 +67,8 @@ tags:
 - description: "Gerenciamento das fotos (perfil/banner) de um usuário, armazenadas\
     \ no Cloudinary."
   name: Fotos de Usuários
+- description: Dashboards de indicadores Gold da plataforma e das empresas
+  name: Indicadores
 - description: Gerenciamento dos executores responsáveis pela prestação de serviços
   name: Executores de Serviço
 - description: Gerenciamento das unidades/itens que compõem uma proposta comercial
@@ -435,6 +437,52 @@ paths:
       summary: Atualiza um endereço existente
       tags:
       - Endereços
+  /api/analytics/companies/{companyId}:
+    get:
+      operationId: companyAnalytics
+      parameters:
+      - in: path
+        name: companyId
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsDashboardResponseDTO"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      summary: "Indicadores de uma empresa: o admin da empresa vê a própria; o admin\
+        \ da plataforma vê qualquer uma"
+      tags:
+      - Indicadores
+  /api/analytics/platform:
+    get:
+      operationId: platformAnalytics
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsDashboardResponseDTO"
+          description: OK
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Erro interno inesperado
+      summary: Indicadores da plataforma (somente admin da plataforma)
+      tags:
+      - Indicadores
   /api/brand-requests:
     get:
       operationId: ownBrandRequest
@@ -11770,6 +11818,27 @@ components:
         street:
           type: string
         zipCode:
+          type: string
+    AnalyticsDashboardResponseDTO:
+      type: object
+      properties:
+        companyId:
+          type: string
+          format: uuid
+        kpis:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: object
+              additionalProperties: {}
+        loadedAt:
+          type: string
+        names:
+          type: object
+          additionalProperties:
+            type: string
+        scope:
           type: string
     AuthLoginResponseDTO:
       type: object
