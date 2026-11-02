@@ -29,13 +29,16 @@ public class AnalyticsService {
     static final List<String> PLATFORM_TABLES = List.of(
             "kpi_admin_registrations",
             "kpi_admin_models_by_status",
-            "kpi_admin_proposals_by_status");
+            "kpi_admin_proposals_by_status",
+            "kpi_admin_orders_by_status",
+            "kpi_admin_subscriptions_by_plan");
 
     /** Tabelas por fornecedor e demandante que o admin da plataforma agrega e ranqueia. */
     static final List<String> PLATFORM_DETAIL_TABLES = List.of(
             "kpi_supplier_offers_summary",
             "kpi_supplier_stock_summary",
             "kpi_supplier_proposals_summary",
+            "kpi_supplier_orders_summary",
             "kpi_requester_summary");
 
     static final List<String> SUPPLIER_TABLES = List.of(
@@ -48,7 +51,12 @@ public class AnalyticsService {
             "kpi_supplier_proposals_by_status",
             "kpi_supplier_accepted_value_by_model",
             "kpi_supplier_accepted_value_by_month",
-            "kpi_supplier_accepted_offers_by_date");
+            "kpi_supplier_accepted_offers_by_date",
+            "kpi_supplier_orders_summary",
+            "kpi_supplier_orders_by_status",
+            "kpi_supplier_sales_by_month",
+            "kpi_supplier_sales_by_model",
+            "kpi_supplier_subscription");
 
     static final List<String> REQUESTER_TABLES = List.of(
             "kpi_requester_summary",
