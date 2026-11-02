@@ -15,15 +15,15 @@ import com.solaria.persistence.exception.BusinessRuleException;
 
 class GoogleTranslateServiceTest {
     @Test
-    void sendsNamedFieldsAndConsumerTokenToRegistryAndValidatesLanguages() {
+    void sendsNamedFieldsAndServiceKeyToRegistryAndValidatesLanguages() {
         var builder = RestClient.builder().baseUrl("http://registry.test");
         var server = MockRestServiceServer.bindTo(builder).build();
-        server.expect(requestTo("http://registry.test/v1/i18n/translate"))
-                .andExpect(method(HttpMethod.POST)).andExpect(header("Authorization", "Bearer consumer-test-token"))
+        server.expect(requestTo("http://registry.test/internal/i18n/translate"))
+                .andExpect(method(HttpMethod.POST))
                 .andExpect(header("X-Service-Key", "service-key-0123456789-0123456789-ab"))
                 .andExpect(content().json("{\"fields\":[{\"field_name\":\"title\",\"text\":\"Painel\"}]}"))
                 .andRespond(withSuccess("{\"source_language\":\"pt\",\"translations\":[{\"field_name\":\"title\",\"language\":\"en\",\"value\":\"Panel\"},{\"field_name\":\"title\",\"language\":\"es\",\"value\":\"Panel solar\"}]}", MediaType.APPLICATION_JSON));
-        var properties = new GoogleTranslateProperties(); properties.setConsumerToken("consumer-test-token");
+        var properties = new GoogleTranslateProperties();
         properties.setServiceKey("service-key-0123456789-0123456789-ab");
         var result = new GoogleTranslateService(builder.build(), properties).translateFields(Map.of("title", "Painel"));
         assertEquals("pt", result.sourceLanguage());
@@ -36,15 +36,15 @@ class GoogleTranslateServiceTest {
     void rejectsMissingFieldsAndDoesNotTreatIncompleteResponseAsSuccess() {
         var builder = RestClient.builder().baseUrl("http://registry.test");
         var server = MockRestServiceServer.bindTo(builder).build();
-        server.expect(requestTo("http://registry.test/v1/i18n/translate"))
+        server.expect(requestTo("http://registry.test/internal/i18n/translate"))
                 .andRespond(withSuccess("{\"source_language\":\"pt\",\"translations\":[]}", MediaType.APPLICATION_JSON));
-        var properties = new GoogleTranslateProperties(); properties.setConsumerToken("consumer-test-token");
+        var properties = new GoogleTranslateProperties(); properties.setServiceKey("service-key-0123456789-0123456789-ab");
         assertThrows(BusinessRuleException.class, () -> new GoogleTranslateService(builder.build(), properties).translateFields(Map.of("title", "Painel")));
         server.verify();
     }
 
     @Test
-    void missingConsumerTokenFailsBeforeCallingRegistry() {
+    void missingServiceKeyFailsBeforeCallingRegistry() {
         var builder = RestClient.builder();
         var server = MockRestServiceServer.bindTo(builder).build();
         assertThrows(BusinessRuleException.class, () -> new GoogleTranslateService(builder.build(), new GoogleTranslateProperties()).translateFields(Map.of("title", "Painel")));

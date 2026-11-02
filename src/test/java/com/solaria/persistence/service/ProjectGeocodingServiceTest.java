@@ -31,7 +31,7 @@ class ProjectGeocodingServiceTest {
         var builder = RestClient.builder().baseUrl("http://registry.test");
         server = MockRestServiceServer.bindTo(builder).build();
         var properties = new GoogleTranslateProperties();
-        properties.setConsumerToken("local-test-token");
+        properties.setServiceKey("service-key-0123456789-0123456789-ab");
         geocoding = new ProjectGeocodingService(projects, access, builder.build(), properties);
         project = new TechnicalProject();
         var location = new ProjectLocation();
@@ -47,8 +47,8 @@ class ProjectGeocodingServiceTest {
     }
 
     @Test void partialAddressNeverBecomesAConfirmedMarker() {
-        server.expect(requestTo("http://registry.test/v1/address/geocode"))
-                .andExpect(header("Authorization", "Bearer local-test-token"))
+        server.expect(requestTo("http://registry.test/internal/address/geocode"))
+                .andExpect(header("X-Service-Key", "service-key-0123456789-0123456789-ab"))
                 .andRespond(withSuccess("{\"results\":[{\"latitude\":-23.55,\"longitude\":-46.63,\"partial_match\":true}]}", MediaType.APPLICATION_JSON));
         assertThrows(BusinessRuleException.class, () -> geocoding.resolve(id));
         assertNull(project.getLocation().getLatitude());
@@ -56,7 +56,7 @@ class ProjectGeocodingServiceTest {
     }
 
     @Test void confirmedCoordinatesAreReusedWithoutAnotherGoogleRequest() {
-        server.expect(requestTo("http://registry.test/v1/address/geocode"))
+        server.expect(requestTo("http://registry.test/internal/address/geocode"))
                 .andRespond(withSuccess("{\"results\":[{\"latitude\":-23.55,\"longitude\":-46.63,\"place_id\":\"test-place\",\"partial_match\":false}]}", MediaType.APPLICATION_JSON));
         geocoding.resolve(id);
         var timestamp = project.getLocation().getGeocodedAt();
