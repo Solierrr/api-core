@@ -50,8 +50,8 @@
     "description": "A description for 'app.jwt.issuer'"
   },
   {
-    "name": "google-registry.consumer-token",
+    "name": "google-registry.service-key",
     "type": "java.lang.String",
-    "description": "Token de consumidor do google-registry, usado para detectar o idioma e traduzir o conteudo das ofertas"
+    "description": "Chave de servico do api-core no google-registry (X-Service-Key), usada para traduzir ofertas e geocodificar projetos"
   }
 ]}

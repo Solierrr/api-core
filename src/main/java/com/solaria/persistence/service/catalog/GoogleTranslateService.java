@@ -28,17 +28,12 @@ public class GoogleTranslateService {
     }
 
     public Result translateFields(Map<String, String> fields) {
-        if (properties.getConsumerToken() == null || properties.getConsumerToken().isBlank()) {
-            throw new BusinessRuleException("Google registry consumer token is not configured");
+        if (properties.getServiceKey() == null || properties.getServiceKey().isBlank()) {
+            throw new BusinessRuleException("Google registry service key is not configured");
         }
         try {
-            Response response = googleTranslateRestClient.post().uri("/v1/i18n/translate")
-                    .headers(headers -> {
-                        headers.setBearerAuth(properties.getConsumerToken());
-                        if (properties.getServiceKey() != null && !properties.getServiceKey().isBlank()) {
-                            headers.set("X-Service-Key", properties.getServiceKey());
-                        }
-                    })
+            Response response = googleTranslateRestClient.post().uri("/internal/i18n/translate")
+                    .header("X-Service-Key", properties.getServiceKey())
                     .body(new Request(fields.entrySet().stream().map(entry -> new Field(entry.getKey(), entry.getValue())).toList()))
                     .retrieve().body(Response.class);
             if (response == null || response.sourceLanguage() == null || response.sourceLanguage().isBlank()
