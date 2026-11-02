@@ -13,7 +13,7 @@ info:
     name: CC0-1.0
     url: https://creativecommons.org/publicdomain/zero/1.0/
   title: Solaria — api-core
-  version: 3.0.1 # x-release-please-version
+  version: 3.1.0 # x-release-please-version
 servers:
 - description: QA
   url: https://api-core-cqfn.onrender.com
