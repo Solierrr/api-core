@@ -34,7 +34,6 @@ Os aplicativos e os outros serviços consultam esse cadastro por HTTP. O JWT emi
 - [STATUS.md](./docs/STATUS.md), limitações e divergências verificadas.
 - [Fluxos](./flows/), negociação, execução, aprovação profissional, convites, arquivos e traduções.
 - [Banco de dados](./database/), schema PostgreSQL e cache Redis.
-- [PENDENCIAS.md](./PENDENCIAS.md), diferenças e decisões que dependem do responsável.
 
 ## Contribuindo
 
