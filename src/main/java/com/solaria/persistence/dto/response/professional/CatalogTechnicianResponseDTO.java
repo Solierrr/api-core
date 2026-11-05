@@ -8,5 +8,7 @@ public record CatalogTechnicianResponseDTO(
         String slug,
         String name,
         String crea,
-        List<String> professions) {
+        List<String> professions,
+        String avatarUrl,
+        String bannerUrl) {
 }

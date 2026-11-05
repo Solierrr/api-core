@@ -13,6 +13,7 @@ public interface CompanyPhotoRepository extends JpaRepository<CompanyPhoto, UUID
 
     List<CompanyPhoto> findByCompanyIdOrderByTypeAsc(UUID companyId);
 
+    List<CompanyPhoto> findByCompanyIdIn(java.util.Collection<UUID> companyIds);
     Optional<CompanyPhoto> findByCompanyIdAndType(UUID companyId, PhotoType type);
 
     boolean existsByCompanyId(UUID companyId);

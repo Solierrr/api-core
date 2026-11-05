@@ -20,6 +20,7 @@ import com.solaria.persistence.domain.entity.professional.Profession;
 import com.solaria.persistence.domain.entity.professional.Technician;
 import com.solaria.persistence.dto.response.professional.CatalogTechnicianResponseDTO;
 import com.solaria.persistence.exception.ResourceNotFoundException;
+import com.solaria.persistence.repository.identity.UserPhotoRepository;
 import com.solaria.persistence.repository.professional.ProfessionalRegistrationRepository;
 import com.solaria.persistence.repository.professional.TechnicianRepository;
 
@@ -32,6 +33,9 @@ class TechnicianCatalogServiceTest {
     @Mock
     private ProfessionalRegistrationRepository professionalRegistrationRepository;
 
+    @Mock
+    private UserPhotoRepository userPhotoRepository;
+
     private TechnicianCatalogService technicianCatalogService;
 
     private Technician technician;
@@ -39,7 +43,7 @@ class TechnicianCatalogServiceTest {
 
     @BeforeEach
     void setUp() {
-        technicianCatalogService = new TechnicianCatalogService(technicianRepository, professionalRegistrationRepository);
+        technicianCatalogService = new TechnicianCatalogService(technicianRepository, professionalRegistrationRepository, userPhotoRepository);
 
         Person person = new Person();
         person.setName("Fulano da Silva");

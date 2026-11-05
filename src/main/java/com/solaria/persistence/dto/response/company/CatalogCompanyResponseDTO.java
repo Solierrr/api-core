@@ -7,5 +7,7 @@ public record CatalogCompanyResponseDTO(
         String tradeName,
         String slug,
         String city,
-        String state) {
+        String state,
+        String logoUrl,
+        String bannerUrl) {
 }
