@@ -9,5 +9,7 @@ public record CatalogCompanyResponseDTO(
         String city,
         String state,
         String logoUrl,
-        String bannerUrl) {
+        String bannerUrl,
+        java.util.List<String> activities,
+        boolean hasTechnicalTeam) {
 }

@@ -10,5 +10,6 @@ public record CatalogTechnicianResponseDTO(
         String crea,
         List<String> professions,
         String avatarUrl,
-        String bannerUrl) {
+        String bannerUrl,
+        String affiliationType) {
 }

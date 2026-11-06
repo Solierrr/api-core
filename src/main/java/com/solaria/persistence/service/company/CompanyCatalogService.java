@@ -17,7 +17,10 @@ import com.solaria.persistence.domain.enums.company.CompanyType;
 import com.solaria.persistence.dto.response.company.CatalogCompanyResponseDTO;
 import com.solaria.persistence.exception.ResourceNotFoundException;
 import com.solaria.persistence.repository.catalog.SupplierRepository;
+import com.solaria.persistence.repository.catalog.OfferRepository;
 import com.solaria.persistence.repository.company.CompanyPhotoRepository;
+import com.solaria.persistence.repository.professional.ProfessionalTeamRepository;
+import com.solaria.persistence.repository.professional.TechnicianAffiliationRepository;
 import com.solaria.persistence.repository.company.CompanyRepository;
 
 @Service
@@ -25,12 +28,19 @@ public class CompanyCatalogService {
     private final SupplierRepository supplierRepository;
     private final CompanyRepository companyRepository;
     private final CompanyPhotoRepository companyPhotoRepository;
+    private final OfferRepository offerRepository;
+    private final TechnicianAffiliationRepository affiliationRepository;
+    private final ProfessionalTeamRepository teamRepository;
 
     public CompanyCatalogService(SupplierRepository supplierRepository, CompanyRepository companyRepository,
-                                 CompanyPhotoRepository companyPhotoRepository) {
+                                 CompanyPhotoRepository companyPhotoRepository, OfferRepository offerRepository,
+                                 TechnicianAffiliationRepository affiliationRepository, ProfessionalTeamRepository teamRepository) {
         this.supplierRepository = supplierRepository;
         this.companyRepository = companyRepository;
         this.companyPhotoRepository = companyPhotoRepository;
+        this.offerRepository = offerRepository;
+        this.affiliationRepository = affiliationRepository;
+        this.teamRepository = teamRepository;
     }
 
     @Transactional(readOnly = true)
@@ -62,6 +72,18 @@ public class CompanyCatalogService {
         return toResponse(company, photos);
     }
 
+    // A atividade não é cadastrada: vem do que a empresa tem (ofertas de placas e técnicos vinculados)
+    private List<String> activities(Company company) {
+        List<String> activities = new java.util.ArrayList<>();
+        if (offerRepository.existsBySupplier_Company_Id(company.getId())) {
+            activities.add("SOLAR_PANELS");
+        }
+        if (affiliationRepository.existsByCompanyId(company.getId())) {
+            activities.add("TECHNICIANS");
+        }
+        return activities;
+    }
+
     private CatalogCompanyResponseDTO toResponse(Company company, Map<PhotoType, String> photos) {
         return new CatalogCompanyResponseDTO(
                 company.getId(),
@@ -70,6 +92,8 @@ public class CompanyCatalogService {
                 company.getAddress() == null ? null : company.getAddress().getCity(),
                 company.getAddress() == null ? null : company.getAddress().getState(),
                 photos.get(PhotoType.PROFILE),
-                photos.get(PhotoType.BANNER));
+                photos.get(PhotoType.BANNER),
+                activities(company),
+                teamRepository.existsByCompanyIdAndActiveTrue(company.getId()));
     }
 }

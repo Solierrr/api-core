@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.*;
 import com.solaria.persistence.domain.entity.professional.ProfessionalTeam;
 
 public interface ProfessionalTeamRepository extends JpaRepository<ProfessionalTeam, UUID> {
+    boolean existsByCompanyIdAndActiveTrue(java.util.UUID companyId);
     List<ProfessionalTeam> findByCompanyId(UUID companyId);
     List<ProfessionalTeam> findByActiveTrue();
     @Lock(LockModeType.PESSIMISTIC_WRITE)

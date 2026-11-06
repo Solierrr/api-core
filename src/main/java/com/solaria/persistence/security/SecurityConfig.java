@@ -135,7 +135,7 @@ public class SecurityConfig {
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/catalog/companies", "/api/catalog/companies/*",
                                                                 "/api/catalog/offers", "/api/catalog/offers/*/*",
-                                                                "/api/catalog/technicians", "/api/catalog/technicians/*")
+                                                                "/api/catalog/technicians", "/api/catalog/technicians/*", "/api/catalog/teams")
                                                 .permitAll()
                                                 // Endpoint de conveniência para autenticar direto pelo Swagger
                                                 .requestMatchers(HttpMethod.POST, "/dev/login")

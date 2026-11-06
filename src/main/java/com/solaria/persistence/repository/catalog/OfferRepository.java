@@ -15,6 +15,7 @@ import java.util.UUID;
 
 
 public interface OfferRepository extends JpaRepository<Offer, UUID> {
+    boolean existsBySupplier_Company_Id(UUID companyId);
     @org.springframework.data.jpa.repository.Query(value = "SELECT EXISTS(SELECT 1 FROM offer_status_history WHERE offer_id = :id)", nativeQuery = true)
     boolean existsStatusHistory(@org.springframework.data.repository.query.Param("id") UUID id);
 
