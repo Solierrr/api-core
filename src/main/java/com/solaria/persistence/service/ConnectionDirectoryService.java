@@ -45,6 +45,6 @@ public class ConnectionDirectoryService {
 
     private ConnectionPersonResponse response(UserRepository.ConnectionPerson row, List<UUID> ids) {
         return new ConnectionPersonResponse(row.getId(), row.getName(), row.getUsername(),
-                row.getAvatar(), row.getBanner(), ids.contains(row.getId()));
+                row.getAvatar(), row.getBanner(), ids.contains(row.getId()), row.getAuthId());
     }
 }

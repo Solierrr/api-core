@@ -20,10 +20,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         String getUsername();
         String getAvatar();
         String getBanner();
+        UUID getAuthId();
     }
 
     String PEOPLE = "SELECT u.id, (SELECT min(p.name) FROM person p WHERE p.user_id=u.id) AS name, "
-            + "u.username, u.avatar, u.banner FROM user_account u WHERE u.is_active=true AND u.id<>:owner "
+            + "u.username, u.avatar, u.banner, u.auth_id AS authId FROM user_account u WHERE u.is_active=true AND u.id<>:owner "
             + "AND EXISTS (SELECT 1 FROM person p WHERE p.user_id=u.id) "
             + "AND (CAST(:company AS uuid) IS NULL OR u.managed_by_company_id=:company "
             + "OR EXISTS (SELECT 1 FROM user_company m WHERE m.user_id=u.id AND m.company_id=:company)) "
