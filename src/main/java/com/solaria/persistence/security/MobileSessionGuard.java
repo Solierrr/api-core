@@ -21,7 +21,13 @@ public class MobileSessionGuard {
             "GET /api/connections/people", "GET /api/connections/people/{id}",
             "POST /api/connections", "DELETE /api/connections/{id}", "GET /api/professions",
             "GET /api/technicians/me/profile", "PUT /api/technicians/me/profile",
-            "POST /api/technicians/me/profile/completion");
+            "POST /api/technicians/me/profile/completion",
+            // Perfil: nomes das pessoas do chat, edição do próprio perfil e fotos de perfil (o serviço confere o dono)
+            "GET /api/users/auth/{authId}/summary", "PATCH /api/users/me",
+            "PUT /api/user-photos/user/{userId}/type/{type}", "DELETE /api/user-photos/user/{userId}/type/{type}",
+            "GET /api/company-photos/company/{companyId}",
+            // Agenda do profissional
+            "GET /api/shifts/technician/{technicianId}", "POST /api/shifts", "PUT /api/shifts/{id}", "DELETE /api/shifts/{id}");
     private final ProfessionalOnboardingService onboarding;
     private final RestClient auth;
     private final String serviceToken;
