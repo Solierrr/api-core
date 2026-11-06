@@ -206,7 +206,9 @@ public class RbacAuthorizationService {
         return resolveUserCompany().map(CompanyAccess::companyId);
     }
 
-    @Transactional(readOnly = true)
+    // Sem vínculo com empresa é um caso normal (profissional autônomo); quem chama trata a exceção, então ela não pode
+    // marcar a transação compartilhada como rollback-only (senão o commit falha com UnexpectedRollbackException)
+    @Transactional(readOnly = true, noRollbackFor = UnauthorizedAccessException.class)
     public UUID getCurrentCompanyId() {
         return resolveUserCompany().map(CompanyAccess::companyId).orElseThrow(
                 () -> new UnauthorizedAccessException("Usuário sem vínculo empresarial"));
