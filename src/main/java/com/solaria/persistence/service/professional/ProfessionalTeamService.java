@@ -20,7 +20,8 @@ public class ProfessionalTeamService {
     public record Request(@NotNull UUID companyId, @NotBlank @Size(max=100) String name,
             @NotNull UUID responsibleId, @NotNull @Size(min=1,max=100) List<@NotNull UUID> technicianIds, boolean active) {}
     public record Member(UUID id, String name, String slug) {}
-    public record Response(UUID id, UUID companyId, String companyName, String companySlug, String name, UUID responsibleId, boolean active, List<Member> members) {}
+    public record Response(UUID id, UUID companyId, String companyName, String companySlug, String name, UUID responsibleId, boolean active, List<Member> members,
+            String logoUrl, String bannerUrl, String city, String state) {}
     private final ProfessionalTeamRepository teams;
     private final ProfessionalTeamMemberRepository members;
     private final TechnicianRepository technicians;
@@ -28,6 +29,7 @@ public class ProfessionalTeamService {
     private final ProfessionalOnboardingRepository profiles;
     private final CompanyRepository companies;
     private final RbacAuthorizationService rbac;
+    private final com.solaria.persistence.repository.company.CompanyPhotoRepository companyPhotos;
 
     @Transactional
     public Response save(UUID id, Request request) {
@@ -95,7 +97,16 @@ public class ProfessionalTeamService {
     private Response response(ProfessionalTeam team, List<Technician> selected) {
         return new Response(team.getId(), team.getCompany().getId(), team.getCompany().getTradeName(), team.getCompany().getSlug(), team.getName(),
             team.getResponsible().getId(), team.isActive(), selected.stream()
-                .map(technician -> new Member(technician.getId(),technician.getPerson().getName(),technician.getSlug())).toList());
+                .map(technician -> new Member(technician.getId(),technician.getPerson().getName(),technician.getSlug())).toList(),
+            photo(team, com.solaria.persistence.domain.enums.shared.PhotoType.PROFILE), photo(team, com.solaria.persistence.domain.enums.shared.PhotoType.BANNER),
+            team.getCompany().getAddress() == null ? null : team.getCompany().getAddress().getCity(),
+            team.getCompany().getAddress() == null ? null : team.getCompany().getAddress().getState());
+    }
+
+    // Logo e banner da equipe são os da empresa
+    private String photo(ProfessionalTeam team, com.solaria.persistence.domain.enums.shared.PhotoType type) {
+        return companyPhotos.findByCompanyIdAndType(team.getCompany().getId(), type)
+            .map(com.solaria.persistence.domain.entity.company.CompanyPhoto::getUrl).orElse(null);
     }
 }
 

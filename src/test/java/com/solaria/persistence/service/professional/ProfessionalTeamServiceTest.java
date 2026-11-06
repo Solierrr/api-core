@@ -23,7 +23,8 @@ class ProfessionalTeamServiceTest {
     private final ProfessionalOnboardingRepository profiles=mock(ProfessionalOnboardingRepository.class);
     private final CompanyRepository companies=mock(CompanyRepository.class);
     private final RbacAuthorizationService rbac=mock(RbacAuthorizationService.class);
-    private final ProfessionalTeamService service=new ProfessionalTeamService(teams,members,technicians,affiliations,profiles,companies,rbac);
+    private final com.solaria.persistence.repository.company.CompanyPhotoRepository companyPhotos=mock(com.solaria.persistence.repository.company.CompanyPhotoRepository.class);
+    private final ProfessionalTeamService service=new ProfessionalTeamService(teams,members,technicians,affiliations,profiles,companies,rbac,companyPhotos);
     private final Company company=new Company();
     private final Technician technician=new Technician();
     @BeforeEach void setup() {
