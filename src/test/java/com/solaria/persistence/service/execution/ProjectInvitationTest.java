@@ -108,4 +108,20 @@ class ProjectInvitationTest {
         assertThrows(BusinessRuleException.class, () -> service.respond(invite.getId(), true));
         verify(members, times(1)).save(any());
     }
+
+    @Test
+    void managedAccountCannotAcceptOutsideCompanyButMayDecline() {
+        setup("guest@solaria.test", true);
+        user.setManagedByCompanyId(UUID.randomUUID());
+        project.setOwnerCompanyId(UUID.randomUUID());
+        doThrow(new UnauthorizedAccessException("Conta restrita")).when(access).requireCompanyScope(user, project.getOwnerCompanyId());
+        assertThrows(UnauthorizedAccessException.class, () -> service.respond(invite.getId(), true));
+        verify(members, never()).save(any());
+        assertEquals(com.solaria.persistence.domain.enums.execution.ProjectInvitationStatus.PENDING, invite.getStatus());
+        when(invites.save(invite)).thenReturn(invite);
+        when(projects.entity(project.getId(), false)).thenReturn(project);
+        service.respond(invite.getId(), false);
+        assertEquals(com.solaria.persistence.domain.enums.execution.ProjectInvitationStatus.DECLINED, invite.getStatus());
+        verify(access, times(1)).requireCompanyScope(user, project.getOwnerCompanyId());
+    }
 }

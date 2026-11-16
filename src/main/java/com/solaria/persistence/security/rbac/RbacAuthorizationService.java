@@ -45,6 +45,8 @@ public class RbacAuthorizationService {
             "POST /api/connections",
             "GET /api/connections",
             "GET /api/connections/{id}",
+            "GET /api/connections/people",
+            "GET /api/connections/people/{id}",
             "DELETE /api/connections/{id}",
             "POST /api/access-codes/redeem",
             "POST /api/contacts",

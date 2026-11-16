@@ -48,6 +48,34 @@ class ProjectAccessTest {
     }
 
     @Test
+    void managedAccountCannotUsePersonalOwnershipOutsideItsCompany() {
+        user.setManagedByCompanyId(UUID.randomUUID());
+        project.setOwnerUserId(user.getId());
+        assertThrows(UnauthorizedAccessException.class, () -> access.role(project, user));
+        assertFalse(access.canRead(project, user));
+        verifyNoInteractions(members, companies);
+    }
+
+    @Test
+    void managedAccountCannotUseOldMembershipInAnotherCompany() {
+        user.setManagedByCompanyId(UUID.randomUUID());
+        project.setOwnerCompanyId(UUID.randomUUID());
+        assertThrows(UnauthorizedAccessException.class, () -> access.role(project, user));
+        assertThrows(UnauthorizedAccessException.class, () -> access.requireCompanyScope(user, project.getOwnerCompanyId()));
+        verifyNoInteractions(members, companies);
+    }
+
+    @Test
+    void independentAccountCanReadAnAuthorizedCompanyProject() {
+        project.setOwnerCompanyId(UUID.randomUUID());
+        var member = new ProjectMember();
+        member.setActive(true);
+        member.setRole(ProjectRole.MEMBER);
+        when(members.findByProjectIdAndUserId(project.getId(), user.getId())).thenReturn(Optional.of(member));
+        assertEquals(ProjectRole.MEMBER, access.role(project, user));
+    }
+
+    @Test
     void removedMemberCannotRead() {
         when(members.findByProjectIdAndUserId(project.getId(), user.getId()))
                 .thenReturn(Optional.empty());

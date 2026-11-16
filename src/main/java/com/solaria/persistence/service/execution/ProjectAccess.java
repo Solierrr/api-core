@@ -36,6 +36,7 @@ public class ProjectAccess {
         final UUID companyId = selected;
         return companies
                 .findAllByUserId(u.getId()).stream()
+                .filter(link -> u.getManagedByCompanyId() == null || u.getManagedByCompanyId().equals(link.getCompany().getId()))
                 .filter(link -> companyId == null || companyId.equals(link.getCompany().getId()))
                 .findFirst()
                 .filter(l -> Position.ADMIN_NAME.equals(l.getPosition().getName()))
@@ -46,6 +47,7 @@ public class ProjectAccess {
     public ProjectRole role(TechnicalProject p, User u) {
         if (!Boolean.TRUE.equals(u.getActive()))
             throw new UnauthorizedAccessException("Projeto indisponível");
+        requireCompanyScope(u, p.getOwnerCompanyId());
         if (isOwner(p, u)) return ProjectRole.OWNER;
         return members.findByProjectIdAndUserId(p.getId(), u.getId())
                 .filter(m -> m.isActive())
@@ -72,6 +74,15 @@ public class ProjectAccess {
         return role(p, user());
     }
 
+    public boolean canRead(TechnicalProject project, User actor) {
+        try {
+            role(project, actor);
+            return true;
+        } catch (UnauthorizedAccessException error) {
+            return false;
+        }
+    }
+
     public void manage(TechnicalProject p) {
         var role = read(p);
         if (role != ProjectRole.OWNER && role != ProjectRole.MANAGER)
@@ -95,6 +106,7 @@ public class ProjectAccess {
     }
 
     public void ownCompany(UUID id) {
+        requireCompanyScope(user(), id);
         companies
                 .findByUserIdAndCompanyId(user().getId(), id)
                 .orElseThrow(() -> new UnauthorizedAccessException("Empresa indisponível"));
@@ -102,6 +114,7 @@ public class ProjectAccess {
 
     public void createCompany(UUID id) {
         var u = user();
+        requireCompanyScope(u, id);
         var link =
                 companies
                         .findByUserIdAndCompanyId(u.getId(), id)
@@ -111,5 +124,10 @@ public class ProjectAccess {
             throw new BusinessRuleException("Empresa ainda não aprovada");
         if (!rbac.hasEndpointAccess("POST /api/projects"))
             throw new UnauthorizedAccessException("Sem permissão para criar projetos da empresa");
+    }
+
+    public void requireCompanyScope(User actor, UUID companyId) {
+        if (actor.getManagedByCompanyId() != null && !actor.getManagedByCompanyId().equals(companyId))
+            throw new UnauthorizedAccessException("Conta administrada restrita à própria empresa");
     }
 }

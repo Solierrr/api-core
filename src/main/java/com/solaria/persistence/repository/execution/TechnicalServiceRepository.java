@@ -11,6 +11,9 @@ import java.util.UUID;
 
 public interface TechnicalServiceRepository extends JpaRepository<TechnicalService, UUID> {
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = "technicalProject")
+    List<TechnicalService> findByTechnicalProject_IdInOrderByCreatedAtDesc(List<UUID> projectIds);
+
     List<TechnicalService> findByTechnicalProject_Requester_Company_Id(UUID companyId);
 
     Optional<TechnicalService> findByIdAndTechnicalProject_Requester_Company_Id(UUID id, UUID companyId);

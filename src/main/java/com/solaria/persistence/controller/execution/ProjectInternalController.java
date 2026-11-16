@@ -57,16 +57,17 @@ public class ProjectInternalController {
                     users.findById(m.getUserId())
                             .filter(v -> Boolean.TRUE.equals(v.getActive()))
                             .orElse(null);
-            if (member != null) roster.put(member.getAuth_id(), m.getRole().name());
+            if (member != null && access.canRead(p, member)) roster.put(member.getAuth_id(), m.getRole().name());
         }
         if (p.getOwnerCompanyId() != null)
             for (var l : companies.findByCompanyId(p.getOwnerCompanyId()))
                 if (com.solaria.persistence.domain.entity.identity.Position.ADMIN_NAME.equals(
                                 l.getPosition().getName())
-                        && Boolean.TRUE.equals(l.getUser().getActive()))
+                        && access.canRead(p, l.getUser()))
                     roster.put(l.getUser().getAuth_id(), "OWNER");
         if (p.getOwnerUserId() != null)
             users.findById(p.getOwnerUserId())
+                    .filter(owner -> access.canRead(p, owner))
                     .ifPresent(owner -> roster.put(owner.getAuth_id(), "OWNER"));
         boolean readOnly =
                 p.isArchived()

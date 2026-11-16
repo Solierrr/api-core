@@ -24,11 +24,16 @@ public class ConnectionService {
 
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
+    private final ConnectionVisibility visibility;
+    private final jakarta.persistence.EntityManager entityManager;
 
     public ConnectionService(UserRepository userRepository,
-                             CurrentUserService currentUserService) {
+                             CurrentUserService currentUserService, ConnectionVisibility visibility,
+                             jakarta.persistence.EntityManager entityManager) {
         this.userRepository = userRepository;
         this.currentUserService = currentUserService;
+        this.visibility = visibility;
+        this.entityManager = entityManager;
     }
 
     @Transactional
@@ -47,6 +52,9 @@ public class ConnectionService {
         if (!Boolean.TRUE.equals(connectedUser.getActive())) {
             throw new BusinessRuleException("Não é possível conectar-se a um usuário inativo");
         }
+        if (!visibility.visible(owner, connectedUser)) {
+            throw new ResourceNotFoundException("Perfil não disponível");
+        }
 
         List<UUID> connections = mutableConnections(owner);
         if (connections.contains(connectedUser.getId())) {
@@ -61,7 +69,8 @@ public class ConnectionService {
 
     @Transactional(readOnly = true)
     public List<UserResponseDTO> findAll() {
-        List<UUID> connectionIds = connectionsOf(currentUserService.getCurrentUser());
+        User owner = currentUserService.getCurrentUser();
+        List<UUID> connectionIds = connectionsOf(owner);
         if (connectionIds.isEmpty()) {
             return List.of();
         }
@@ -72,7 +81,7 @@ public class ConnectionService {
 
         return connectionIds.stream()
                 .map(usersById::get)
-                .filter(user -> user != null)
+                .filter(user -> user != null && visibility.visible(owner, user))
                 .map(this::toUserResponse)
                 .toList();
     }
@@ -84,6 +93,7 @@ public class ConnectionService {
         User connectedUser = userRepository.findById(connectedUserId).orElseThrow(
                 () -> new ResourceNotFoundException(
                         "Usuário conectado não encontrado com ID: " + connectedUserId));
+        if (!visibility.visible(owner, connectedUser)) throw new ResourceNotFoundException("Perfil não disponível");
         return toUserResponse(connectedUser);
     }
 
@@ -101,8 +111,10 @@ public class ConnectionService {
     }
 
     private User findOwnerForUpdate(UUID ownerId) {
-        return userRepository.findByIdForUpdate(ownerId).orElseThrow(
+        User owner = userRepository.findByIdForUpdate(ownerId).orElseThrow(
                 () -> new ResourceNotFoundException("Usuário autenticado não encontrado na api-core"));
+        entityManager.refresh(owner);
+        return owner;
     }
 
     private void requireConnection(User owner, UUID connectedUserId) {

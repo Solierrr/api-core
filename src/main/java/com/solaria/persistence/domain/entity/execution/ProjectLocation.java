@@ -9,6 +9,26 @@ import lombok.*;
 @Getter
 @Setter
 public class ProjectLocation {
+    @DecimalMin("-90") @DecimalMax("90")
+    @Column(name = "location_latitude")
+    private Double latitude;
+
+    @DecimalMin("-180") @DecimalMax("180")
+    @Column(name = "location_longitude")
+    private Double longitude;
+
+    @Size(max = 300)
+    @Column(name = "location_place_id")
+    private String placeId;
+
+    @com.fasterxml.jackson.annotation.JsonProperty(access = com.fasterxml.jackson.annotation.JsonProperty.Access.READ_ONLY)
+    @Column(name = "location_geocoded_at")
+    private java.time.OffsetDateTime geocodedAt;
+
+    @AssertTrue(message = "Latitude e longitude devem ser informadas juntas")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public boolean isCoordinatePairValid() { return (latitude == null) == (longitude == null); }
+
     @Size(max = 2)
     @Pattern(regexp = "(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)|^$")
     @Column(name = "location_state")
@@ -37,6 +57,12 @@ public class ProjectLocation {
     @Size(max = 180)
     @Column(name = "location_complement")
     private String complement;
+
+    public Double getLatitude() { return coordinatesExpired() ? null : latitude; }
+    public Double getLongitude() { return coordinatesExpired() ? null : longitude; }
+    private boolean coordinatesExpired() {
+        return geocodedAt != null && !geocodedAt.isAfter(java.time.OffsetDateTime.now().minusDays(29));
+    }
 
     public boolean isUsable() {
         return city != null

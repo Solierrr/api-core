@@ -18,6 +18,7 @@ public class MobileSessionGuard {
     private static final Set<String> ALLOWED = Set.of(
             "GET /api/users/me", "GET /api/users/me/mobile-eligibility",
             "GET /api/connections", "GET /api/connections/{id}",
+            "GET /api/connections/people", "GET /api/connections/people/{id}",
             "POST /api/connections", "DELETE /api/connections/{id}", "GET /api/professions");
     private final ProfessionalOnboardingService onboarding;
     private final RestClient auth;

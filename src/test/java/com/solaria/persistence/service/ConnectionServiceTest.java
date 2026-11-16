@@ -37,15 +37,19 @@ class ConnectionServiceTest {
     @Mock
     private CurrentUserService currentUserService;
 
+    @Mock private ConnectionVisibility visibility;
+    @Mock private jakarta.persistence.EntityManager entityManager;
+
     private ConnectionService connectionService;
     private User owner;
     private User connectedUser;
 
     @BeforeEach
     void setUp() {
-        connectionService = new ConnectionService(userRepository, currentUserService);
+        connectionService = new ConnectionService(userRepository, currentUserService, visibility, entityManager);
         owner = user(UUID.randomUUID(), "owner", true);
         connectedUser = user(UUID.randomUUID(), "connected", true);
+        org.mockito.Mockito.lenient().when(visibility.visible(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(true);
     }
 
     @Test
@@ -71,6 +75,22 @@ class ConnectionServiceTest {
                 () -> connectionService.save(requestFor(owner.getId())));
 
         verify(userRepository, never()).save(owner);
+    }
+
+    @Test
+    void shouldPreserveConnectionCommittedBeforeOwnerLockWasAcquired() {
+        UUID previous = UUID.randomUUID();
+        when(currentUserService.getCurrentUser()).thenReturn(owner);
+        when(userRepository.findByIdForUpdate(owner.getId())).thenReturn(Optional.of(owner));
+        when(userRepository.findById(connectedUser.getId())).thenReturn(Optional.of(connectedUser));
+        org.mockito.Mockito.doAnswer(invocation -> {
+            owner.setConnections(new ArrayList<>(List.of(previous)));
+            return null;
+        }).when(entityManager).refresh(owner);
+
+        connectionService.save(requestFor(connectedUser.getId()));
+
+        assertEquals(List.of(previous, connectedUser.getId()), owner.getConnections());
     }
 
     @Test

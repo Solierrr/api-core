@@ -17,6 +17,11 @@ import com.solaria.persistence.dto.request.ConnectionRequestDTO;
 import com.solaria.persistence.dto.response.identity.UserResponseDTO;
 import com.solaria.persistence.openapi.ConnectionOpenApi;
 import com.solaria.persistence.service.ConnectionService;
+import com.solaria.persistence.service.ConnectionDirectoryService;
+import com.solaria.persistence.dto.response.ConnectionPeopleResponse;
+import com.solaria.persistence.dto.response.ConnectionPersonResponse;
+import com.solaria.persistence.exception.InvalidFieldException;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +32,22 @@ import lombok.RequiredArgsConstructor;
 public class ConnectionController implements ConnectionOpenApi {
 
     private final ConnectionService connectionService;
+    private final ConnectionDirectoryService directory;
+
+    @GetMapping("/people")
+    public ResponseEntity<ConnectionPeopleResponse> people(
+            @RequestParam(defaultValue = "") String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "false") boolean connectedOnly) {
+        if (page < 0 || page > 10000 || query.length() > 120)
+            throw new InvalidFieldException("Busca inválida");
+        return ResponseEntity.ok(directory.search(query, page, connectedOnly));
+    }
+
+    @GetMapping("/people/{id}")
+    public ResponseEntity<ConnectionPersonResponse> person(@PathVariable UUID id) {
+        return ResponseEntity.ok(directory.profile(id));
+    }
 
     @Override
     @PostMapping

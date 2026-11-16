@@ -138,6 +138,7 @@ public class ProjectInvitationService {
                 || !Boolean.TRUE.equals(jwt.getToken().getClaimAsBoolean("email_verified")))
             throw new BusinessRuleException(
                     "Verifique o e-mail da conta e renove sua sessão para responder ao convite");
+        if (accept) access.requireCompanyScope(u, p.getOwnerCompanyId());
         access.mutable(p);
         i.setStatus(accept ? ProjectInvitationStatus.ACCEPTED : ProjectInvitationStatus.DECLINED);
         i.setRespondedAt(OffsetDateTime.now());
